@@ -18,6 +18,8 @@ struct SecondFactorPrompt: Sendable, Hashable, CustomStringConvertible, CustomDe
     var serverMessage: String?
     /// The call that was refused, e.g. `GET servers`.
     var refusedCall: String
+    /// What the server answered, for diagnostics: status, code and top-level key names (never values).
+    var trigger: String = "HTTP 403 \(SecondFactorChallenge.requiredCode)"
 
     /// Methods the app can answer with, authenticator first. When the server named none, both.
     var usableMethods: [SecondFactorMethod] {
@@ -33,7 +35,7 @@ struct SecondFactorPrompt: Sendable, Hashable, CustomStringConvertible, CustomDe
         case .session: "session"
         case .credentials: "credentials"
         }
-        return "SecondFactorPrompt(stage: \(stageName), methods: \(methods.map(\.rawValue)), refused: \(refusedCall))"
+        return "SecondFactorPrompt(stage: \(stageName), methods: \(methods.map(\.rawValue)), refused: \(refusedCall), trigger: \(trigger))"
     }
 
     var debugDescription: String { description }
@@ -163,7 +165,8 @@ struct AuthService: Sendable {
                 stage: .credentials(email: email, password: password, challenge: nil),
                 methods: challenge.methods,
                 serverMessage: challenge.serverMessage,
-                refusedCall: "POST auth/login"
+                refusedCall: "POST auth/login",
+                trigger: "HTTP 403 \(SecondFactorChallenge.requiredCode) methods=[\(challenge.methodNames.joined(separator: ","))]"
             ))
         }
         if answer.asksForSecondFactor {
@@ -171,7 +174,8 @@ struct AuthService: Sendable {
                 stage: .credentials(email: email, password: password, challenge: answer.challenge),
                 methods: answer.methods.compactMap(SecondFactorMethod.init(rawValue:)),
                 serverMessage: nil,
-                refusedCall: "POST auth/login"
+                refusedCall: "POST auth/login",
+                trigger: "HTTP 2xx secondFactorRequired=\(answer.secondFactorRequired) challenge=\(answer.challenge.map { $0.isNull ? "null" : "present" } ?? "absent") keys=[\(answer.keys.joined(separator: ","))] methods=[\(answer.methods.joined(separator: ","))]"
             ))
         }
         guard let tokens = answer.tokens else { throw AuthFlowError.missingTokens(keys: answer.keys) }

@@ -106,6 +106,7 @@ struct AuthServiceTests {
         guard case .credentials = prompt.stage else { Issue.record("expected credentials stage"); return }
         #expect(prompt.refusedCall == "POST auth/login")
         #expect(prompt.usableMethods == [.totp, .backupCode])
+        #expect(prompt.trigger.hasPrefix("HTTP 403 second_factor_step_up_required"))
         let done = try await core.auth.submitSecondFactor(.totp("654321"), for: prompt)
         guard case .signedIn = done else { Issue.record("not signed in"); return }
         let resent = try #require(core.server.requests("POST auth/login").last)
@@ -118,6 +119,7 @@ struct AuthServiceTests {
         let outcome = try await core.auth.signIn(email: "a@b.c", password: "pw")
         guard case .secondFactorRequired(let prompt) = outcome else { Issue.record("no prompt"); return }
         #expect(prompt.usableMethods == [.backupCode])
+        #expect(prompt.trigger == "HTTP 2xx secondFactorRequired=true challenge=present keys=[challenge,methods,secondFactorRequired] methods=[backup_code]")
         guard case .credentials(_, _, let challenge) = prompt.stage else { Issue.record("stage"); return }
         #expect(challenge == "chal-1")
         #expect(LoginSecondFactorContract.body(email: "a", password: "p", challenge: challenge, answer: .backupCode("x"))

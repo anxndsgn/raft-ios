@@ -148,7 +148,7 @@ final class DebugCoreModel {
             statusLine = value.passkeyOnly
                 ? "This account only has a passkey. Passkeys aren't supported here yet; use another method (authenticator or backup code) or sign in with the browser."
                 : "Two-step verification required."
-            record("Step-up required: \(value.refusedCall) → second_factor_step_up_required; stage=\(Self.stageName(value)); methods=[\(methods)]")
+            record("Step-up required: \(value.refusedCall) → \(value.trigger); stage=\(Self.stageName(value)); methods=[\(methods)]")
         case .secondFactorRefused(let result, let value):
             code = ""
             statusLine = result.displayMessage
