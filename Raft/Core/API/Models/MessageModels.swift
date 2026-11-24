@@ -311,9 +311,13 @@ struct ThreadSummary: Sendable, Hashable, Decodable {
     var unreadCount: Int?
     var lastReplyAt: String?
     var participantIds: [String]
+    /// The newest replies, oldest first (the thread preview under the parent).
+    var latestReplies: [ThreadReplyPreview]
+    /// This person follows the thread.
+    var followed: Bool?
     var raw: JSONValue
 
-    private enum CodingKeys: String, CodingKey { case threadChannelId, parentMessageId, replyCount, unreadCount, lastReplyAt, participantIds }
+    private enum CodingKeys: String, CodingKey { case threadChannelId, parentMessageId, replyCount, unreadCount, lastReplyAt, participantIds, latestReplies, followed }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -323,7 +327,56 @@ struct ThreadSummary: Sendable, Hashable, Decodable {
         unreadCount = c.flexibleInt(.unreadCount)
         lastReplyAt = c.lenient(.lastReplyAt)
         participantIds = c.lenient(.participantIds) ?? []
+        latestReplies = c.lenientArray(.latestReplies)
+        followed = c.lenient(.followed)
         raw = (try? JSONValue(from: decoder)) ?? .null
+    }
+}
+
+/// One of a thread summary's `latestReplies` (server `ThreadSummaryLatestReply`).
+struct ThreadReplyPreview: Sendable, Hashable, Decodable, Identifiable {
+    var messageId: String
+    var seq: Int64?
+    var preview: String
+    var senderId: String
+    var senderType: String
+    var senderName: String?
+    var senderAvatarUrl: String?
+    var createdAt: String?
+
+    var id: String { messageId }
+
+    private enum CodingKeys: String, CodingKey { case messageId, seq, preview, senderId, senderType, senderName, senderDisplayName, senderAvatarUrl, createdAt }
+
+    init(messageId: String, seq: Int64?, preview: String, senderId: String, senderType: String, senderName: String?, senderAvatarUrl: String? = nil, createdAt: String?) {
+        self.messageId = messageId
+        self.seq = seq
+        self.preview = preview
+        self.senderId = senderId
+        self.senderType = senderType
+        self.senderName = senderName
+        self.senderAvatarUrl = senderAvatarUrl
+        self.createdAt = createdAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        messageId = try c.requiredId(.messageId)
+        seq = c.flexibleInt64(.seq)
+        preview = c.lenient(.preview) ?? ""
+        senderId = c.lenient(.senderId) ?? ""
+        senderType = c.lenient(.senderType) ?? "user"
+        senderName = c.lenient(.senderDisplayName) ?? c.lenient(.senderName)
+        senderAvatarUrl = c.lenient(.senderAvatarUrl)
+        createdAt = c.lenient(.createdAt)
+    }
+
+    /// The preview of a full reply message (`thread:updated` `latestReply`).
+    init(_ message: Message) {
+        self.init(
+            messageId: message.id, seq: message.seq, preview: message.content, senderId: message.senderId,
+            senderType: message.senderType, senderName: message.senderName, createdAt: message.createdAt
+        )
     }
 }
 
@@ -402,11 +455,16 @@ struct InboxItem: Sendable, Hashable, Decodable, Identifiable {
     var hasMention: Bool
     var replyCount: Int?
     var readStateVersion: Int64?
+    /// `lastMessageSenderType/Id` or `latestActivitySenderType/Id`.
+    var senderType: String?
+    var senderId: String?
+    var isFollowing: Bool?
 
     private enum CodingKeys: String, CodingKey {
         case kind, channelId, channelName, channelType, threadChannelId, parentMessageId, parentChannelId
         case parentChannelName, parentChannelType, parentMessagePreview
         case lastMessagePreview, latestActivityPreview, lastMessageSenderName, latestActivitySenderName
+        case lastMessageSenderType, latestActivitySenderType, lastMessageSenderId, latestActivitySenderId, isFollowing
         case lastMessageId, latestActivityMessageId, lastMessageAt, lastActivityAt, latestActivitySeq
         case firstUnreadMessageId, firstMentionMessageId, unreadCount, hasMention, replyCount, readStateVersion
         case id
@@ -435,6 +493,9 @@ struct InboxItem: Sendable, Hashable, Decodable, Identifiable {
         hasMention = c.lenient(.hasMention) ?? false
         replyCount = c.flexibleInt(.replyCount)
         readStateVersion = c.flexibleInt64(.readStateVersion)
+        senderType = c.lenient(.lastMessageSenderType) ?? c.lenient(.latestActivitySenderType)
+        senderId = c.lenient(.lastMessageSenderId) ?? c.lenient(.latestActivitySenderId)
+        isFollowing = c.lenient(.isFollowing)
         objectId = c.lenient(.id)
         guard scopeChannelId != nil || objectId != nil else {
             throw DecodingError.keyNotFound(CodingKeys.channelId, .init(codingPath: c.codingPath, debugDescription: "row without an id"))

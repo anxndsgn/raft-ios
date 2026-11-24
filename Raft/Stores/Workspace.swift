@@ -28,7 +28,17 @@ final class Workspace {
     let currentUserId: String
     let channelList: ChannelListStore
     let activity: ActivityStore
-    private(set) var connection: RealtimeStatus = .idle
+    /// People and agents (loaded by the app, not by `start()`).
+    let directory: DirectoryStore
+    let homeExtras: HomeExtrasStore
+    @ObservationIgnored let attachments: AttachmentStore
+    private(set) var connection: RealtimeStatus = .idle {
+        didSet {
+            if case .connected = connection { lastConnectedAt = Date() }
+        }
+    }
+    /// The last time the socket was connected (the offline banner's "Updated").
+    private(set) var lastConnectedAt: Date?
     /// `rooms:join_failed` until the next `rooms:joined`: channel messages may not arrive.
     private(set) var isDegraded = false
 
@@ -60,11 +70,23 @@ final class Workspace {
         self.realtime = realtime
         channelList = ChannelListStore(api: api, serverId: serverId, currentUserId: currentUserId)
         activity = ActivityStore(api: api, currentUserId: currentUserId)
+        directory = DirectoryStore(api: api, serverId: serverId)
+        homeExtras = HomeExtrasStore(api: api, serverId: serverId, preferences: preferences)
+        attachments = AttachmentStore(api: api)
     }
 
     var isConnected: Bool {
         if case .connected = connection { return true }
         return false
+    }
+
+    /// Lost a connection it had (not the first connect at launch).
+    var isOffline: Bool {
+        switch connection {
+        case .connected, .idle: false
+        case .connecting: lastConnectedAt != nil
+        case .reconnecting, .stopped: true
+        }
     }
 
     // MARK: Lifecycle
@@ -192,6 +214,17 @@ final class Workspace {
             }
         }
     }
+
+    #if DEBUG
+    func debugSet(connection: RealtimeStatus) {
+        self.connection = connection
+    }
+
+    /// Registers a seeded store so `conversation(for:)` returns it.
+    func debugRegister(_ store: ConversationStore) {
+        register(store)
+    }
+    #endif
 
     // MARK: Event routing
 

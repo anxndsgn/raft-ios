@@ -7,6 +7,9 @@ struct ThreadInfo: Hashable, Sendable {
     var replyCount: Int
     var lastReplyAt: String?
     var unreadCount: Int?
+    /// The newest replies, oldest first (at most two are shown).
+    var latestReplies: [ThreadReplyPreview] = []
+    var followed: Bool?
 }
 
 /// A message sent from this device that the server has not confirmed yet (or refused).
@@ -24,6 +27,10 @@ struct PendingSend: Identifiable, Hashable, Sendable {
     var mentions: [MessageMention]
     var state: State
     let createdAt: Date
+    var attachmentIds: [String] = []
+    /// Local names of the files sent with it (shown while pending).
+    var attachmentNames: [String] = []
+    var asTask = false
 
     var id: String { randomId }
 }
@@ -273,6 +280,9 @@ final class ConversationStore {
             info.replyCount = update.replyCount
             info.lastReplyAt = update.lastReplyAt ?? info.lastReplyAt
             info.unreadCount = update.unreadCount ?? info.unreadCount
+            if let reply = update.latestReply, !info.latestReplies.contains(where: { $0.messageId == reply.id }) {
+                info.latestReplies = Array((info.latestReplies + [ThreadReplyPreview(reply)]).suffix(2))
+            }
             threads[update.parentMessageId] = info
         }
         if kind == .thread, update.threadChannelId == channelId, let reply = update.latestReply {
@@ -334,13 +344,13 @@ final class ConversationStore {
 
     /// Optimistic send: a pending row at once, replaced by the server's copy (matched by
     /// `randomId`, from the answer or `message:new`, whichever lands first).
-    func send(_ text: String, mentions: [MessageMention] = []) async {
+    func send(_ text: String, mentions: [MessageMention] = [], attachmentIds: [String] = [], attachmentNames: [String] = [], asTask: Bool = false) async {
         guard !preferences.readOnly else {
             errorMessage = StoreError.readOnly.errorDescription
             return
         }
         let content = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !content.isEmpty else { return }
+        guard !content.isEmpty || !attachmentIds.isEmpty else { return }
         guard content.count <= SendMessageBody.maxContentLength else {
             errorMessage = "That message is too long."
             return
@@ -351,7 +361,10 @@ final class ConversationStore {
             content: content,
             mentions: mentions,
             state: .sending,
-            createdAt: now()
+            createdAt: now(),
+            attachmentIds: attachmentIds,
+            attachmentNames: attachmentNames,
+            asTask: asTask
         )
         pending.append(item)
         await deliver(item.randomId)
@@ -377,6 +390,8 @@ final class ConversationStore {
         let body = SendMessageBody(
             channelId: item.channelId,
             content: item.content,
+            attachmentIds: item.attachmentIds,
+            asTask: item.asTask,
             randomId: item.randomId,
             mentions: item.mentions.isEmpty ? nil : item.mentions
         )
@@ -447,6 +462,19 @@ final class ConversationStore {
         }
     }
 
+    #if DEBUG
+    /// Preview gallery: a conversation state without a server round trip.
+    func debugSeed(phase: Phase, messages: [Message], pending: [PendingSend] = [], hasOlder: Bool = false, loadingOlder: Bool = false, typingAgentIds: [String] = [], threads: [String: ThreadSummary] = [:]) {
+        self.phase = phase
+        self.messages = Self.sorted(messages)
+        self.pending = pending
+        self.hasOlder = hasOlder
+        isLoadingOlder = loadingOlder
+        self.typingAgentIds = typingAgentIds
+        absorbThreads(threads, from: messages)
+    }
+    #endif
+
     // MARK: Helpers
 
     private func merge(_ incoming: [Message]) {
@@ -464,7 +492,9 @@ final class ConversationStore {
                 threadChannelId: summary.threadChannelId,
                 replyCount: summary.replyCount,
                 lastReplyAt: summary.lastReplyAt,
-                unreadCount: summary.unreadCount
+                unreadCount: summary.unreadCount,
+                latestReplies: summary.latestReplies,
+                followed: summary.followed
             )
         }
         for message in messages {

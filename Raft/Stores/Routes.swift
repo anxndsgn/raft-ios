@@ -34,6 +34,10 @@ struct ThreadRef: Hashable, Sendable {
 enum AppRoute: Hashable, Sendable {
     case conversation(ConversationRef)
     case thread(ThreadRef)
+    /// The server picker, pushed from Home's switcher.
+    case servers
+    /// Saved messages (Home's Saved chip).
+    case saved
 }
 
 enum AppTab: String, Hashable, CaseIterable, Sendable {

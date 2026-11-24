@@ -24,6 +24,8 @@ final class ThreadStore {
     private(set) var replies: ConversationStore?
     private(set) var replyCount: Int?
     private(set) var isCreatingThread = false
+    /// This person follows the thread (nil until known).
+    private(set) var isFollowing: Bool?
     var errorMessage: String?
 
     @ObservationIgnored private let api: RaftAPI
@@ -68,12 +70,11 @@ final class ThreadStore {
         if threadChannelId == nil {
             threadChannelId = parent?.threadSummary?.threadChannelId
         }
-        if threadChannelId == nil {
-            let summaries = try? await api.threadSummaries(channelId: parentChannelId, parentMessageIds: [parentMessageId])
-            if let summary = summaries?[parentMessageId] {
-                threadChannelId = summary.threadChannelId
-                replyCount = summary.replyCount
-            }
+        let summaries = try? await api.threadSummaries(channelId: parentChannelId, parentMessageIds: [parentMessageId])
+        if let summary = summaries?[parentMessageId] {
+            threadChannelId = threadChannelId ?? summary.threadChannelId
+            replyCount = summary.replyCount
+            isFollowing = summary.followed
         }
         if let threadChannelId, let store = attachReplies(threadChannelId) {
             await store.start(focusMessageId: focusMessageId)
@@ -90,13 +91,29 @@ final class ThreadStore {
         joinedChannelId = nil
     }
 
-    /// Sends a reply; the first one creates the thread.
-    func sendReply(_ text: String, mentions: [MessageMention] = []) async {
+    /// Follow / unfollow (`POST channels/threads/follow|unfollow`), optimistic.
+    func setFollowing(_ follow: Bool) async {
         guard !preferences.readOnly else {
             errorMessage = StoreError.readOnly.errorDescription
             return
         }
-        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        let previous = isFollowing
+        isFollowing = follow
+        do {
+            try await api.setThreadFollow(parentMessageId: parentMessageId, follow: follow)
+        } catch {
+            isFollowing = previous
+            errorMessage = ErrorText.describe(error)
+        }
+    }
+
+    /// Sends a reply; the first one creates the thread.
+    func sendReply(_ text: String, mentions: [MessageMention] = [], attachmentIds: [String] = [], attachmentNames: [String] = []) async {
+        guard !preferences.readOnly else {
+            errorMessage = StoreError.readOnly.errorDescription
+            return
+        }
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !attachmentIds.isEmpty else { return }
         if replies == nil {
             isCreatingThread = true
             defer { isCreatingThread = false }
@@ -110,7 +127,8 @@ final class ThreadStore {
                 return
             }
         }
-        await replies?.send(text, mentions: mentions)
+        await replies?.send(text, mentions: mentions, attachmentIds: attachmentIds, attachmentNames: attachmentNames)
+        if isFollowing == false { isFollowing = true }
     }
 
     // MARK: Live
@@ -134,6 +152,17 @@ final class ThreadStore {
         guard message.id == parentMessageId else { return }
         parent = message
     }
+
+    #if DEBUG
+    func debugSeed(parent: Message, replies: ConversationStore?, following: Bool? = true) {
+        self.parent = parent
+        self.replies = replies
+        isFollowing = following
+        replyCount = replies?.messages.count
+        threadChannelId = replies?.channelId
+        phase = .loaded
+    }
+    #endif
 
     @discardableResult
     private func attachReplies(_ threadChannelId: String) -> ConversationStore? {
@@ -260,6 +289,14 @@ final class ActivityStore {
             if count == 0 { items[index].hasMention = false }
         }
     }
+
+    #if DEBUG
+    func debugSeed(phase: Phase, items: [InboxItem], filter: Filter = .all) {
+        self.phase = phase
+        self.items = items
+        self.filter = filter
+    }
+    #endif
 
     /// Where a row leads: the conversation at its first mention / unread / latest message, or the
     /// thread. Object rows (apps) and task conversations are not part of v1.

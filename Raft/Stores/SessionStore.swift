@@ -34,6 +34,10 @@ final class SessionStore {
     var errorMessage: String?
     /// Something the person should know that is not an error (session expired, signed out).
     var notice: String?
+    /// What the last sign-in step failed on, for the screens (localized there).
+    private(set) var failure: AuthFailure?
+    /// The session ended on its own (refresh refused); the sign-in screen says so.
+    private(set) var sessionExpired = false
     /// Set by an interactive sign-in (not a restore): the app offers the server choice once.
     private(set) var signedInInteractively = false
 
@@ -71,6 +75,7 @@ final class SessionStore {
                     self.apply(nil)
                 case .expired:
                     self.apply(nil)
+                    self.sessionExpired = true
                     self.notice = "Your session expired. Sign in again."
                 }
             }
@@ -120,12 +125,21 @@ final class SessionStore {
         guard case .secondFactor = phase else { return }
         phase = .signedOut
         errorMessage = nil
+        failure = nil
+    }
+
+    /// The person edited a field: the error state goes.
+    func clearFailure() {
+        failure = nil
+        errorMessage = nil
     }
 
     private func handle(_ outcome: SignInOutcome) {
         switch outcome {
         case .signedIn(let value):
             errorMessage = nil
+            failure = nil
+            sessionExpired = false
             notice = nil
             signedInInteractively = true
             session = value
@@ -135,8 +149,10 @@ final class SessionStore {
             errorMessage = prompt.passkeyOnly
                 ? "This account only has a passkey. Use the browser sign-in."
                 : nil
+            failure = prompt.passkeyOnly ? .passkeyOnly : nil
         case .secondFactorRefused(let result, let prompt):
             errorMessage = result.displayMessage
+            failure = .secondFactor(result)
             phase = result.endsSignIn ? .signedOut : .secondFactor(prompt)
         }
     }
@@ -161,6 +177,7 @@ final class SessionStore {
         await core.auth.signOut()
         busy = false
         apply(nil)
+        sessionExpired = false
         notice = "Signed out."
     }
 
@@ -168,6 +185,7 @@ final class SessionStore {
         guard !busy else { return }
         busy = true
         errorMessage = nil
+        failure = nil
         defer { busy = false }
         do {
             try await work()
@@ -175,7 +193,46 @@ final class SessionStore {
             // The person closed the browser sheet.
         } catch {
             errorMessage = ErrorText.describe(error)
+            failure = AuthFailure(error)
         }
+    }
+}
+
+#if DEBUG
+extension SessionStore {
+    /// Preview gallery: a screen state without a server round trip.
+    func debugSet(phase: Phase, session: StoredSession? = nil, failure: AuthFailure? = nil, sessionExpired: Bool = false) {
+        self.phase = phase
+        self.session = session
+        self.failure = failure
+        self.sessionExpired = sessionExpired
+    }
+}
+#endif
+
+/// Why a sign-in step failed.
+enum AuthFailure: Equatable, Sendable {
+    /// `401 AUTH_INVALID_CREDENTIALS` (or any 401 of the password sign-in).
+    case incorrectCredentials
+    case secondFactor(SecondFactorResult)
+    case passkeyOnly
+    case offline
+    case other(String)
+
+    init(_ error: Error) {
+        if let error = error as? APIError {
+            switch error {
+            case .http(let status, let body, _) where status == 401 || body?.code == "AUTH_INVALID_CREDENTIALS":
+                self = .incorrectCredentials
+                return
+            case .transport:
+                self = .offline
+                return
+            default:
+                break
+            }
+        }
+        self = .other(ErrorText.describe(error))
     }
 }
 

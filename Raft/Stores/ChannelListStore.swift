@@ -273,6 +273,18 @@ final class ChannelListStore {
         unread[id] = scope
     }
 
+    #if DEBUG
+    /// Preview gallery: a list state without a server round trip.
+    func debugSeed(phase: Phase, channels: [Channel] = [], directMessages: [DirectMessageChannel] = [], unread: [String: ScopeUnread] = [:], threadUnread: [String: UnreadSummary.ThreadUnread] = [:]) {
+        self.phase = phase
+        self.channels = channels
+        self.directMessages = directMessages
+        self.unread = unread
+        self.threadUnread = threadUnread
+        lastLoadedAt = Date()
+    }
+    #endif
+
     // MARK: Live updates
 
     /// `message:new` (or a resumed message). `viewing`: the conversation is on screen, so its
@@ -337,6 +349,15 @@ final class ChannelListStore {
         scope.hasMention = false
         scope.maxReadSeq = max(scope.maxReadSeq ?? 0, seq)
         unread[channelId] = scope
+    }
+
+    /// The conversation was read entirely here (after `POST channels/{id}/read-all`).
+    func noteLocallyReadAll(channelId: String) {
+        var scope = unread[channelId] ?? ScopeUnread()
+        scope.unreadCount = 0
+        scope.hasMention = false
+        unread[channelId] = scope
+        threadUnread[channelId] = nil
     }
 
     /// `channel:updated`: `{ channel }` with the full row (upserted), or an id only (re-read it).
