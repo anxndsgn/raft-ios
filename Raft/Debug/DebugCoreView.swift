@@ -13,6 +13,7 @@ struct DebugCoreView: View {
                     accountSection(session)
                     serversSection(session)
                     realtimeSection
+                    probeSection
                 } else if let prompt = model.prompt {
                     secondFactorSection(prompt)
                 } else {
@@ -193,10 +194,34 @@ struct DebugCoreView: View {
                     .monospacedDigit()
                     .accessibilityIdentifier("socket-event-count")
             }
+            LabeledContent("rooms:joined") {
+                Text(verbatim: "\(model.roomsJoinedCount)")
+                    .monospacedDigit()
+                    .accessibilityIdentifier("socket-rooms-joined")
+            }
+            LabeledContent("Heartbeats") {
+                Text(verbatim: "\(model.heartbeatCount)")
+                    .monospacedDigit()
+                    .accessibilityIdentifier("socket-heartbeats")
+            }
             if let last = model.lastEventName {
                 LabeledContent("Last event") { Text(verbatim: last).font(.caption.monospaced()) }
             }
             Button("Reconnect") { Task { await model.reconnectRealtime() } }
+        }
+    }
+
+    private var probeSection: some View {
+        Section("Read-only probe") {
+            Button("Load me, channels, DMs") { Task { await model.probeLists() } }
+                .accessibilityIdentifier("probe-lists-button")
+            Button("Load latest messages") { Task { await model.probeMessages() } }
+                .accessibilityIdentifier("probe-messages-button")
+            ForEach(Array(model.probeLines.enumerated()), id: \.offset) { index, line in
+                Text(verbatim: line)
+                    .font(.caption2.monospaced())
+                    .accessibilityIdentifier("probe-line-\(index)")
+            }
         }
     }
 

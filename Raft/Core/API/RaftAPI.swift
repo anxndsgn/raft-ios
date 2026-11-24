@@ -56,7 +56,18 @@ struct RaftAPI: Sendable {
         var query = [URLQueryItem(name: "limit", value: String(limit))]
         if let before { query.append(URLQueryItem(name: "before", value: String(before))) }
         if let after { query.append(URLQueryItem(name: "after", value: String(after))) }
-        return try await client.send(.get("messages/channel/\(Self.segment(channelId))", query: query), as: MessagePage.self)
+        let request = APIRequest.get("messages/channel/\(Self.segment(channelId))", query: query)
+        let response = try await client.send(request)
+        var page: MessagePage
+        do {
+            page = try RaftJSON.decode(MessagePage.self, from: response.data)
+        } catch {
+            throw APIError.decoding(path: request.path, detail: RaftHTTPClient.describe(error), traceId: response.traceId)
+        }
+        if before == nil, after == nil, let horizon = response.headers["x-sync-horizon"], !horizon.isEmpty {
+            page.syncHorizon = horizon
+        }
+        return page
     }
 
     func messageContext(messageId: String, channelId: String) async throws -> MessageContextPage {

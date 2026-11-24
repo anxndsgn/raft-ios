@@ -182,8 +182,16 @@ struct MessagePage: Sendable, Hashable, Decodable {
     var threadSummariesByParentMessageId: [String: ThreadSummary]
     var channelArchived: Bool?
     var messageWindow: JSONValue?
+    /// Present when a short page reached the plan's history cutoff: what the cutoff hides.
+    var hiddenHistory: HiddenHistory?
+    /// `X-Sync-Horizon` of a latest page (no `before`/`after`), taken before the page was read: a
+    /// client whose first history read this is can start `sync:resume` from it
+    /// (`RealtimeClient.setResumePoint`). Not part of the body.
+    var syncHorizon: String?
 
-    private enum CodingKeys: String, CodingKey { case messages, historyLimited, threadSummariesByParentMessageId, channelArchived, messageWindow }
+    private enum CodingKeys: String, CodingKey {
+        case messages, historyLimited, threadSummariesByParentMessageId, channelArchived, messageWindow, hiddenHistory
+    }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -192,6 +200,24 @@ struct MessagePage: Sendable, Hashable, Decodable {
         threadSummariesByParentMessageId = c.lenientMap(.threadSummariesByParentMessageId)
         channelArchived = c.lenient(.channelArchived)
         messageWindow = c.nonNullJSON(.messageWindow)
+        hiddenHistory = c.lenient(.hiddenHistory)
+    }
+}
+
+/// `hiddenHistory` of a message page: a count and a faded preview of the newest hidden messages.
+struct HiddenHistory: Sendable, Hashable, Decodable {
+    var hiddenCount: Int
+    var hiddenCountCapped: Bool
+    /// Preview rows, kept raw (the web renders them faded behind the paywall).
+    var latest: [JSONValue]
+
+    private enum CodingKeys: String, CodingKey { case hiddenCount, hiddenCountCapped, latest }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        hiddenCount = c.lenient(.hiddenCount) ?? 0
+        hiddenCountCapped = c.lenient(.hiddenCountCapped) ?? false
+        latest = c.lenient(.latest) ?? []
     }
 }
 

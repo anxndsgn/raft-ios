@@ -21,6 +21,9 @@ final class DebugCoreModel {
     var eventCount = 0
     var lastEventName: String?
     var versionSummary: String?
+    var roomsJoinedCount = 0
+    var heartbeatCount = 0
+    var probeLines: [String] = []
     private(set) var log: [String] = []
 
     @ObservationIgnored private var core: CoreServices
@@ -191,6 +194,82 @@ final class DebugCoreModel {
         }
     }
 
+    // MARK: Read-only probe (no sends, no mark-read)
+
+    /// `auth/me`, `channels`, `channels/dm`: raw shape (key names, counts; no values) next to what
+    /// decoded, so a dropped row or a new envelope shows up.
+    func probeLists() async {
+        await run("Probe lists") {
+            var lines: [String] = []
+            let client = self.core.api.client
+            let me = try await self.core.auth.fetchUser()
+            lines.append("auth/me OK: id \(me.id.prefix(8))…, profile setup \(me.needsProfileSetup ? "needed" : "done")")
+
+            let rawChannels = try await client.send(.get("channels"))
+            let channels = try await self.core.api.channels()
+            lines.append("channels: \(Self.shape(rawChannels.data)) → decoded \(channels.count)")
+
+            let rawDMs = try await client.send(.get("channels/dm", query: [URLQueryItem(name: "include", value: "lounges")]))
+            let dms = try await self.core.api.directMessages()
+            lines.append("channels/dm?include=lounges: \(Self.shape(rawDMs.data)) → decoded dms \(dms.dms.count), lounges \(dms.lounges.count)")
+            self.probeChannelId = channels.first { $0.joined && $0.type == "channel" && $0.archivedAt == nil }?.id
+                ?? channels.first?.id
+            lines.append("probe channel: \(self.probeChannelId.map { "\($0.prefix(8))…" } ?? "none")")
+            self.probeLines = lines
+            self.statusLine = "Lists loaded."
+            lines.forEach { self.record($0) }
+        }
+    }
+
+    /// `GET messages/channel/{id}?limit=20`: the latest page of the probe channel (never marks read).
+    func probeMessages() async {
+        guard let channelId = probeChannelId else {
+            statusLine = "Load lists first."
+            return
+        }
+        await run("Probe messages") {
+            let client = self.core.api.client
+            let path = "messages/channel/\(RaftAPI.segment(channelId))"
+            let raw = try await client.send(.get(path, query: [URLQueryItem(name: "limit", value: "20")]))
+            let page = try await self.core.api.messages(channelId: channelId, limit: 20)
+            let maxSeq = page.messages.compactMap(\.seq).max()
+            let line = "messages: \(Self.shape(raw.data)) → decoded \(page.messages.count), max seq \(maxSeq.map(String.init) ?? "-"), historyLimited \(page.historyLimited), hiddenHistory \(page.hiddenHistory.map { "\($0.hiddenCount)" } ?? "-"), X-Sync-Horizon \(page.syncHorizon == nil ? "absent" : "present")"
+            self.probeLines.append(line)
+            self.statusLine = "Messages loaded."
+            self.record(line)
+        }
+    }
+
+    @ObservationIgnored private var probeChannelId: String?
+
+    /// Top-level shape of a JSON body: type, counts and key names only (never values).
+    static func shape(_ data: Data) -> String {
+        guard let json = JSONValue.parse(data) else { return "unparseable (\(data.count) bytes)" }
+        return shape(json, depth: 0)
+    }
+
+    private static func shape(_ json: JSONValue, depth: Int) -> String {
+        switch json {
+        case .array(let items):
+            let firstKeys = items.first?.objectValue.map { "{\($0.keys.sorted().joined(separator: ","))}" } ?? ""
+            return "array[\(items.count)]\(firstKeys.isEmpty ? "" : " of \(firstKeys)")"
+        case .object(let object):
+            guard depth == 0 else { return "object" }
+            let parts = object.keys.sorted().map { key -> String in
+                switch object[key]! {
+                case .array(let items): "\(key)[\(items.count)]"
+                case .object: "\(key){}"
+                default: key
+                }
+            }
+            return "object{\(parts.joined(separator: ","))}"
+        case .string: return "string"
+        case .number: return "number"
+        case .bool: return "bool"
+        case .null: return "null"
+        }
+    }
+
     // MARK: Realtime
 
     func startRealtime() async {
@@ -203,6 +282,8 @@ final class DebugCoreModel {
         realtime = client
         eventCount = 0
         lastEventName = nil
+        roomsJoinedCount = 0
+        heartbeatCount = 0
         let statuses = await client.statuses()
         let events = await client.events()
         realtimeTasks = [
@@ -213,6 +294,11 @@ final class DebugCoreModel {
                 for await event in events {
                     self?.eventCount += 1
                     self?.lastEventName = event.name
+                    switch event {
+                    case .roomsJoined: self?.roomsJoinedCount += 1
+                    case .heartbeat: self?.heartbeatCount += 1
+                    default: break
+                    }
                 }
             },
         ]

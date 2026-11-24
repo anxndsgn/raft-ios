@@ -81,6 +81,38 @@ struct ModelDecodingTests {
         #expect(page.threadSummariesByParentMessageId["m1"]?.replyCount == 4)
     }
 
+    @Test func latestPageCarriesHiddenHistoryAndSyncHorizon() async throws {
+        let core = TestCore(session: sampleSession())
+        // Production 1.38.0 shape of a plan-limited latest page.
+        let body = #"{"messages":[{"id":"m1","seq":7}],"threadSummariesByParentMessageId":{},"historyLimited":true,"hiddenHistory":{"hiddenCount":12,"hiddenCountCapped":false,"latest":[{"id":"h1"}]},"messageWindow":{"schemaVersion":1}}"#
+        core.server.on("GET messages/channel/c1", replies: [
+            .json(200, body, headers: ["X-Sync-Horizon": "123456"]),
+            .json(200, body, headers: ["X-Sync-Horizon": "123456"]),
+        ])
+        let latest = try await core.api.messages(channelId: "c1", limit: 20)
+        #expect(latest.syncHorizon == "123456")
+        #expect(latest.hiddenHistory?.hiddenCount == 12)
+        #expect(latest.hiddenHistory?.hiddenCountCapped == false)
+        #expect(latest.hiddenHistory?.latest.count == 1)
+        #expect(latest.messages.first?.seq == 7)
+        let older = try await core.api.messages(channelId: "c1", limit: 20, before: 7)
+        #expect(older.syncHorizon == nil, "only a latest page's horizon is a resume point")
+        let plain = try decode(MessagePage.self, #"{"messages":[],"historyLimited":false}"#)
+        #expect(plain.hiddenHistory == nil)
+        #expect(plain.syncHorizon == nil)
+    }
+
+    @Test func directMessagesDecodeProductionBareArray() async throws {
+        let core = TestCore(session: sampleSession())
+        // Production 1.38.0 ignores include=lounges and answers a bare array.
+        core.server.on("GET channels/dm", .json(200, #"[{"id":"d1","name":"dm-1","type":"dm","peerType":"agent","peerId":"a1","peerName":"bot","peerDisplayName":"Bot","peerAvatarUrl":null,"peerDescription":null,"peerGravatarHash":null,"lastMessageAt":null,"lastMessagePreview":"hi","lastMessageSenderName":"Bot","maxReadSeq":"3","readState":{"maxReadSeq":3},"readStateVersion":1,"muteFromSeq":null,"notificationLevel":"all","activityMuted":false,"activityMuteSupported":true,"collapseLongMessages":false,"createdAt":"2026-01-01T00:00:00Z","description":null,"displayPrefsVersion":0,"prefsVersion":0}]"#))
+        let list = try await core.api.directMessages()
+        #expect(list.dms.map(\.id) == ["d1"])
+        #expect(list.dms.first?.peerType == "agent")
+        #expect(list.dms.first?.maxReadSeq == 3)
+        #expect(list.lounges.isEmpty)
+    }
+
     @Test func sendBodyOmitsRandomIdWhenNil() throws {
         let plain = try #require(JSONValue.parse(try RaftJSON.encode(SendMessageBody(channelId: "c1", content: "hi", timezone: nil))))
         #expect(plain == ["channelId": "c1", "content": "hi", "attachmentIds": [], "asTask": false])
