@@ -40,6 +40,8 @@
 	</array>
 	<key>RaftOAuthCallbackScheme</key>
 	<string>$(RAFT_OAUTH_CALLBACK_SCHEME)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Raft uses the camera to take photos you send in conversations.</string>
 	<key>RaftBuildType</key>
 	<string>$(CONFIGURATION)</string>
 </dict>
