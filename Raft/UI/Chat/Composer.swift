@@ -305,16 +305,26 @@ struct ComposerPanel: View {
 
     private func toolButton(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: 22))
-                .foregroundStyle(Color.raftTextSecondary)
+            Group {
+                if symbol == "photo" {
+                    // SF `photo` fills its hills; the row wants three matching outlines.
+                    OutlinePhotoGlyph()
+                        .stroke(Color.raftTextSecondary, style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round))
+                        .frame(width: 22, height: 18)
+                } else {
+                    Image(systemName: symbol)
+                        .font(.system(size: 22, weight: .regular))
+                        .symbolVariant(.none)
+                        .foregroundStyle(Color.raftTextSecondary)
+                }
+            }
                 .frame(width: 32, height: 32)
                 .contentShape(Rectangle().inset(by: -6))
         }
         .buttonStyle(.plain)
         .padding(.trailing, symbol == "paperclip" ? 0 : -1)
         .frame(width: 31, alignment: .leading)
-        .padding(.leading, symbol == "photo" ? -6 : 0)
+        .padding(.leading, symbol == "photo" ? -4 : 0)
         .accessibilityLabel(Text(verbatim: label))
     }
 
@@ -701,5 +711,22 @@ struct EmojiPickerField: UIViewRepresentable {
         func textFieldDidEndEditing(_ textField: UITextField) {
             if parent.isActive { parent.isActive = false }
         }
+    }
+}
+
+/// An outline "photo": a rounded frame, a sun and two hills, stroked like SF regular at 22pt.
+struct OutlinePhotoGlyph: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let r = rect.insetBy(dx: 0.8, dy: 0.8)
+        path.addRoundedRect(in: r, cornerSize: CGSize(width: 3, height: 3), style: .continuous)
+        let sun = CGPoint(x: r.minX + r.width * 0.3, y: r.minY + r.height * 0.32)
+        path.addEllipse(in: CGRect(x: sun.x - 1.8, y: sun.y - 1.8, width: 3.6, height: 3.6))
+        path.move(to: CGPoint(x: r.minX, y: r.maxY - r.height * 0.18))
+        path.addLine(to: CGPoint(x: r.minX + r.width * 0.36, y: r.minY + r.height * 0.55))
+        path.addLine(to: CGPoint(x: r.minX + r.width * 0.56, y: r.minY + r.height * 0.74))
+        path.addLine(to: CGPoint(x: r.minX + r.width * 0.72, y: r.minY + r.height * 0.6))
+        path.addLine(to: CGPoint(x: r.maxX, y: r.maxY - r.height * 0.12))
+        return path
     }
 }

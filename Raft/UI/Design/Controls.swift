@@ -109,7 +109,7 @@ struct SettingsRowLabel: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: systemImage)
-                .font(.system(size: 20))
+                .font(.system(size: 17, weight: .regular))
                 .foregroundStyle(Color.raftTextSecondary)
                 .frame(width: 24)
                 .accessibilityHidden(true)

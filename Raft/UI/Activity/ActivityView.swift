@@ -296,7 +296,8 @@ struct ActivityRowLayout<Title: View>: View {
                 if !location.isEmpty {
                     Text(verbatim: location)
                         .raftFont(.footnoteMedium)
-                        .foregroundStyle(Color.raftTextTertiary)
+                        // Read rows go quiet as a whole: title, location and preview secondary.
+                        .foregroundStyle(unread ? Color.raftTextTertiary : Color.raftTextSecondary)
                         .lineLimit(1)
                 }
                 preview

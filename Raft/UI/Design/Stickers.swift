@@ -193,22 +193,52 @@ struct AvatarView: View {
     }
 }
 
-/// A server's square avatar: ink with a yellow initial, no border (§2.2).
+/// A server's square avatar (§2.2): #141412 with a yellow initial in both appearances; dark
+/// mode adds a 1pt white@12% ring. Drawn as a bitmap so toolbar glass (Home's capsule, the
+/// switcher popover) keeps the colors instead of adapting the dark fill for legibility.
 struct ServerAvatar: View {
     let name: String
     var side: CGFloat = 35
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.displayScale) private var displayScale
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 4, style: .continuous)
-            .fill(Color.raftInk)
+        Image(uiImage: Self.image(initial: initial, side: side, dark: scheme == .dark, scale: displayScale))
+            .renderingMode(.original)
+            .resizable()
             .frame(width: side, height: side)
-            .overlay {
-                Text(verbatim: String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())
-                    .font(.custom(RaftFont.bold, size: side <= 28 ? 15 : 17))
-                    .foregroundStyle(Color.raftYellow)
-            }
-            .dieCut()
             .accessibilityHidden(true)
+    }
+
+    private var initial: String {
+        String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased()
+    }
+
+    @MainActor private static var cache: [String: UIImage] = [:]
+
+    @MainActor static func image(initial: String, side: CGFloat, dark: Bool, scale: CGFloat) -> UIImage {
+        let key = "\(initial)|\(side)|\(dark)|\(scale)"
+        if let hit = cache[key] { return hit }
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = max(scale, 1)
+        let rect = CGRect(x: 0, y: 0, width: side, height: side)
+        let image = UIGraphicsImageRenderer(size: rect.size, format: format).image { _ in
+            let path = UIBezierPath(roundedRect: rect, cornerRadius: 4)
+            UIColor(red: 0x14 / 255, green: 0x14 / 255, blue: 0x12 / 255, alpha: 1).setFill()
+            path.fill()
+            if dark {
+                let ring = UIBezierPath(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), cornerRadius: 3.5)
+                ring.lineWidth = 1
+                UIColor(white: 1, alpha: 0.12).setStroke()
+                ring.stroke()
+            }
+            let font = UIFont(name: RaftFont.bold, size: side <= 28 ? 15 : 17) ?? .systemFont(ofSize: side <= 28 ? 15 : 17, weight: .bold)
+            let text = NSAttributedString(string: initial, attributes: [.font: font, .foregroundColor: UIColor(Color.raftYellow)])
+            let size = text.size()
+            text.draw(at: CGPoint(x: (side - size.width) / 2, y: (side - size.height) / 2))
+        }.withRenderingMode(.alwaysOriginal)
+        cache[key] = image
+        return image
     }
 }
 

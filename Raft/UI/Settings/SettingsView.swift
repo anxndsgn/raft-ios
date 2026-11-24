@@ -36,7 +36,9 @@ struct SettingsView: View {
                 }
                 .padding(.top, 20)
                 #if DEBUG
-                developerGroup
+                // DEBUG builds only (not in Release/TestFlight); hidden in the preview gallery
+                // so its shots match the shipping screen.
+                if !model.isPreview { developerGroup }
                 #endif
                 MadeWithAirBuild()
                     .padding(.top, 28)
@@ -268,7 +270,10 @@ struct SettingsView: View {
     }
 
     private func loadTwoStep() async {
-        guard !model.isPreview else { return }
+        guard !model.isPreview else {
+            twoStepEnabled = true
+            return
+        }
         if let value = try? await model.core.api.secondFactorEnabled() {
             twoStepEnabled = value
         }
@@ -364,7 +369,7 @@ private struct ToggleRow: View {
         Toggle(isOn: $isOn) {
             HStack(spacing: 12) {
                 Image(systemName: systemImage)
-                    .font(.system(size: 20))
+                    .font(.system(size: 17, weight: .regular))
                     .foregroundStyle(Color.raftTextSecondary)
                     .frame(width: 24)
                     .accessibilityHidden(true)

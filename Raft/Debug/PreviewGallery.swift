@@ -115,7 +115,7 @@ private struct Fixtures {
                 let draft = ComposerModel()
                 draft.text = "Here are the new onboarding screens"
                 draft.attachments = [
-                    .init(filename: "onboarding-1.png", mimeType: "image/png", data: Data(), thumbnail: swatch(.raftCyanSoft, symbol: "iphone"), state: .uploading),
+                    .init(filename: "store-hero.png", mimeType: "image/png", data: Data(count: 412_000), thumbnail: heroArt(), state: .uploaded("att-1")),
                     .init(filename: "store-shots.fig", mimeType: "application/octet-stream", data: Data(count: 1_240_000), thumbnail: nil, state: .uploaded("att-2")),
                     .init(filename: "flows-v3.pdf", mimeType: "application/pdf", data: Data(count: 348_000), thumbnail: nil, state: .failed("Upload failed")),
                 ]
@@ -350,13 +350,43 @@ private struct Fixtures {
         }
     }
 
-    private func swatch(_ color: Color, symbol: String) -> UIImage {
+    /// A real-looking picked photo for the tray (13): the store hero art (sky, sun, hills,
+    /// a boat), wider than tall so the tile shows its fill-crop.
+    private func heroArt() -> UIImage {
+        let ink = Color.raftInk
         let renderer = ImageRenderer(content:
-            ZStack {
-                color
-                Image(systemName: symbol).font(.system(size: 54)).foregroundStyle(Color.raftInk)
+            ZStack(alignment: .topLeading) {
+                Color(hex: 0xD7F2FE)
+                Circle().fill(Color.raftYellow).overlay(Circle().strokeBorder(ink, lineWidth: 3))
+                    .frame(width: 58, height: 58).offset(x: 172, y: 28)
+                Path { p in
+                    p.move(to: CGPoint(x: 0, y: 120))
+                    p.addCurve(to: CGPoint(x: 240, y: 118), control1: CGPoint(x: 70, y: 70), control2: CGPoint(x: 150, y: 150))
+                    p.addLine(to: CGPoint(x: 240, y: 160)); p.addLine(to: CGPoint(x: 0, y: 160)); p.closeSubpath()
+                }
+                .fill(Color.raftLime)
+                Path { p in
+                    p.move(to: CGPoint(x: 0, y: 120))
+                    p.addCurve(to: CGPoint(x: 240, y: 118), control1: CGPoint(x: 70, y: 70), control2: CGPoint(x: 150, y: 150))
+                }
+                .stroke(ink, lineWidth: 3)
+                Path { p in
+                    p.move(to: CGPoint(x: 0, y: 140))
+                    p.addCurve(to: CGPoint(x: 240, y: 136), control1: CGPoint(x: 80, y: 118), control2: CGPoint(x: 160, y: 150))
+                    p.addLine(to: CGPoint(x: 240, y: 160)); p.addLine(to: CGPoint(x: 0, y: 160)); p.closeSubpath()
+                }
+                .fill(Color.raftPink)
+                Path { p in
+                    p.move(to: CGPoint(x: 72, y: 50)); p.addLine(to: CGPoint(x: 72, y: 84)); p.addLine(to: CGPoint(x: 96, y: 80)); p.closeSubpath()
+                }
+                .fill(Color.white).overlay(Path { p in
+                    p.move(to: CGPoint(x: 72, y: 50)); p.addLine(to: CGPoint(x: 72, y: 84)); p.addLine(to: CGPoint(x: 96, y: 80)); p.closeSubpath()
+                }.stroke(ink, lineWidth: 2.5))
+                RoundedRectangle(cornerRadius: 3).fill(Color.raftOrange)
+                    .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(ink, lineWidth: 2.5))
+                    .frame(width: 52, height: 14).offset(x: 52, y: 86)
             }
-            .frame(width: 160, height: 160)
+            .frame(width: 240, height: 160)
         )
         renderer.scale = 2
         return renderer.uiImage ?? UIImage()

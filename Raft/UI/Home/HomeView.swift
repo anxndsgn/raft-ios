@@ -315,6 +315,13 @@ struct HomeView: View {
             }
             .accessibilityLabel(Text(L10n.f("ios_switch_server_a11y", "%1$@, switch server", server?.name ?? "")))
             .accessibilityIdentifier("server-switcher")
+            #if DEBUG
+            .task {
+                guard PreviewGallery.screen == "06b" else { return }
+                try? await Task.sleep(for: .milliseconds(600))
+                showsSwitcher = true
+            }
+            #endif
             .popover(isPresented: $showsSwitcher, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
                 ServerSwitcher(isPresented: $showsSwitcher)
                     .presentationCompactAdaptation(.popover)

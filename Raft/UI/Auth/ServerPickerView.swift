@@ -23,6 +23,7 @@ struct ServerPickerView: View {
             }
         }
         .scrollBounceBehavior(.basedOnSize)
+        .safeAreaInset(edge: .bottom, spacing: 0) { pinnedSignOut }
         .background(Color.raftCanvasWarm.ignoresSafeArea())
         .raftNavigationTitle(L10n.t("auth_server_title_choose", "Choose server"))
         .navigationBarBackButtonHidden(!showsBack)
@@ -65,14 +66,23 @@ struct ServerPickerView: View {
                     .accessibilityIdentifier("server-row-\(index)")
                 }
             }
-            if !showsBack {
-                DangerTextButton(title: L10n.t("settings_account_logout", "Sign out")) {
-                    Task { await model.signOut() }
-                }
-                .padding(.top, 32)
-                .padding(.bottom, 24)
-                .accessibilityIdentifier("sign-out")
+        }
+        .padding(.bottom, 24)
+    }
+
+    /// 05: Sign out is pinned to the bottom, 24pt above the home indicator, however short the
+    /// list is (05b keeps it under the empty state).
+    @ViewBuilder private var pinnedSignOut: some View {
+        if !showsBack, !servers.isEmpty {
+            DangerTextButton(title: L10n.t("settings_account_logout", "Sign out")) {
+                Task { await model.signOut() }
             }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 8)
+            // The 44pt button ends 24pt above the home indicator (safe-area bottom − 4).
+            .padding(.bottom, 4)
+            .background(Color.raftCanvasWarm.ignoresSafeArea(edges: .bottom))
+            .accessibilityIdentifier("sign-out")
         }
     }
 
