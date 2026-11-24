@@ -34,8 +34,12 @@ struct ThreadView: View {
 
     private var parentIsDirectMessage: Bool { workspace.channelList.isDirectMessage(store.parentChannelId) }
 
+    /// A DM parent shows the person or agent. Opened from Activity or Saved, `store.title` is the
+    /// server's internal DM channel name (a handle), so prefer the DM row's peer name.
     private var subtitle: String {
-        parentIsDirectMessage ? store.title : "#\(store.title)"
+        guard parentIsDirectMessage else { return "#\(store.title)" }
+        let dm = workspace.channelList.directMessages.first { $0.id == store.parentChannelId }
+        return dm?.peerVisibleName ?? store.title
     }
 
     private var me: Persona {

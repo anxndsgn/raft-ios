@@ -18,6 +18,10 @@ final class AppPreferences {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         #if DEBUG
+        // `RAFT_WRITES=1` at launch turns writes on (live end-to-end runs on a test account).
+        if ProcessInfo.processInfo.environment["RAFT_WRITES"] == "1" {
+            defaults.set(false, forKey: Self.readOnlyKey)
+        }
         readOnly = defaults.object(forKey: Self.readOnlyKey) as? Bool ?? true
         #else
         readOnly = false

@@ -94,6 +94,12 @@ struct RaftAPI: Sendable {
         try await client.send(.json("POST", "v2/messages", body: body), as: SendMessageResult.self)
     }
 
+    /// `POST channels/dm` with `{ userId }`: finds or creates the DM with a person (a self-DM
+    /// when it is the caller's own id).
+    func openDirectMessage(userId: String) async throws {
+        try await client.send(.json("POST", "channels/dm", body: ["userId": userId]))
+    }
+
     func addReaction(messageId: String, emoji: String) async throws {
         try await client.send(.json("POST", "messages/\(Self.segment(messageId))/reactions", body: ["emoji": emoji]))
     }

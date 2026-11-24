@@ -45,7 +45,8 @@ final class AppModel {
     }
 
     static func live() -> AppModel {
-        AppModel(core: CoreServices.make(environment: EnvironmentStore().current))
+        KeychainStore().clearIfFreshInstall()
+        return AppModel(core: CoreServices.make(environment: EnvironmentStore().current))
     }
 
     var environment: RaftEnvironment { core.environment }

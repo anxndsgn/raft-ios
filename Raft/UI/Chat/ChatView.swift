@@ -112,7 +112,7 @@ struct ChatView: View {
     var body: some View {
         stream
             .background(Color.raftCanvas.ignoresSafeArea())
-            .navigationTitle(Text(verbatim: store.title))
+            .navigationTitle(Text(verbatim: peer?.name ?? store.title))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) { title }

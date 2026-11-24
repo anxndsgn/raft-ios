@@ -128,7 +128,9 @@ final class ThreadStore {
             }
         }
         await replies?.send(text, mentions: mentions, attachmentIds: attachmentIds, attachmentNames: attachmentNames)
-        if isFollowing == false { isFollowing = true }
+        // Replying follows the thread on the server. A brand-new thread has no summary yet
+        // (`nil`), so set it whenever it is not already on.
+        if isFollowing != true { isFollowing = true }
     }
 
     // MARK: Live

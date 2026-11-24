@@ -67,6 +67,20 @@ struct KeychainStore: SecureStore {
             throw KeychainError(status: status, operation: "delete")
         }
     }
+
+    /// Keychain items outlive an uninstall, so a reinstall would come back already signed in
+    /// with the previous install's tokens. UserDefaults do not survive one: the first launch
+    /// without the marker drops everything under this service.
+    func clearIfFreshInstall(defaults: UserDefaults = .standard) {
+        let marker = "raft.installed"
+        guard !defaults.bool(forKey: marker) else { return }
+        let all: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+        ]
+        SecItemDelete(all as CFDictionary)
+        defaults.set(true, forKey: marker)
+    }
 }
 
 final class InMemorySecureStore: SecureStore, @unchecked Sendable {

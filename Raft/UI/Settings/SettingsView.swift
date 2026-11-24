@@ -363,7 +363,31 @@ struct SettingsView: View {
                 }
                 .buttonStyle(RowButtonStyle())
                 .accessibilityIdentifier("settings-diagnostics")
+                RowDivider(inset: 50)
+                // A safe place to post on a test account: its own DM (created once, server side).
+                Button {
+                    Task { await openSelfDM() }
+                } label: {
+                    SettingsRowLabel(systemImage: "person.crop.circle", title: "Open DM with yourself")
+                }
+                .buttonStyle(RowButtonStyle())
+                .accessibilityIdentifier("settings-self-dm")
             }
+        }
+    }
+
+    private func openSelfDM() async {
+        guard let workspace = model.workspace else { return }
+        guard !model.preferences.readOnly else {
+            model.showToast(StoreError.readOnly.errorDescription ?? "Read-only")
+            return
+        }
+        do {
+            try await workspace.api.openDirectMessage(userId: workspace.currentUserId)
+            await workspace.channelList.refreshDirectMessages()
+            model.showToast("Self-DM ready")
+        } catch {
+            model.showToast(ErrorText.describe(error))
         }
     }
     #endif

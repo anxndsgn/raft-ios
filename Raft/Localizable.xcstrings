@@ -59,7 +59,7 @@
       }
     },
     "activity_filter_unread" : {
-      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:86, Raft/UI/Activity/ActivityView.swift:424, Raft/UI/Home/HomeView.swift:136",
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:86, Raft/UI/Activity/ActivityView.swift:436, Raft/UI/Home/HomeView.swift:136",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -113,7 +113,7 @@
       }
     },
     "activity_list_self_sender" : {
-      "comment" : "gen-strings: Raft/UI/Design/Stickers.swift:291, Raft/UI/Home/HomeView.swift:552, Raft/UI/Home/HomeView.swift:563",
+      "comment" : "gen-strings: Raft/UI/Design/Stickers.swift:321, Raft/UI/Home/HomeView.swift:559, Raft/UI/Home/HomeView.swift:570",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -293,7 +293,7 @@
       }
     },
     "auth_server_signed_in_as" : {
-      "comment" : "gen-strings: Raft/UI/Auth/ServerPickerView.swift:38",
+      "comment" : "gen-strings: Raft/UI/Auth/ServerPickerView.swift:39",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -311,7 +311,7 @@
       }
     },
     "auth_server_title_choose" : {
-      "comment" : "gen-strings: Raft/UI/Auth/ServerPickerView.swift:27",
+      "comment" : "gen-strings: Raft/UI/Auth/ServerPickerView.swift:28",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -419,7 +419,7 @@
       }
     },
     "common_cancel" : {
-      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:50",
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:78",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -455,7 +455,7 @@
       }
     },
     "common_copy" : {
-      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:302",
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:333",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -563,7 +563,7 @@
       }
     },
     "composer_mention_actor_agent" : {
-      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:555",
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:565",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -635,7 +635,7 @@
       }
     },
     "home_nav_saved" : {
-      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:479, Raft/UI/Home/HomeView.swift:217",
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:491, Raft/UI/Home/HomeView.swift:217",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -779,7 +779,7 @@
       }
     },
     "inbox_empty_saved_detail" : {
-      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:457",
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:469",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -845,7 +845,7 @@
       }
     },
     "ios_activity_posted" : {
-      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:363",
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:369",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -857,7 +857,7 @@
       }
     },
     "ios_activity_replied_thread" : {
-      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:361",
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:362",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -869,7 +869,7 @@
       }
     },
     "ios_activity_sent_message" : {
-      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:362",
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:367",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -881,13 +881,37 @@
       }
     },
     "ios_activity_someone" : {
-      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:375",
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:387",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Someone"
+          }
+        }
+      }
+    },
+    "ios_activity_you" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:378",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You"
+          }
+        }
+      }
+    },
+    "ios_activity_you_sent_message" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:366",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ sent a message"
           }
         }
       }
@@ -1109,7 +1133,7 @@
       }
     },
     "ios_loading" : {
-      "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:301, Raft/UI/Chat/ThreadView.swift:179, Raft/UI/Home/HomeView.swift:655",
+      "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:301, Raft/UI/Chat/ThreadView.swift:179, Raft/UI/Home/HomeView.swift:662",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1145,7 +1169,7 @@
       }
     },
     "ios_mention_members" : {
-      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:525",
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:535",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1157,7 +1181,7 @@
       }
     },
     "ios_mention_members_matching" : {
-      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:525",
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:535",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1193,7 +1217,7 @@
       }
     },
     "ios_mentions_you_a11y" : {
-      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:576",
+      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:583",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1241,7 +1265,7 @@
       }
     },
     "ios_open_web" : {
-      "comment" : "gen-strings: Raft/UI/Auth/ServerPickerView.swift:94",
+      "comment" : "gen-strings: Raft/UI/Auth/ServerPickerView.swift:104",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1265,7 +1289,7 @@
       }
     },
     "ios_pause_1h" : {
-      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:145",
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:173",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1277,7 +1301,7 @@
       }
     },
     "ios_pause_tomorrow" : {
-      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:146",
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:174",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1289,7 +1313,7 @@
       }
     },
     "ios_paused_until" : {
-      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:165",
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:193",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1337,7 +1361,7 @@
       }
     },
     "ios_remove_attachment" : {
-      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:450",
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:460",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1361,7 +1385,7 @@
       }
     },
     "ios_saved_error_load" : {
-      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:451",
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:463",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1373,7 +1397,7 @@
       }
     },
     "ios_send" : {
-      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:332, Raft/UI/Chat/Composer.swift:345",
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:342, Raft/UI/Chat/Composer.swift:355",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1385,7 +1409,7 @@
       }
     },
     "ios_servers_empty_detail" : {
-      "comment" : "gen-strings: Raft/UI/Auth/ServerPickerView.swift:89",
+      "comment" : "gen-strings: Raft/UI/Auth/ServerPickerView.swift:99",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1397,7 +1421,7 @@
       }
     },
     "ios_servers_empty_title" : {
-      "comment" : "gen-strings: Raft/UI/Auth/ServerPickerView.swift:84",
+      "comment" : "gen-strings: Raft/UI/Auth/ServerPickerView.swift:94",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1409,7 +1433,7 @@
       }
     },
     "ios_settings_device_notifications" : {
-      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:132",
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:160",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1421,7 +1445,7 @@
       }
     },
     "ios_signout_message" : {
-      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:55",
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:83",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1433,7 +1457,7 @@
       }
     },
     "ios_signout_title" : {
-      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:49",
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:77",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1481,7 +1505,7 @@
       }
     },
     "ios_thread_reply_preview" : {
-      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:530, Raft/UI/Home/HomeView.swift:540",
+      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:537, Raft/UI/Home/HomeView.swift:547",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1493,7 +1517,7 @@
       }
     },
     "ios_thread_unread_a11y" : {
-      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:577",
+      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:584",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1541,7 +1565,7 @@
       }
     },
     "ios_unread_count_a11y" : {
-      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:575",
+      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:582",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1565,7 +1589,7 @@
       }
     },
     "member_label_agent" : {
-      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:574, Raft/UI/Chat/MessageRow.swift:229, Raft/UI/Home/HomeView.swift:571",
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:584, Raft/UI/Chat/MessageRow.swift:229, Raft/UI/Home/HomeView.swift:578",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1601,7 +1625,7 @@
       }
     },
     "member_label_muted" : {
-      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:339, Raft/UI/Home/HomeView.swift:574",
+      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:346, Raft/UI/Home/HomeView.swift:581",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1655,7 +1679,7 @@
       }
     },
     "push_preview_sender_only_mention" : {
-      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:360",
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:361",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1673,7 +1697,7 @@
       }
     },
     "saved_empty_title" : {
-      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:457",
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:469",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1691,7 +1715,7 @@
       }
     },
     "settings_about_label_version" : {
-      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:294",
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:325",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1709,7 +1733,7 @@
       }
     },
     "settings_about_title" : {
-      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:290",
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:321",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1727,7 +1751,7 @@
       }
     },
     "settings_about_version_copy_hint" : {
-      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:301",
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:332",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1763,7 +1787,7 @@
       }
     },
     "settings_account_logout" : {
-      "comment" : "gen-strings: Raft/UI/Auth/ServerPickerView.swift:69, Raft/UI/Auth/ServerPickerView.swift:99, Raft/UI/Settings/SettingsView.swift:31",
+      "comment" : "gen-strings: Raft/UI/Auth/ServerPickerView.swift:77, Raft/UI/Auth/ServerPickerView.swift:109, Raft/UI/Settings/SettingsView.swift:48",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1781,7 +1805,7 @@
       }
     },
     "settings_account_logout_action" : {
-      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:51",
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:79",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1799,7 +1823,7 @@
       }
     },
     "settings_account_title" : {
-      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:207",
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:235",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1817,7 +1841,7 @@
       }
     },
     "settings_account_two_step_title" : {
-      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:306, Raft/UI/Auth/AuthViews.swift:466, Raft/UI/Settings/SettingsView.swift:245",
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:306, Raft/UI/Auth/AuthViews.swift:466, Raft/UI/Settings/SettingsView.swift:273",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1835,7 +1859,7 @@
       }
     },
     "settings_language_region_title" : {
-      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:233",
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:261",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1853,7 +1877,7 @@
       }
     },
     "settings_notifications_mode_all" : {
-      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:337",
+      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:344",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1871,7 +1895,7 @@
       }
     },
     "settings_notifications_mode_mentions" : {
-      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:338",
+      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:345",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1889,7 +1913,7 @@
       }
     },
     "settings_notifications_pause_title" : {
-      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:151",
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:179",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1907,7 +1931,7 @@
       }
     },
     "settings_notifications_show_previews_title" : {
-      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:139",
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:167",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1925,7 +1949,7 @@
       }
     },
     "settings_notifications_title" : {
-      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:347, Raft/UI/Settings/SettingsView.swift:128",
+      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:354, Raft/UI/Settings/SettingsView.swift:156",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1943,7 +1967,7 @@
       }
     },
     "settings_option_off" : {
-      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:147, Raft/UI/Settings/SettingsView.swift:164, Raft/UI/Settings/SettingsView.swift:246",
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:175, Raft/UI/Settings/SettingsView.swift:192, Raft/UI/Settings/SettingsView.swift:274",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1961,7 +1985,7 @@
       }
     },
     "settings_option_on" : {
-      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:246",
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:274",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1979,7 +2003,7 @@
       }
     },
     "settings_server_title" : {
-      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:214",
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:242",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2177,7 +2201,7 @@
       }
     },
     "settings_title" : {
-      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:47",
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:75",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2195,7 +2219,7 @@
       }
     },
     "tab_activity" : {
-      "comment" : "gen-strings: Raft/UI/RootView.swift:99, Raft/UI/Activity/ActivityView.swift:30, Raft/UI/Activity/ActivityView.swift:77",
+      "comment" : "gen-strings: Raft/UI/RootView.swift:103, Raft/UI/RootView.swift:109, Raft/UI/Activity/ActivityView.swift:30",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2213,7 +2237,7 @@
       }
     },
     "tab_activity_unread_dot" : {
-      "comment" : "gen-strings: Raft/UI/RootView.swift:102",
+      "comment" : "gen-strings: Raft/UI/RootView.swift:112",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2231,7 +2255,7 @@
       }
     },
     "tab_home" : {
-      "comment" : "gen-strings: Raft/UI/RootView.swift:91, Raft/UI/Home/HomeView.swift:23",
+      "comment" : "gen-strings: Raft/UI/RootView.swift:93, Raft/UI/Home/HomeView.swift:23",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2249,7 +2273,7 @@
       }
     },
     "tab_settings" : {
-      "comment" : "gen-strings: Raft/UI/RootView.swift:109",
+      "comment" : "gen-strings: Raft/UI/RootView.swift:119",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2447,7 +2471,7 @@
       }
     },
     "thread_composer_attachment_upload_failed" : {
-      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:423, Raft/UI/Chat/Composer.swift:474",
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:433, Raft/UI/Chat/Composer.swift:484",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2519,7 +2543,7 @@
       }
     },
     "thread_direct_message_title" : {
-      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:379, Raft/UI/Activity/ActivityView.swift:509",
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:391, Raft/UI/Activity/ActivityView.swift:521",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2609,7 +2633,7 @@
       }
     },
     "thread_reply_title" : {
-      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:511, Raft/UI/Chat/ThreadView.swift:89",
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:523, Raft/UI/Chat/ThreadView.swift:89",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2645,7 +2669,7 @@
       }
     },
     "thread_send_failure_retry" : {
-      "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:492, Raft/UI/Chat/Composer.swift:502, Raft/UI/Chat/ThreadView.swift:343",
+      "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:492, Raft/UI/Chat/Composer.swift:512, Raft/UI/Chat/ThreadView.swift:343",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {

@@ -360,11 +360,22 @@ struct ActivityRow: View {
     private var titleFormat: String {
         if item.hasMention { return L10n.t("push_preview_sender_only_mention", "%1$@ mentioned you") }
         if item.isSubConversation { return L10n.t("ios_activity_replied_thread", "%1$@ replied to a thread") }
-        if item.kind == "dm" { return L10n.t("ios_activity_sent_message", "%1$@ sent you a message") }
+        if item.kind == "dm" {
+            // Your own message in a self-DM was not sent to "you".
+            return isMine
+                ? L10n.t("ios_activity_you_sent_message", "%1$@ sent a message")
+                : L10n.t("ios_activity_sent_message", "%1$@ sent you a message")
+        }
         return L10n.t("ios_activity_posted", "%1$@ posted a message")
     }
 
+    private var isMine: Bool {
+        guard let sender = item.senderId, !sender.isEmpty else { return false }
+        return sender == currentUserId && item.senderType != "agent" && item.senderType != "system"
+    }
+
     private var name: String {
+        if isMine { return L10n.t("ios_activity_you", "You") }
         let value = persona.name
         return value == "?" ? Self.senderName(item) : value
     }
