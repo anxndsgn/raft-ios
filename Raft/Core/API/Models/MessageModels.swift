@@ -465,7 +465,7 @@ struct InboxItem: Sendable, Hashable, Decodable, Identifiable {
         case parentChannelName, parentChannelType, parentMessagePreview
         case lastMessagePreview, latestActivityPreview, lastMessageSenderName, latestActivitySenderName
         case lastMessageSenderType, latestActivitySenderType, lastMessageSenderId, latestActivitySenderId, isFollowing
-        case lastMessageId, latestActivityMessageId, lastMessageAt, lastActivityAt, latestActivitySeq
+        case lastMessageId, latestActivityMessageId, lastMessageAt, lastActivityAt, latestActivityAt, lastReplyAt, updatedAt, latestActivitySeq
         case firstUnreadMessageId, firstMentionMessageId, unreadCount, hasMention, replyCount, readStateVersion
         case id
     }
@@ -485,7 +485,8 @@ struct InboxItem: Sendable, Hashable, Decodable, Identifiable {
         preview = c.lenient(.lastMessagePreview) ?? c.lenient(.latestActivityPreview)
         senderName = c.lenient(.lastMessageSenderName) ?? c.lenient(.latestActivitySenderName)
         latestMessageId = c.lenient(.lastMessageId) ?? c.lenient(.latestActivityMessageId)
-        activityAt = c.lenient(.lastMessageAt) ?? c.lenient(.lastActivityAt)
+        activityAt = c.timestamp(.lastMessageAt) ?? c.timestamp(.lastActivityAt) ?? c.timestamp(.latestActivityAt)
+            ?? c.timestamp(.lastReplyAt) ?? c.timestamp(.updatedAt)
         latestActivitySeq = c.flexibleInt64(.latestActivitySeq)
         firstUnreadMessageId = c.lenient(.firstUnreadMessageId)
         firstMentionMessageId = c.lenient(.firstMentionMessageId)

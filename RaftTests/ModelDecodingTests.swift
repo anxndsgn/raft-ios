@@ -230,4 +230,25 @@ struct ModelDecodingTests {
         #expect(JSONValue.string("41").int64Value == 41)
         #expect(JSONValue.number(1.5).int64Value == nil)
     }
+
+    @Test func timestampsParseInPostgresAndISOForms() throws {
+        let iso = try #require(RaftDate.parse("2026-11-20T06:38:12.123Z"))
+        #expect(abs(try #require(RaftDate.parse("2026-11-20T06:38:12Z")).timeIntervalSince(iso) + 0.123) < 0.001)
+        #expect(RaftDate.parse("2026-11-20 06:38:12.123456+00") == iso)
+        #expect(RaftDate.parse("2026-11-20 14:38:12.123+08:00") == iso)
+        #expect(RaftDate.parse("2026-11-20T06:38:12.1234567+0000") == iso)
+        #expect(RaftDate.parse("yesterday") == nil)
+    }
+
+    @Test func inboxRowTimeFallsBackAcrossArms() throws {
+        let page = try decode(InboxPage.self, #"""
+        {"items":[
+          {"kind":"thread","threadChannelId":"t1","parentChannelId":"c1","latestActivityAt":"2026-11-20T06:38:12Z","unreadCount":0},
+          {"kind":"thread","threadChannelId":"t2","parentChannelId":"c1","lastReplyAt":1763620692000,"unreadCount":1},
+          {"kind":"channel","channelId":"c2","lastMessageAt":"2026-11-21T01:00:00Z","unreadCount":2}
+        ],"hasMore":false}
+        """#)
+        #expect(page.items.map(\.activityAt) == ["2026-11-20T06:38:12Z", "2025-11-20T06:38:12Z", "2026-11-21T01:00:00Z"])
+    }
 }
+

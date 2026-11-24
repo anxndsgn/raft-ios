@@ -52,6 +52,14 @@ extension KeyedDecodingContainer {
         lenient(key, as: JSONValue.self)?.int64Value
     }
 
+    /// A timestamp as ISO-8601 text: a string is kept, epoch seconds or milliseconds are converted.
+    func timestamp(_ key: Key) -> String? {
+        if let text: String = lenient(key), !text.isEmpty { return text }
+        guard let number = lenient(key, as: Double.self) else { return nil }
+        let seconds = number > 100_000_000_000 ? number / 1000 : number
+        return ISO8601DateFormatter().string(from: Date(timeIntervalSince1970: seconds))
+    }
+
     /// An Int from a JSON number or decimal string at `key`.
     func flexibleInt(_ key: Key) -> Int? {
         flexibleInt64(key).flatMap { Int(exactly: $0) }

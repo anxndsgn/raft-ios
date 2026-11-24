@@ -75,7 +75,31 @@ enum RaftDate {
 
     static func parse(_ text: String?) -> Date? {
         guard let text, !text.isEmpty else { return nil }
-        return withFraction.date(from: text) ?? plain.date(from: text)
+        if let date = withFraction.date(from: text) ?? plain.date(from: text) { return date }
+        return normalized(text).flatMap { withFraction.date(from: $0) ?? plain.date(from: $0) }
+    }
+
+    /// Postgres-style text (`2026-11-20 06:38:12.123456+00`) as ISO 8601: `T`, millisecond
+    /// fraction, `+00:00` offset.
+    private static func normalized(_ text: String) -> String? {
+        let pattern = #"^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})(?:\.(\d+))?\s*(Z|[+-]\d{2}(?::?\d{2})?)?$"#
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) else { return nil }
+        func group(_ index: Int) -> String? {
+            Range(match.range(at: index), in: text).map { String(text[$0]) }
+        }
+        guard let day = group(1), let time = group(2) else { return nil }
+        var result = "\(day)T\(time)"
+        if let fraction = group(3) {
+            result += "." + String((fraction + "000").prefix(3))
+        }
+        var zone = group(4) ?? "Z"
+        if zone != "Z" {
+            let digits = zone.dropFirst().replacingOccurrences(of: ":", with: "")
+            let padded = digits.count == 2 ? digits + "00" : digits
+            zone = String(zone.prefix(1)) + padded.prefix(2) + ":" + padded.suffix(2)
+        }
+        return result + zone
     }
 }
 
