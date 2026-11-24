@@ -18,34 +18,58 @@ struct SettingsView: View {
     #if DEBUG
     @State private var showsDiagnostics = false
     #endif
+    @State private var contentAboveFooter: CGFloat = 0
+    @State private var viewport = ScrollViewport(height: 0, topInset: 0)
+
+    private struct ScrollViewport: Equatable {
+        var height: CGFloat
+        var topInset: CGFloat
+    }
+
+    /// At least 120pt below Sign out, and always enough that the AirBuild footer starts below
+    /// the first screen on any device or text size (Colo 5227). At the end of the list the
+    /// scroll view's tab-bar inset keeps the footer fully above the bar.
+    private var footerGap: CGFloat {
+        guard viewport.height > 0, contentAboveFooter > 0 else { return 120 }
+        let toFold = viewport.height - viewport.topInset - contentAboveFooter + 8
+        return max(120, ceil(toFold))
+    }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                profileCard
-                    .padding(.top, 6)
-                notificationsGroup
-                accountGroup
-                aboutGroup
-                RaftGroupCard {
-                    DangerTextButton(title: L10n.t("settings_account_logout", "Sign out")) {
-                        confirmingSignOut = true
+                VStack(spacing: 0) {
+                    profileCard
+                        .padding(.top, 6)
+                    notificationsGroup
+                    accountGroup
+                    aboutGroup
+                    RaftGroupCard {
+                        DangerTextButton(title: L10n.t("settings_account_logout", "Sign out")) {
+                            confirmingSignOut = true
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 50)
+                        .accessibilityIdentifier("settings-sign-out")
                     }
-                    .frame(maxWidth: .infinity, minHeight: 50)
-                    .accessibilityIdentifier("settings-sign-out")
+                    .padding(.top, 20)
+                    #if DEBUG
+                    // DEBUG builds only (not in Release/TestFlight); hidden in the preview gallery
+                    // so its shots match the shipping screen.
+                    if !model.isPreview { developerGroup }
+                    #endif
                 }
-                .padding(.top, 20)
-                #if DEBUG
-                // DEBUG builds only (not in Release/TestFlight); hidden in the preview gallery
-                // so its shots match the shipping screen.
-                if !model.isPreview { developerGroup }
-                #endif
-                // 120pt below Sign out keeps the footer off the first screen (Colo 5227); the
-                // ScrollView's tab-bar inset plus 16 lets it rest fully above the bar at the end.
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentAboveFooter = $0 }
                 MadeWithAirBuild()
-                    .padding(.top, 120)
+                    .padding(.top, footerGap)
                     .padding(.bottom, 16)
             }
+        }
+        .onScrollGeometryChange(for: ScrollViewport.self) { geometry in
+            // `containerSize` stops at the safe area; the visible rect spans the whole screen,
+            // including the strip under the floating tab bar.
+            ScrollViewport(height: geometry.visibleRect.height, topInset: geometry.contentInsets.top)
+        } action: { _, value in
+            viewport = value
         }
         .background(Color.raftCanvasWarm.ignoresSafeArea())
         .raftNavigationTitle(L10n.t("settings_title", "Settings"))
