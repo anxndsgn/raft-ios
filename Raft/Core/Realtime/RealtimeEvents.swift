@@ -5,6 +5,9 @@ import Foundation
 enum SocketEventName {
     // Client lifecycle and sync
     static let roomsJoined = "rooms:joined"
+    /// The server's first member-room lookup failed; it keeps retrying and sends `rooms:joined`
+    /// when it succeeds. Until then channel `message:new` frames do not arrive.
+    static let roomsJoinFailed = "rooms:join_failed"
     static let channelJoined = "channel:joined"
     static let channelJoinDenied = "channel:join_denied"
     static let syncResume = "sync:resume"
@@ -79,6 +82,10 @@ enum SocketEventName {
     static let linkCardChanged = "link_card.changed"
     static let actorUpdated = "actor:updated"
     static let messageDisplayPrefsUpdated = "message_display_prefs:updated"
+    /// `{ serverId? }`: the `sync/changes` log moved (the app does not use that log yet).
+    static let syncChanged = "sync:changed"
+    /// To the reactor's user room after a reaction (viewer-scoped reaction state).
+    static let reactionViewerUpdated = "reaction_viewer:updated"
 
     /// Events the server is known to send. Anything else is delivered as `.other` and counted.
     static let serverWireEvents: Set<String> = [
@@ -95,6 +102,7 @@ enum SocketEventName {
         threadReplyUpdated, readStateUpdated, readStateUpdatedBulk, notificationPrefsUpdated, pinnedUpdated,
         notificationPush, notificationRetract, jointInvitesChanged, permissionUpdatesChanged,
         linkCardOperationChanged, linkCardChanged, actorUpdated, messageDisplayPrefsUpdated,
+        roomsJoinFailed, syncChanged, reactionViewerUpdated,
     ]
 }
 
@@ -175,7 +183,11 @@ struct ReadStateUpdate: Sendable, Hashable, Decodable {
     }
 }
 
-/// `thread:updated`.
+/// `thread:updated` (web `socketBridge.ts` `threadUpdated`): `{ parentMessageId, threadChannelId,
+/// replyCount, lastReplyAt, participantIds, unreadCount?, firstUnreadMessageId?, latestReply? }`.
+/// It names no parent channel: a holder finds the parent by `parentMessageId`. `latestReply` is the
+/// newest reply (a full message) — the only copy a client gets of a reply when it has not joined the
+/// thread's room.
 struct ThreadUpdate: Sendable, Hashable, Decodable {
     var parentMessageId: String
     var threadChannelId: String?
@@ -183,8 +195,14 @@ struct ThreadUpdate: Sendable, Hashable, Decodable {
     var replyCount: Int
     var lastReplyAt: String?
     var unreadCount: Int?
+    var participantIds: [String]
+    var firstUnreadMessageId: String?
+    var latestReply: Message?
 
-    private enum CodingKeys: String, CodingKey { case parentMessageId, threadChannelId, channelId, replyCount, lastReplyAt, unreadCount }
+    private enum CodingKeys: String, CodingKey {
+        case parentMessageId, threadChannelId, channelId, replyCount, lastReplyAt, unreadCount, participantIds
+        case firstUnreadMessageId, latestReply
+    }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -194,6 +212,60 @@ struct ThreadUpdate: Sendable, Hashable, Decodable {
         replyCount = c.flexibleInt(.replyCount) ?? 0
         lastReplyAt = c.lenient(.lastReplyAt)
         unreadCount = c.flexibleInt(.unreadCount)
+        participantIds = c.lenient(.participantIds) ?? []
+        firstUnreadMessageId = c.lenient(.firstUnreadMessageId)
+        latestReply = c.lenient(.latestReply)
+    }
+}
+
+/// `agent:typing` (shared `agentTyping.ts`): an agent is about to post into `channelId` (a thread
+/// reply when `parentMessageId` is set). One entry per tool call; `end` or `expiresAt` (server
+/// epoch ms, at most `ttl` ahead) removes it, as does the agent's message landing there.
+/// There is no human typing event in the server.
+struct AgentTyping: Sendable, Hashable, Decodable {
+    static let ttl: Double = 20
+
+    var agentId: String
+    var serverId: String
+    var channelId: String
+    var parentMessageId: String?
+    var callId: String
+    var isStart: Bool
+    var expiresAtMs: Double
+
+    private enum CodingKeys: String, CodingKey { case agentId, serverId, channelId, parentMessageId, callId, state, expiresAt }
+
+    init(agentId: String, serverId: String, channelId: String, parentMessageId: String? = nil, callId: String, isStart: Bool, expiresAtMs: Double = 0) {
+        self.agentId = agentId
+        self.serverId = serverId
+        self.channelId = channelId
+        self.parentMessageId = parentMessageId
+        self.callId = callId
+        self.isStart = isStart
+        self.expiresAtMs = expiresAtMs
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        agentId = try c.requiredId(.agentId)
+        serverId = try c.requiredId(.serverId)
+        channelId = try c.requiredId(.channelId)
+        callId = try c.requiredId(.callId)
+        parentMessageId = c.lenient(.parentMessageId)
+        switch c.lenient(.state, as: String.self) {
+        case "start": isStart = true
+        case "end": isStart = false
+        default:
+            throw DecodingError.dataCorruptedError(forKey: .state, in: c, debugDescription: "state is start or end")
+        }
+        expiresAtMs = c.lenient(.expiresAt) ?? 0
+    }
+
+    /// Local deadline: the server's `expiresAt` when it is within (0, ttl] of `now`, else now + ttl
+    /// (a skewed clock must neither drop the line at once nor keep it far too long).
+    func deadline(now: Date) -> Date {
+        let remaining = expiresAtMs / 1000 - now.timeIntervalSince1970
+        return now.addingTimeInterval(remaining > 0 && remaining <= Self.ttl ? remaining : Self.ttl)
     }
 }
 
@@ -201,6 +273,7 @@ struct ThreadUpdate: Sendable, Hashable, Decodable {
 /// decode) arrives as `.other` with its raw arguments.
 enum RealtimeEvent: Sendable, Hashable {
     case roomsJoined
+    case roomsJoinFailed
     case messageNew(Message)
     case messageUpdated(Message)
     case syncResume(SyncResumeResponse)
@@ -211,6 +284,9 @@ enum RealtimeEvent: Sendable, Hashable {
     case readStateUpdated(ReadStateUpdate)
     case readStateUpdatedBulk([ReadStateUpdate])
     case threadUpdated(ThreadUpdate)
+    /// A thread reply's new copy (a bare message), like `message:updated` for replies.
+    case threadReplyUpdated(Message)
+    case agentTyping(AgentTyping)
     case threadFollowersUpdated(threadChannelId: String)
     case channelUpdated(channelId: String?, raw: JSONValue)
     case channelMembersUpdated(channelId: String?)
@@ -221,6 +297,7 @@ enum RealtimeEvent: Sendable, Hashable {
     var name: String {
         switch self {
         case .roomsJoined: SocketEventName.roomsJoined
+        case .roomsJoinFailed: SocketEventName.roomsJoinFailed
         case .messageNew: SocketEventName.messageNew
         case .messageUpdated: SocketEventName.messageUpdated
         case .syncResume: SocketEventName.syncResumeResponse
@@ -231,6 +308,8 @@ enum RealtimeEvent: Sendable, Hashable {
         case .readStateUpdated: SocketEventName.readStateUpdated
         case .readStateUpdatedBulk: SocketEventName.readStateUpdatedBulk
         case .threadUpdated: SocketEventName.threadUpdated
+        case .threadReplyUpdated: SocketEventName.threadReplyUpdated
+        case .agentTyping: SocketEventName.agentTyping
         case .threadFollowersUpdated: SocketEventName.threadFollowersUpdated
         case .channelUpdated: SocketEventName.channelUpdated
         case .channelMembersUpdated: SocketEventName.channelMembersUpdated
@@ -255,6 +334,12 @@ enum RealtimeEvent: Sendable, Hashable {
         switch name {
         case SocketEventName.roomsJoined:
             return .roomsJoined
+        case SocketEventName.roomsJoinFailed:
+            return .roomsJoinFailed
+        case SocketEventName.threadReplyUpdated:
+            if let message = message() { return .threadReplyUpdated(message) }
+        case SocketEventName.agentTyping:
+            if let typing = try? payload.decode(AgentTyping.self) { return .agentTyping(typing) }
         case SocketEventName.messageNew:
             if let message = message() { return .messageNew(message) }
         case SocketEventName.messageUpdated:

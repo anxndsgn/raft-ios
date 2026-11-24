@@ -345,14 +345,17 @@ struct CreateThreadResult: Sendable, Hashable, Decodable {
     }
 }
 
-/// `GET channels/inbox`.
+/// `GET channels/inbox?filter=all|unread|mentions|unread_mentions&limit&offset` (server
+/// `routes/channels.ts`, `channelService.InboxItemsResult`): `{ items, groups, hasMore, totalCount,
+/// totalUnreadCount, activeUnreadCount }`.
 struct InboxPage: Sendable, Hashable, Decodable {
     var items: [InboxItem]
     var hasMore: Bool
     var totalCount: Int?
     var totalUnreadCount: Int?
+    var activeUnreadCount: Int?
 
-    private enum CodingKeys: String, CodingKey { case items, hasMore, totalCount, totalUnreadCount }
+    private enum CodingKeys: String, CodingKey { case items, hasMore, totalCount, totalUnreadCount, activeUnreadCount }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -360,43 +363,97 @@ struct InboxPage: Sendable, Hashable, Decodable {
         hasMore = c.lenient(.hasMore) ?? false
         totalCount = c.flexibleInt(.totalCount)
         totalUnreadCount = c.flexibleInt(.totalUnreadCount)
+        activeUnreadCount = c.flexibleInt(.activeUnreadCount)
     }
 }
 
-struct InboxItem: Sendable, Hashable, Decodable {
-    /// `channel`, `thread`, `dm`, ...: kept as sent.
+/// One Activity row. The server sends a union (`channelService.InboxItem`):
+/// - `channel` / `dm`: `channelId, channelName, channelType, lastMessageId, lastMessageAt,
+///   lastMessagePreview, lastMessageSenderName, …`
+/// - `thread` / `task`: `threadChannelId, parentMessageId (null for task), parentChannelId,
+///   parentChannelName, parentChannelType, parentMessagePreview, latestActivityPreview,
+///   latestActivitySenderName, latestActivityMessageId, lastActivityAt, replyCount, …`
+/// - object rows (apps such as Artifacts) carry other fields; they decode with what is shared.
+/// Both arms: `unreadCount, hasMention, firstUnreadMessageId, firstMentionMessageId,
+/// latestActivitySeq, maxReadSeq?, readStateVersion?`.
+struct InboxItem: Sendable, Hashable, Decodable, Identifiable {
     var kind: String
-    var channelId: String
+    var channelId: String?
     var channelName: String?
     var channelType: String?
-    var lastMessageId: String?
     var threadChannelId: String?
     var parentMessageId: String?
     var parentChannelId: String?
+    var parentChannelName: String?
+    var parentChannelType: String?
+    var parentMessagePreview: String?
+    /// `lastMessagePreview` (channel arm) or `latestActivityPreview` (thread arm).
+    var preview: String?
+    /// `lastMessageSenderName` or `latestActivitySenderName`.
+    var senderName: String?
+    /// `lastMessageId` or `latestActivityMessageId`.
+    var latestMessageId: String?
+    /// `lastMessageAt` or `lastActivityAt`.
+    var activityAt: String?
+    var latestActivitySeq: Int64?
+    var firstUnreadMessageId: String?
+    var firstMentionMessageId: String?
     var unreadCount: Int
     var hasMention: Bool
-    var lastMessagePreview: String?
-    var lastMessageAt: String?
+    var replyCount: Int?
+    var readStateVersion: Int64?
 
     private enum CodingKeys: String, CodingKey {
-        case kind, channelId, channelName, channelType, lastMessageId, threadChannelId, parentMessageId, parentChannelId
-        case unreadCount, hasMention, lastMessagePreview, lastMessageAt
+        case kind, channelId, channelName, channelType, threadChannelId, parentMessageId, parentChannelId
+        case parentChannelName, parentChannelType, parentMessagePreview
+        case lastMessagePreview, latestActivityPreview, lastMessageSenderName, latestActivitySenderName
+        case lastMessageId, latestActivityMessageId, lastMessageAt, lastActivityAt, latestActivitySeq
+        case firstUnreadMessageId, firstMentionMessageId, unreadCount, hasMention, replyCount, readStateVersion
+        case id
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         kind = c.lenient(.kind) ?? ""
-        channelId = c.lenient(.channelId) ?? ""
+        channelId = c.lenient(.channelId)
         channelName = c.lenient(.channelName)
         channelType = c.lenient(.channelType)
-        lastMessageId = c.lenient(.lastMessageId)
         threadChannelId = c.lenient(.threadChannelId)
         parentMessageId = c.lenient(.parentMessageId)
         parentChannelId = c.lenient(.parentChannelId)
+        parentChannelName = c.lenient(.parentChannelName)
+        parentChannelType = c.lenient(.parentChannelType)
+        parentMessagePreview = c.lenient(.parentMessagePreview)
+        preview = c.lenient(.lastMessagePreview) ?? c.lenient(.latestActivityPreview)
+        senderName = c.lenient(.lastMessageSenderName) ?? c.lenient(.latestActivitySenderName)
+        latestMessageId = c.lenient(.lastMessageId) ?? c.lenient(.latestActivityMessageId)
+        activityAt = c.lenient(.lastMessageAt) ?? c.lenient(.lastActivityAt)
+        latestActivitySeq = c.flexibleInt64(.latestActivitySeq)
+        firstUnreadMessageId = c.lenient(.firstUnreadMessageId)
+        firstMentionMessageId = c.lenient(.firstMentionMessageId)
         unreadCount = c.flexibleInt(.unreadCount) ?? 0
         hasMention = c.lenient(.hasMention) ?? false
-        lastMessagePreview = c.lenient(.lastMessagePreview)
-        lastMessageAt = c.lenient(.lastMessageAt)
+        replyCount = c.flexibleInt(.replyCount)
+        readStateVersion = c.flexibleInt64(.readStateVersion)
+        objectId = c.lenient(.id)
+        guard scopeChannelId != nil || objectId != nil else {
+            throw DecodingError.keyNotFound(CodingKeys.channelId, .init(codingPath: c.codingPath, debugDescription: "row without an id"))
+        }
+    }
+
+    private var objectId: String?
+
+    /// Thread and task rows are about their own conversation channel.
+    var isSubConversation: Bool { kind == "thread" || kind == "task" }
+
+    /// The conversation the row is about (the server's `inboxItemScopeChannelId`).
+    var scopeChannelId: String? { isSubConversation ? threadChannelId : channelId }
+
+    var id: String { "\(kind):\(scopeChannelId ?? objectId ?? "")" }
+
+    /// Title for a list: the channel, or the thread's parent channel.
+    var title: String {
+        (isSubConversation ? parentChannelName : channelName) ?? ""
     }
 }
 

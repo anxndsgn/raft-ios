@@ -19,7 +19,7 @@ struct CoreServices: Sendable {
         let transport = HTTPTransport(session: urlSession, appInfo: appInfo, environment: { environment })
         let session = SessionManager(
             environment: environment.kind,
-            store: SessionStore(secure: secure),
+            store: SessionVault(secure: secure),
             refresher: HTTPTokenRefresher(transport: transport)
         )
         let http = RaftHTTPClient(transport: transport, credentials: session)

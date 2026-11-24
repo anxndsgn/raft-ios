@@ -76,7 +76,7 @@ struct HTTPTokenRefresher: TokenRefreshing {
 /// - Refused refresh: the session is cleared and `.expired` is published.
 actor SessionManager: CredentialProvider {
     let environment: RaftEnvironment.Kind
-    private let store: SessionStore
+    private let store: SessionVault
     private let refresher: any TokenRefreshing
     private let installationId: String
     private var session: StoredSession?
@@ -86,7 +86,7 @@ actor SessionManager: CredentialProvider {
     /// Refresh attempts made (tests and diagnostics).
     private(set) var refreshCount = 0
 
-    init(environment: RaftEnvironment.Kind, store: SessionStore, refresher: any TokenRefreshing) {
+    init(environment: RaftEnvironment.Kind, store: SessionVault, refresher: any TokenRefreshing) {
         self.environment = environment
         self.store = store
         self.refresher = refresher

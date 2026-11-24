@@ -22,7 +22,7 @@ struct AuthServiceTests {
         #expect(login.header("Authorization") == nil)
         #expect(login.header("X-Server-Id") == nil)
         #expect(core.server.requests("GET servers").first?.header("Authorization") == "Bearer access-1")
-        #expect(SessionStore(secure: core.secure).load(.production)?.tokens.accessToken == "access-1")
+        #expect(SessionVault(secure: core.secure).load(.production)?.tokens.accessToken == "access-1")
         #expect(await core.session.current?.user.id == "u-1")
     }
 
@@ -230,7 +230,7 @@ struct AuthServiceTests {
         await core.auth.signOut()
         #expect(core.server.requests("POST auth/logout").first?.json == ["refreshToken": "refresh-1"])
         #expect(await core.session.current == nil)
-        #expect(SessionStore(secure: core.secure).load(.production) == nil)
+        #expect(SessionVault(secure: core.secure).load(.production) == nil)
     }
 
     @Test func selectingAServerPersistsAndSwitchesHeader() async throws {
@@ -240,12 +240,12 @@ struct AuthServiceTests {
         _ = await core.session.selectServer("missing")
         _ = try await core.api.channels()
         #expect(core.server.requests.first?.header("X-Server-Id") == "srv-2")
-        #expect(SessionStore(secure: core.secure).load(.production)?.selectedServerId == "srv-2")
+        #expect(SessionVault(secure: core.secure).load(.production)?.selectedServerId == "srv-2")
         #expect(StoredSession.resolveSelection(current: "gone", servers: [AuthServer(id: "a", name: "A")]) == "a")
     }
 
     @Test func installationIdIsStable() {
-        let store = SessionStore(secure: InMemorySecureStore())
+        let store = SessionVault(secure: InMemorySecureStore())
         let first = store.installationId()
         #expect(InstallationId.isValid(first))
         #expect(store.installationId() == first)

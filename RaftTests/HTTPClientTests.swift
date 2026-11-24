@@ -111,7 +111,7 @@ struct HTTPClientTests {
         #expect(refresh.header("Authorization") == nil)
         let stored = await core.session.current
         #expect(stored?.tokens == TokenPair(accessToken: "access-2", refreshToken: "refresh-2"))
-        #expect(SessionStore(secure: core.secure).load(.production)?.tokens.refreshToken == "refresh-2", "rotation is persisted")
+        #expect(SessionVault(secure: core.secure).load(.production)?.tokens.refreshToken == "refresh-2", "rotation is persisted")
     }
 
     @Test func concurrentUnauthorizedRequestsShareOneRefresh() async throws {
@@ -151,7 +151,7 @@ struct HTTPClientTests {
         core.server.on("POST auth/refresh", .json(401, #"{"error":"bad","code":"refresh_rotation_superseded"}"#))
         await #expect(throws: APIError.sessionExpired) { try await core.api.channels() }
         #expect(await core.session.current == nil)
-        #expect(SessionStore(secure: core.secure).load(.production) == nil)
+        #expect(SessionVault(secure: core.secure).load(.production) == nil)
         #expect(await collect(events) { $0.contains(.expired) }.contains(.expired))
     }
 

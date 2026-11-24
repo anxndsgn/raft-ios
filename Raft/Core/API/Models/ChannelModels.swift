@@ -14,10 +14,14 @@ struct Channel: Sendable, Hashable, Decodable, Identifiable {
     var readStateVersion: Int64?
     var activityMuted: Bool
     var loungeAgentId: String?
+    var serverId: String?
+    /// Activity mute starts at this seq (messages before it still count).
+    var muteFromSeq: Int64?
+    var notificationLevel: String?
 
     private enum CodingKeys: String, CodingKey {
         case id, name, type, description, archivedAt, joined, lastMessageAt, maxReadSeq, readStateVersion
-        case activityMuted, loungeAgentId
+        case activityMuted, loungeAgentId, serverId, muteFromSeq, notificationLevel
     }
 
     init(from decoder: Decoder) throws {
@@ -33,6 +37,9 @@ struct Channel: Sendable, Hashable, Decodable, Identifiable {
         readStateVersion = c.flexibleInt64(.readStateVersion)
         activityMuted = c.lenient(.activityMuted) ?? false
         loungeAgentId = c.lenient(.loungeAgentId)
+        serverId = c.lenient(.serverId)
+        muteFromSeq = c.flexibleInt64(.muteFromSeq)
+        notificationLevel = c.lenient(.notificationLevel)
     }
 
     var isArchived: Bool { !(archivedAt ?? "").isEmpty }
@@ -73,10 +80,12 @@ struct DirectMessageChannel: Sendable, Hashable, Decodable, Identifiable {
     var lastMessagePreview: String?
     var lastMessageSenderName: String?
     var lounge: LoungeLink?
+    var readStateVersion: Int64?
+    var activityMuted: Bool
 
     private enum CodingKeys: String, CodingKey {
         case id, name, type, description, lastMessageAt, peerType, peerId, peerName, peerDisplayName, peerAvatarUrl
-        case maxReadSeq, lastMessagePreview, lastMessageSenderName, lounge
+        case maxReadSeq, lastMessagePreview, lastMessageSenderName, lounge, readStateVersion, activityMuted
     }
 
     init(from decoder: Decoder) throws {
@@ -95,6 +104,8 @@ struct DirectMessageChannel: Sendable, Hashable, Decodable, Identifiable {
         lastMessagePreview = c.lenient(.lastMessagePreview)
         lastMessageSenderName = c.lenient(.lastMessageSenderName)
         lounge = c.lenient(.lounge)
+        readStateVersion = c.flexibleInt64(.readStateVersion)
+        activityMuted = c.lenient(.activityMuted) ?? false
     }
 
     var peerVisibleName: String {

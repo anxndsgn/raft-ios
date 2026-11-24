@@ -22,6 +22,11 @@ struct RaftAPI: Sendable {
         return try ListEnvelope<Channel>.decode(response.data, keys: ["channels", "items"], path: "channels", traceId: response.traceId)
     }
 
+    /// `GET channels/{id}`: one channel row (bare), as the list sends it.
+    func channel(id: String) async throws -> Channel {
+        try await client.send(.get("channels/\(Self.segment(id))"), as: Channel.self)
+    }
+
     /// `GET channels/dm`. Server v1.33.1 answers a bare array of DM rows (`id, name, type, description,
     /// createdAt, peerType (agent | user), peerId, peerName, peerDisplayName, peerDescription,
     /// peerAvatarUrl, lastMessageAt/Preview/SenderName, maxReadSeq, readStateVersion, activityMuted,

@@ -151,7 +151,7 @@ struct StoredSession: Sendable, Hashable, Codable, CustomStringConvertible, Cust
 }
 
 /// Keychain layout: one session per environment plus one installation id for the app.
-struct SessionStore: Sendable {
+struct SessionVault: Sendable {
     let secure: any SecureStore
 
     static func sessionKey(_ environment: RaftEnvironment.Kind) -> String { "session.\(environment.rawValue)" }

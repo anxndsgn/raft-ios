@@ -133,7 +133,7 @@ struct TestCore {
     init(server: FakeServer = FakeServer(), session existing: StoredSession? = nil) {
         self.server = server
         secure = InMemorySecureStore()
-        let store = SessionStore(secure: secure)
+        let store = SessionVault(secure: secure)
         if let existing { try? store.save(existing, environment: server.environment.kind) }
         let transport = server.transport
         session = SessionManager(environment: server.environment.kind, store: store, refresher: HTTPTokenRefresher(transport: transport))
