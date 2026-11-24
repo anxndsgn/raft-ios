@@ -88,7 +88,7 @@ struct MainTabView: View {
                     HomeView().routeDestinations()
                 }
             } label: {
-                Label(L10n.t("tab_home", "Home"), systemImage: model.tab == .home ? "house.fill" : "house")
+                tabLabel(L10n.t("tab_home", "Home"), model.tab == .home ? "house.fill" : "house")
             }
             .accessibilityIdentifier("tab-home")
             Tab(value: AppTab.activity) {
@@ -96,7 +96,7 @@ struct MainTabView: View {
                     ActivityView().routeDestinations()
                 }
             } label: {
-                Label(L10n.t("tab_activity", "Activity"), systemImage: "waveform.path.ecg")
+                tabLabel(L10n.t("tab_activity", "Activity"), "waveform.path.ecg")
             }
             .badge(activityUnread ? Text(verbatim: "") : nil)
             .accessibilityValue(activityUnread ? Text(L10n.t("tab_activity_unread_dot", "Unread activity")) : Text(verbatim: ""))
@@ -106,11 +106,21 @@ struct MainTabView: View {
                     SettingsView().routeDestinations()
                 }
             } label: {
-                Label(L10n.t("tab_settings", "Settings"), systemImage: model.tab == .settings ? "gearshape.fill" : "gearshape")
+                tabLabel(L10n.t("tab_settings", "Settings"), model.tab == .settings ? "gearshape.fill" : "gearshape")
             }
             .accessibilityIdentifier("tab-settings")
         }
         .tint(.raftTextPrimary)
+    }
+
+    /// The tab bar fills symbols by itself; `.none` keeps the outline for unselected tabs
+    /// (only the selected one asks for `.fill`).
+    private func tabLabel(_ title: String, _ symbol: String) -> some View {
+        Label {
+            Text(verbatim: title)
+        } icon: {
+            Image(systemName: symbol).environment(\.symbolVariants, .none)
+        }
     }
 }
 

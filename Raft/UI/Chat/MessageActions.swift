@@ -253,8 +253,10 @@ struct MessageActionsOverlay: View {
         .padding(.top, 14)
         .padding(.bottom, 14)
         .frame(maxWidth: .infinity, alignment: .topLeading)
+        .fixedSize(horizontal: false, vertical: true)
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { cardHeight = $0 }
-        .frame(maxHeight: maxHeight, alignment: .top)
+        // Hug the message: a flexible `maxHeight` frame would take the whole proposed height.
+        .frame(height: cardHeight > 0 ? min(cardHeight, maxHeight) : nil, alignment: .top)
         .clipped()
         .background(Color.raftCanvas, in: .rect(cornerRadius: 20, style: .continuous))
         .clipShape(.rect(cornerRadius: 20, style: .continuous))

@@ -64,7 +64,7 @@ struct LoginView: View {
         switch session.failure {
         case .passkeyOnly: L10n.t("ios_error_passkey_only", "This account signs in with a passkey. Use Continue in browser.")
         case .offline: L10n.t("ios_error_offline", "You're offline. Check your connection and try again.")
-        case .secondFactor(let result): result == .codeInvalid ? L10n.t("settings_step_up_code_invalid", "That code didn't work.") : result.displayMessage
+        case .secondFactor(let result): result == .codeInvalid ? L10n.t("settings_step_up_code_invalid", "That code didn't work. Check the time on your phone is set automatically, then try the newest code.") : result.displayMessage
         case .other(let text): text
         case .incorrectCredentials, nil: nil
         }

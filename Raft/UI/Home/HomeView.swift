@@ -292,6 +292,10 @@ struct HomeView: View {
     // MARK: Toolbar
 
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
+        // Home has no visible title (§3-06); the plain title still names the back button.
+        ToolbarItem(placement: .principal) {
+            Color.clear.frame(width: 1, height: 1).accessibilityHidden(true)
+        }
         ToolbarItem(placement: .topBarLeading) {
             Button {
                 showsSwitcher = true
@@ -493,7 +497,8 @@ struct UnreadCard: View {
             .frame(height: 27)
             .padding(.bottom, 8)
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(verbatim: row.kind == .channel ? "#\(row.title)" : row.title)
+                // The tile already shows the "#" (Colo review: no prefix on card titles).
+                Text(verbatim: row.title)
                     .raftFont(.author)
                     .foregroundStyle(Color.raftTextPrimary)
                     .lineLimit(1)
@@ -546,7 +551,7 @@ struct UnreadCard: View {
             let mine = sender.map { selfNames.contains($0) } ?? false
             let prefix: String? = mine ? L10n.t("activity_list_self_sender", "You") : (row.kind == .channel ? sender : nil)
             (prefix.map { Text(verbatim: "\($0): ").font(.custom(RaftFont.semibold, size: 13, relativeTo: .footnote)).foregroundStyle(Color.raftTextPrimary) } ?? Text(verbatim: ""))
-                + MessageTextBuilder(content: text, mentions: [], currentUserId: currentUserId, channelNames: [], font: .footnote, color: .raftTextSecondary).text
+                + MessageTextBuilder(content: text, mentions: [], currentUserId: currentUserId, channelNames: [], font: .footnote, color: .raftTextSecondary, pills: false).text
         }
     }
 }
@@ -593,22 +598,29 @@ struct HomeSkeleton: View {
             .padding(.horizontal, 16)
             .padding(.top, 8)
             SkeletonBlock(width: 70, height: 12).padding(.leading, 20).padding(.top, 26).padding(.bottom, 10)
-            HStack(spacing: 10) {
-                ForEach(0..<3, id: \.self) { _ in
-                    VStack(alignment: .leading, spacing: 8) {
-                        SkeletonBlock(width: 27, height: 27)
-                        SkeletonBlock(width: 90, height: 14)
-                        SkeletonBlock(width: 130, height: 10)
-                        SkeletonBlock(width: 110, height: 10)
+            // The card row is wider than the screen; host it in an overlay so it
+            // cannot widen (and re-centre) the whole skeleton.
+            Color.clear
+                .frame(maxWidth: .infinity)
+                .frame(height: 132)
+                .overlay(alignment: .leading) {
+                    HStack(spacing: 10) {
+                        ForEach(0..<3, id: \.self) { _ in
+                            VStack(alignment: .leading, spacing: 8) {
+                                SkeletonBlock(width: 27, height: 27)
+                                SkeletonBlock(width: 90, height: 14)
+                                SkeletonBlock(width: 130, height: 10)
+                                SkeletonBlock(width: 110, height: 10)
+                            }
+                            .padding(12)
+                            .frame(width: 166, height: 132, alignment: .topLeading)
+                            .background(Color.raftCard, in: .rect(cornerRadius: 16, style: .continuous))
+                        }
                     }
-                    .padding(12)
-                    .frame(width: 166, height: 132, alignment: .topLeading)
-                    .background(Color.raftCard, in: .rect(cornerRadius: 16, style: .continuous))
+                    .fixedSize()
+                    .padding(.leading, 16)
                 }
-            }
-            .padding(.horizontal, 16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .clipped()
+                .clipped()
             SkeletonBlock(width: 80, height: 12).padding(.leading, 20).padding(.top, 26).padding(.bottom, 10)
             RaftGroupCard {
                 ForEach(Array([90, 70, 110, 84].enumerated()), id: \.offset) { index, width in

@@ -259,12 +259,18 @@ struct MessageRowView: View {
     }
 
     private var a11yBody: String {
-        var text = PlainText.from(row.text)
-        if !row.attachments.isEmpty {
-            text += ". " + L10n.f("ios_attachments_count_a11y", "%1$d attachments", row.attachments.count)
+        var parts = [PlainText.from(row.text).trimmingCharacters(in: .whitespacesAndNewlines)]
+        if row.attachments.count == 1 {
+            parts.append(L10n.t("ios_attachment_one_a11y", "1 attachment"))
+        } else if row.attachments.count > 1 {
+            parts.append(L10n.f("ios_attachments_count_a11y", "%1$d attachments", row.attachments.count))
         }
-        if row.isFailed { text += ". " + L10n.t("ios_not_sent", "Not sent") }
-        return text
+        if row.isFailed { parts.append(L10n.t("ios_not_sent", "Not sent")) }
+        // One period between parts, not two when the text already ends a sentence.
+        return parts.filter { !$0.isEmpty }.reduce("") { result, part in
+            guard !result.isEmpty else { return part }
+            return result + (".!?…".contains(result.last!) ? " " : ". ") + part
+        }
     }
 
     // MARK: Attachments (§3-13)

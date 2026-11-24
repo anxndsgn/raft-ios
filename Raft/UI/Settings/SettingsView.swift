@@ -55,7 +55,12 @@ struct SettingsView: View {
             Text(L10n.t("ios_signout_message", "You’ll need to sign in again to see your servers on this iPhone. Drafts that haven’t been sent will be lost."))
         }
         .sensoryFeedback(.success, trigger: copyTick)
-        .task { await refreshNotificationStatus() }
+        .task {
+            #if DEBUG
+            if PreviewGallery.screen == "20" { confirmingSignOut = true }
+            #endif
+            await refreshNotificationStatus()
+        }
         .task(id: webPage == nil) {
             guard webPage == nil else { return }
             await loadTwoStep()

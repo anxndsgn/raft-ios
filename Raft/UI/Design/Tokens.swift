@@ -75,7 +75,9 @@ extension Color {
 // MARK: Typography (§1.2)
 
 struct RaftFont: Sendable {
-    enum Family: Sendable { case grotesk, mono }
+    /// `system`: SF Pro at the token's text style (Dynamic Type, CJK), no tracking or
+    /// line spacing (XIN 5207: the four reading tokens).
+    enum Family: Sendable { case grotesk, mono, system }
 
     var name: String
     var size: CGFloat
@@ -84,11 +86,19 @@ struct RaftFont: Sendable {
     var relativeTo: Font.TextStyle
     var family: Family = .grotesk
 
-    var font: Font { Font.custom(name, size: size, relativeTo: relativeTo) }
+    var font: Font {
+        family == .system ? Font.system(relativeTo) : Font.custom(name, size: size, relativeTo: relativeTo)
+    }
 
-    /// `target − natural` line height (Space Grotesk 1.276×, Space Mono 1.481×); none when negative.
+    /// The same face at another weight (bold mentions inside body text).
+    func weighted(_ weight: Font.Weight, groteskName: String) -> Font {
+        family == .system ? Font.system(relativeTo, weight: weight) : Font.custom(groteskName, size: size, relativeTo: relativeTo)
+    }
+
+    /// `target − natural` line height (Space Grotesk 1.276×, Space Mono 1.481×); none when negative
+    /// and none for the system face.
     var lineSpacing: CGFloat {
-        guard let lineHeight else { return 0 }
+        guard let lineHeight, family != .system else { return 0 }
         let natural = size * (family == .grotesk ? 1.276 : 1.481)
         return max(0, lineHeight - natural)
     }
@@ -107,19 +117,19 @@ struct RaftFont: Sendable {
     static let buttonLabel = RaftFont(name: bold, size: 17, relativeTo: .headline)
     static let buttonLabelSecondary = RaftFont(name: semibold, size: 17, relativeTo: .headline)
     static let buttonLabelSmall = RaftFont(name: semibold, size: 15, relativeTo: .subheadline)
-    static let body = RaftFont(name: regular, size: 16, lineHeight: 24, relativeTo: .body)
+    static let body = RaftFont(name: regular, size: 17, relativeTo: .body, family: .system)
     static let rowTitle = RaftFont(name: semibold, size: 16, lineHeight: 22, relativeTo: .body)
     static let rowTitleMedium = RaftFont(name: medium, size: 16, lineHeight: 22, relativeTo: .body)
     static let author = RaftFont(name: bold, size: 15, lineHeight: 20, relativeTo: .subheadline)
     static let activityTitle = RaftFont(name: medium, size: 15, lineHeight: 20, relativeTo: .subheadline)
     static let chipLabel = RaftFont(name: semibold, size: 15, lineHeight: 20, relativeTo: .subheadline)
-    static let callout = RaftFont(name: regular, size: 15, lineHeight: 22, relativeTo: .subheadline)
+    static let callout = RaftFont(name: regular, size: 15, relativeTo: .subheadline, family: .system)
     static let link = RaftFont(name: semibold, size: 15, relativeTo: .subheadline)
-    static let preview = RaftFont(name: regular, size: 14, lineHeight: 20, relativeTo: .subheadline)
+    static let preview = RaftFont(name: regular, size: 15, relativeTo: .subheadline, family: .system)
     static let errorText = RaftFont(name: semibold, size: 14, lineHeight: 20, relativeTo: .subheadline)
     static let segment = RaftFont(name: semibold, size: 14, relativeTo: .subheadline)
     static let footnoteStrong = RaftFont(name: semibold, size: 13, lineHeight: 18, relativeTo: .footnote)
-    static let footnote = RaftFont(name: regular, size: 13, lineHeight: 18, relativeTo: .footnote)
+    static let footnote = RaftFont(name: regular, size: 13, relativeTo: .footnote, family: .system)
     static let footnoteMedium = RaftFont(name: medium, size: 13, lineHeight: 18, relativeTo: .footnote)
     static let caption = RaftFont(name: medium, size: 12, lineHeight: 16, relativeTo: .caption)
     static let monoCaption = RaftFont(name: mono, size: 12, relativeTo: .caption, family: .mono)
@@ -239,8 +249,23 @@ enum RaftFonts {
             let scaled = UIFontMetrics(forTextStyle: .subheadline).scaledFont(for: segment)
             UISegmentedControl.appearance().setTitleTextAttributes([.font: scaled], for: .normal)
         }
-        // The Activity dot: pink (the system badge stays round, §9.9). The tab bar's own
-        // appearance is left alone so it keeps the system glass.
-        UITabBarItem.appearance().badgeColor = UIColor(Color.raftPink)
+        // Tab bar (§2.11): unselected items system gray (selected: the TabView tint, ink);
+        // the Activity dot pink and small (empty badge, tiny badge font). Background left
+        // at the default so the bar keeps the system glass.
+        let pink = UIColor(Color.raftPink)
+        let tabs = UITabBarAppearance()
+        tabs.configureWithDefaultBackground()
+        for layout in [tabs.stackedLayoutAppearance, tabs.inlineLayoutAppearance, tabs.compactInlineLayoutAppearance] {
+            layout.normal.iconColor = .systemGray
+            layout.normal.titleTextAttributes = [.foregroundColor: UIColor.systemGray]
+            for state in [layout.normal, layout.selected] {
+                state.badgeBackgroundColor = pink
+                state.badgeTextAttributes = [.font: UIFont.systemFont(ofSize: 2), .foregroundColor: pink]
+            }
+        }
+        UITabBar.appearance().standardAppearance = tabs
+        UITabBar.appearance().scrollEdgeAppearance = tabs
+        UITabBarItem.appearance().badgeColor = pink
+        UITabBar.appearance().unselectedItemTintColor = .systemGray
     }
 }

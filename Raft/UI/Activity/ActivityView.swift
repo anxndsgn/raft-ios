@@ -115,7 +115,7 @@ struct ActivityView: View {
             } else {
                 ForEach(groups, id: \.day) { group in
                     Text(verbatim: group.title)
-                        .raftFont(.monoCaption)
+                        .raftFont(.footnoteStrong)
                         .foregroundStyle(Color.raftTextTertiary)
                         .accessibilityAddTraits(.isHeader)
                         .listRowInsets(EdgeInsets(top: 18, leading: 20, bottom: 6, trailing: 20))
@@ -204,7 +204,7 @@ struct ActivityView: View {
 
     private func persona(for item: InboxItem) -> Persona {
         let type = item.senderType == "agent" ? "agent" : "user"
-        return workspace.directory.persona(type: type, id: item.senderId ?? item.id, name: item.senderName ?? item.title)
+        return workspace.directory.persona(type: type, id: item.senderId ?? item.id, name: ActivityRow.senderName(item))
     }
 
     // MARK: Actions
@@ -365,7 +365,14 @@ struct ActivityRow: View {
 
     private var name: String {
         let value = persona.name
-        return value == "?" ? (item.senderName ?? item.title) : value
+        return value == "?" ? Self.senderName(item) : value
+    }
+
+    /// The sender's name; system notices are from Raft, an unnamed sender is "Someone".
+    static func senderName(_ item: InboxItem) -> String {
+        if let name = item.senderName, !name.isEmpty { return name }
+        if item.senderType == "system" { return "Raft" }
+        return L10n.t("ios_activity_someone", "Someone")
     }
 
     private var location: String {
@@ -394,7 +401,8 @@ struct ActivityRow: View {
                 currentUserId: currentUserId,
                 channelNames: channelNames,
                 font: .preview,
-                color: unread ? .raftTextPrimary : .raftTextSecondary
+                color: unread ? .raftTextPrimary : .raftTextSecondary,
+                pills: false
             ).text
         ) {
             Text.emphasized(
@@ -512,7 +520,7 @@ struct SavedRow: View {
             unread: false,
             time: date.map { RaftFormat.listTime($0) },
             location: location,
-            preview: MessageTextBuilder(content: PlainText.preview(entry.content), mentions: [], currentUserId: currentUserId, channelNames: [], font: .preview, color: .raftTextPrimary).text
+            preview: MessageTextBuilder(content: PlainText.preview(entry.content), mentions: [], currentUserId: currentUserId, channelNames: [], font: .preview, color: .raftTextPrimary, pills: false).text
         ) {
             Text(verbatim: persona.name)
                 .font(.custom(RaftFont.bold, size: 15, relativeTo: .subheadline))
