@@ -93,37 +93,86 @@ struct AuthServiceTests {
         #expect(core.server.count("POST auth/second-factor/step-up") == 2, "a malformed code is not sent")
     }
 
-    @Test func loginItselfRefusedWithStepUp() async throws {
+    /// Server shape (routes/auth.ts `/login`, services/secondFactor/signIn.ts).
+    private let challengeJSON = #"{"secondFactorRequired":true,"challenge":"chal-1","expiresAt":"2099-01-01T00:05:00.000Z","methods":["totp","passkey","backup_code"],"maskedEmail":"p***@example.invalid"}"#
+
+    @Test func passwordLoginChallengeIsAnsweredAtVerify() async throws {
         let core = TestCore()
-        core.server.on("POST auth/login", replies: [
-            .json(403, stepUpJSON),
-            .json(200, loginJSON),
-        ])
+        core.server.on("POST auth/login", .json(200, challengeJSON))
+        core.server.on("POST auth/second-factor/verify", .json(200, loginJSON))
         core.server.on("GET auth/me", .json(200, userJSON))
         core.server.on("GET servers", .json(200, serversJSON))
         let outcome = try await core.auth.signIn(email: "a@b.c", password: "pw")
         guard case .secondFactorRequired(let prompt) = outcome else { Issue.record("no prompt"); return }
-        guard case .credentials = prompt.stage else { Issue.record("expected credentials stage"); return }
-        #expect(prompt.refusedCall == "POST auth/login")
+        guard case .signInChallenge(let challenge) = prompt.stage else { Issue.record("expected a sign-in challenge"); return }
+        #expect(challenge.token == "chal-1")
+        #expect(challenge.maskedEmail == "p***@example.invalid")
+        #expect(challenge.expiresAt == ISO8601.parse("2099-01-01T00:05:00.000Z"))
+        #expect(prompt.methods == [.totp, .passkey, .backupCode])
         #expect(prompt.usableMethods == [.totp, .backupCode])
-        #expect(prompt.trigger.hasPrefix("HTTP 403 second_factor_step_up_required"))
-        let done = try await core.auth.submitSecondFactor(.totp("654321"), for: prompt)
-        guard case .signedIn = done else { Issue.record("not signed in"); return }
-        let resent = try #require(core.server.requests("POST auth/login").last)
-        #expect(resent.json == ["email": "a@b.c", "password": "pw", "code": "654321"])
+        #expect(prompt.refusedCall == "POST auth/login")
+        #expect(prompt.trigger == "HTTP 2xx secondFactorRequired=true challenge=present keys=[challenge,expiresAt,maskedEmail,methods,secondFactorRequired] methods=[totp,passkey,backup_code]")
+        #expect(!String(describing: prompt).contains("chal-1"), "the challenge is redacted")
+
+        let done = try await core.auth.submitSecondFactor(.totp("654 321"), for: prompt)
+        guard case .signedIn(let session) = done else { Issue.record("not signed in: \(done)"); return }
+        #expect(session.servers.count == 2)
+        let verify = try #require(core.server.requests("POST auth/second-factor/verify").first)
+        #expect(verify.json == ["challenge": "chal-1", "code": "654321"])
+        #expect(verify.header("Authorization") == nil)
+        #expect(verify.header("X-Server-Id") == nil)
+        #expect(core.server.count("POST auth/login") == 1, "the password is sent once")
     }
 
-    @Test func loginAnsweringSecondFactorRequiredFlag() async throws {
+    @Test func backupCodeAnswersTheChallenge() async throws {
         let core = TestCore()
-        core.server.on("POST auth/login", .json(200, #"{"secondFactorRequired":true,"challenge":"chal-1","methods":["backup_code"]}"#))
-        let outcome = try await core.auth.signIn(email: "a@b.c", password: "pw")
-        guard case .secondFactorRequired(let prompt) = outcome else { Issue.record("no prompt"); return }
-        #expect(prompt.usableMethods == [.backupCode])
-        #expect(prompt.trigger == "HTTP 2xx secondFactorRequired=true challenge=present keys=[challenge,methods,secondFactorRequired] methods=[backup_code]")
-        guard case .credentials(_, _, let challenge) = prompt.stage else { Issue.record("stage"); return }
-        #expect(challenge == "chal-1")
-        #expect(LoginSecondFactorContract.body(email: "a", password: "p", challenge: challenge, answer: .backupCode("x"))
-            == ["email": "a", "password": "p", "backupCode": "x", "challenge": "chal-1"])
+        core.server.on("POST auth/login", .json(200, challengeJSON))
+        core.server.on("POST auth/second-factor/verify", .json(200, #"{"user":{"id":"u-1"},"accessToken":"access-1","refreshToken":"refresh-1","backupCodesRemaining":9}"#))
+        core.server.on("GET auth/me", .json(200, userJSON))
+        core.server.on("GET servers", .json(200, serversJSON))
+        guard case .secondFactorRequired(let prompt) = try await core.auth.signIn(email: "a@b.c", password: "pw") else {
+            Issue.record("no prompt"); return
+        }
+        let done = try await core.auth.submitSecondFactor(.backupCode(" abcd-efgh "), for: prompt)
+        guard case .signedIn = done else { Issue.record("not signed in"); return }
+        #expect(core.server.requests("POST auth/second-factor/verify").first?.json == ["challenge": "chal-1", "backupCode": "abcd-efgh"])
+        #expect(LoginSecondFactorContract.path == "auth/second-factor/verify")
+    }
+
+    @Test func challengeRefusals() async throws {
+        let core = TestCore()
+        core.server.on("POST auth/login", .json(200, challengeJSON))
+        core.server.on("POST auth/second-factor/verify", replies: [
+            .json(400, #"{"error":"That code didn't work.","code":"second_factor_code_invalid"}"#),
+            .json(400, #"{"error":"That backup code was already used.","code":"backup_code_used"}"#),
+            .json(429, #"{"error":"Too many wrong codes.","code":"second_factor_locked","lockedUntil":"2026-11-24T10:15:00.000Z","methods":["totp"]}"#),
+            .json(410, #"{"error":"This sign-in has expired. Sign in again.","code":"challenge_expired"}"#),
+            .json(429, #"{"error":"Too many wrong codes for this sign-in.","code":"challenge_attempts_exhausted"}"#),
+        ])
+        guard case .secondFactorRequired(let prompt) = try await core.auth.signIn(email: "a@b.c", password: "pw") else {
+            Issue.record("no prompt"); return
+        }
+        let wrong = try await core.auth.submitSecondFactor(.totp("000000"), for: prompt)
+        #expect(wrong == .secondFactorRefused(.codeInvalid, prompt))
+        let used = try await core.auth.submitSecondFactor(.backupCode("abcd-efgh"), for: prompt)
+        #expect(used == .secondFactorRefused(.backupCodeUsed, prompt))
+        let locked = try await core.auth.submitSecondFactor(.totp("111111"), for: prompt)
+        #expect(locked == .secondFactorRefused(.locked(until: ISO8601.parse("2026-11-24T10:15:00.000Z")), prompt))
+        let expired = try await core.auth.submitSecondFactor(.totp("222222"), for: prompt)
+        #expect(expired == .secondFactorRefused(.challengeExpired, prompt))
+        let exhausted = try await core.auth.submitSecondFactor(.totp("333333"), for: prompt)
+        #expect(exhausted == .secondFactorRefused(.attemptsExhausted, prompt))
+        #expect(!SecondFactorResult.codeInvalid.endsSignIn && !SecondFactorResult.locked(until: nil).endsSignIn)
+        #expect(SecondFactorResult.challengeExpired.endsSignIn && SecondFactorResult.attemptsExhausted.endsSignIn)
+        #expect(await core.session.current == nil)
+    }
+
+    @Test func challengeWithoutTokenIsAnError() async {
+        let core = TestCore()
+        core.server.on("POST auth/login", .json(200, #"{"secondFactorRequired":true,"methods":["totp"]}"#))
+        await #expect(throws: AuthFlowError.missingTokens(keys: ["methods", "secondFactorRequired"])) {
+            try await core.auth.signIn(email: "a@b.c", password: "pw")
+        }
     }
 
     @Test func wrongCredentialsAreAnHTTPError() async throws {
@@ -151,6 +200,7 @@ struct AuthServiceTests {
         let attempt = try await core.auth.startBrowserLogin()
         let start = try #require(core.server.requests("POST auth/app-login/start").first?.json)
         #expect(start["returnUri"] == "raft-debug://login/callback")
+        #expect(start["codeChallengeMethod"] == "S256")
         #expect(start["codeChallenge"]?.stringValue == PKCEPair.challenge(for: attempt.pkce.verifier))
         #expect(attempt.loginURL.host() == "app.raft.build")
 
@@ -164,7 +214,7 @@ struct AuthServiceTests {
         guard case .signedIn(let session) = outcome else { Issue.record("not signed in"); return }
         #expect(session.selectedServerId == nil)
         let complete = try #require(core.server.requests("POST auth/app-login/complete").first?.json)
-        #expect(complete == ["code": "code-1", "codeVerifier": .string(attempt.pkce.verifier)])
+        #expect(complete == ["code": "code-1", "codeVerifier": .string(attempt.pkce.verifier), "returnUri": "raft-debug://login/callback"])
     }
 
     @Test func browserLoginRejectsNonHTTPSPages() async {
@@ -205,7 +255,9 @@ struct AuthServiceTests {
         let session = sampleSession(access: "secret-access", refresh: "secret-refresh")
         #expect(!String(describing: session).contains("secret"))
         #expect(!String(describing: session.tokens).contains("secret"))
-        let prompt = SecondFactorPrompt(stage: .credentials(email: "a", password: "hunter2", challenge: nil), methods: [], serverMessage: nil, refusedCall: "x")
-        #expect(!String(describing: prompt).contains("hunter2"))
+        let challenge = SignInChallenge(token: "chal-secret", expiresAt: nil, maskedEmail: nil, methodNames: [])
+        let prompt = SecondFactorPrompt(stage: .signInChallenge(challenge), methods: [], serverMessage: nil, refusedCall: "x")
+        #expect(!String(describing: prompt).contains("secret"))
+        #expect(!String(reflecting: challenge).contains("secret"))
     }
 }

@@ -153,7 +153,7 @@ final class DebugCoreModel {
             code = ""
             statusLine = result.displayMessage
             record("Step-up refused: \(Self.resultName(result))")
-            if case .sessionFamilyRequired = result { prompt = nil } else { prompt = value }
+            prompt = result.endsSignIn ? nil : value
         }
     }
 
@@ -266,7 +266,7 @@ final class DebugCoreModel {
     private static func stageName(_ prompt: SecondFactorPrompt) -> String {
         switch prompt.stage {
         case .session: "session"
-        case .credentials: "credentials"
+        case .signInChallenge: "sign-in challenge"
         }
     }
 
@@ -278,6 +278,8 @@ final class DebugCoreModel {
         case .locked: "second_factor_locked"
         case .notEnabled: "second_factor_not_enabled"
         case .sessionFamilyRequired: "session_family_required"
+        case .challengeExpired: "challenge_expired"
+        case .attemptsExhausted: "challenge_attempts_exhausted"
         case .failed(let status, let code, _): "HTTP \(status) \(code ?? "")"
         }
     }

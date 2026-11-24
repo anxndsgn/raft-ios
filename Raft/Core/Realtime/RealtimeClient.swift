@@ -96,15 +96,19 @@ enum RealtimeError: Error, Sendable, Equatable {
 
 /// Socket.IO v5 / Engine.IO v4 client over a WebSocket, for one server.
 ///
-/// - Handshake: Engine.IO open → `40{ token, serverId, clientKind, capabilities, clientImpl }` →
+/// - Handshake: Engine.IO open → `40{ token, serverId, clientKind, capabilities }` (server
+///   `socket/index.ts` `parseSocketHandshakeAuth`: `clientKind` ∈ web | mobile | desktop | cli;
+///   `capabilities`: up to 32 strings) →
 ///   `40{ sid }` or `44{ message }`. A refused token is refreshed once and retried at once;
 ///   "not a member" and SSO stop the client.
 /// - Liveness: answers server pings; the connection is dropped when nothing arrives within
 ///   `pingInterval + pingTimeout` (from the open packet) or no app `heartbeat` arrives within
 ///   `heartbeatTimeout` (the server sends one every 15 s).
 /// - Reconnects with `ReconnectPolicy` backoff; `reconnectNow()` skips the wait.
-/// - Sync: after `rooms:joined`, `sync:resume { lastSeq, sinceHorizon? }` when a seq is known;
-///   `sync:resume:response` pages are followed while `hasMore`.
+/// - Sync (server `socket/syncResume.ts`): after `rooms:joined`, `sync:resume { lastSeq,
+///   sinceHorizon? }` when a seq is known. `sinceHorizon` goes only on a round's first resume; the
+///   `hasMore` follow-ups of that round omit it; the next round's `sinceHorizon` is the `horizon`
+///   of this round's first response.
 /// - Acks both ways: `emitWithAck` waits for `43<id>[...]`; server events with an id are acked.
 actor RealtimeClient {
     struct Configuration: Sendable {
@@ -118,7 +122,6 @@ actor RealtimeClient {
         var ackTimeout: Double = 10
         var capabilities = ["agent_activity_subscriptions_v1"]
         var clientKind = "mobile"
-        var clientImpl = "ios-native"
         var maxResumePages = 20
     }
 
@@ -189,7 +192,6 @@ actor RealtimeClient {
             "serverId": .string(config.serverId),
             "clientKind": .string(config.clientKind),
             "capabilities": .array(config.capabilities.map(JSONValue.string)),
-            "clientImpl": .string(config.clientImpl),
         ]
     }
 
@@ -528,7 +530,8 @@ actor RealtimeClient {
             } else {
                 lastSeq = max(lastSeq, response.currentSeq, pageMax)
             }
-            if let value = response.horizon { horizon = value }
+            // The round's first response sets the next round's horizon; follow-ups don't.
+            if resumePages <= 1, let value = response.horizon { horizon = value }
             if response.hasMore, resumePages < config.maxResumePages { try await resume(socket) }
         case .heartbeat:
             lastHeartbeatAt = now()
@@ -543,7 +546,7 @@ actor RealtimeClient {
         guard lastSeq > 0 else { return }
         resumePages += 1
         var payload: [String: JSONValue] = ["lastSeq": .number(Double(lastSeq))]
-        if let horizon { payload["sinceHorizon"] = .string(horizon) }
+        if resumePages == 1, let horizon { payload["sinceHorizon"] = .string(horizon) }
         try await send(SocketPacket.event(SocketEventName.syncResume, [.object(payload)]), on: socket)
     }
 }

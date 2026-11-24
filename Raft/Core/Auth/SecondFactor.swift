@@ -103,7 +103,19 @@ enum SecondFactorResult: Sendable, Hashable {
     case notEnabled
     /// This sign-in cannot be verified: sign in again.
     case sessionFamilyRequired
+    /// The sign-in challenge is used, expired, or its password changed: sign in again.
+    case challengeExpired
+    /// Too many wrong answers for this sign-in challenge: sign in again.
+    case attemptsExhausted
     case failed(status: Int, code: String?, message: String?)
+
+    /// The prompt can't be answered again: start the sign-in over.
+    var endsSignIn: Bool {
+        switch self {
+        case .sessionFamilyRequired, .challengeExpired, .attemptsExhausted: true
+        default: false
+        }
+    }
 
     static func parse(status: Int, data: Data) -> SecondFactorResult {
         if (200..<300).contains(status) {
@@ -121,6 +133,8 @@ enum SecondFactorResult: Sendable, Hashable {
             return .locked(until: body?.lockedUntil.flatMap { ISO8601.parse($0) })
         case "second_factor_not_enabled": return .notEnabled
         case "session_family_required": return .sessionFamilyRequired
+        case "challenge_expired": return .challengeExpired
+        case "challenge_attempts_exhausted": return .attemptsExhausted
         default: return .failed(status: status, code: body?.code, message: body?.displayMessage)
         }
     }
@@ -135,6 +149,8 @@ enum SecondFactorResult: Sendable, Hashable {
             else { "Too many attempts. Try again later." }
         case .notEnabled: "Two-step verification is off for this account."
         case .sessionFamilyRequired: "This sign-in can't be verified. Sign in again."
+        case .challengeExpired: "This sign-in has expired. Sign in again."
+        case .attemptsExhausted: "Too many wrong codes for this sign-in. Sign in again."
         case .failed(let status, let code, let message):
             message ?? "Verification failed (HTTP \(status)\(code.map { " \($0)" } ?? ""))."
         }

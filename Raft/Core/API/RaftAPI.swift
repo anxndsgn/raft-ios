@@ -22,6 +22,12 @@ struct RaftAPI: Sendable {
         return try ListEnvelope<Channel>.decode(response.data, keys: ["channels", "items"], path: "channels", traceId: response.traceId)
     }
 
+    /// `GET channels/dm`. Server v1.33.1 answers a bare array of DM rows (`id, name, type, description,
+    /// createdAt, peerType (agent | user), peerId, peerName, peerDisplayName, peerDescription,
+    /// peerAvatarUrl, lastMessageAt/Preview/SenderName, maxReadSeq, readStateVersion, activityMuted,
+    /// notification level, lounge?` — an agent's lounge rides on its DM row), agent DMs first, then by
+    /// last message. `include=lounges` and the `{ dms, lounges }` envelope come from the old app (newer
+    /// servers); both shapes decode.
     func directMessages(includeLounges: Bool = true) async throws -> DirectMessageList {
         let query = includeLounges ? [URLQueryItem(name: "include", value: "lounges")] : []
         return try await client.send(.get("channels/dm", query: query), as: DirectMessageList.self)

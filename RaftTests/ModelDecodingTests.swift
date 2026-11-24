@@ -82,7 +82,7 @@ struct ModelDecodingTests {
     }
 
     @Test func sendBodyOmitsRandomIdWhenNil() throws {
-        let plain = try #require(JSONValue.parse(try RaftJSON.encode(SendMessageBody(channelId: "c1", content: "hi"))))
+        let plain = try #require(JSONValue.parse(try RaftJSON.encode(SendMessageBody(channelId: "c1", content: "hi", timezone: nil))))
         #expect(plain == ["channelId": "c1", "content": "hi", "attachmentIds": [], "asTask": false])
         #expect(plain["randomId"] == nil)
         #expect(plain["mentions"] == nil)
@@ -93,17 +93,19 @@ struct ModelDecodingTests {
         #expect(full["randomId"] == "r-1")
         #expect(full["mentions"] == [["type": "user", "id": "u2", "name": "Al"]])
         #expect(full["asTask"] == true)
+        #expect(full["timezone"] == .string(TimeZone.current.identifier), "IANA zone by default")
     }
 
     @Test func sendAnswerDecodesBothShapes() async throws {
         let core = TestCore(session: sampleSession())
         core.server.on("POST v2/messages", replies: [
-            .json(200, #"{"message":{"id":"m1","content":"hi"},"unresolvedMentionHandles":["@nobody"]}"#),
+            .json(200, #"{"message":{"id":"m1","content":"hi"},"unresolvedMentionHandles":["@nobody"],"deliveryWarnings":[{"code":"x"}]}"#),
             .json(200, #"{"id":"m2","content":"hi"}"#),
         ])
         let wrapped = try await core.api.sendMessage(SendMessageBody(channelId: "c1", content: "hi"))
         #expect(wrapped.message.id == "m1")
         #expect(wrapped.unresolvedMentionHandles == ["@nobody"])
+        #expect(wrapped.deliveryWarnings == [["code": "x"]])
         let bare = try await core.api.sendMessage(SendMessageBody(channelId: "c1", content: "hi"))
         #expect(bare.message.id == "m2")
         #expect(core.server.requests.first?.json?["randomId"] == nil)

@@ -46,7 +46,7 @@ struct MessageReaction: Sendable, Hashable, Decodable {
 
 /// `{ type, id, name }`: a mention in a message, and in a send body.
 struct MessageMention: Sendable, Hashable, Codable {
-    /// `user`, `agent`, `channel`, ...
+    /// Sent: `user`, `agent` or `external` (anything else is refused). Received: also others.
     var type: String
     var id: String
     var name: String
@@ -219,17 +219,25 @@ struct MessageContextPage: Sendable, Hashable, Decodable {
     }
 }
 
-/// `POST v2/messages` body. `randomId` and `mentions` are left out when nil (the server treats a
-/// present `randomId` as an idempotency key).
+/// `POST v2/messages` body. `randomId`, `mentions` and `timezone` are left out when nil.
+/// Server contract (server `routes/messages.ts` `createHumanMessage`, v1.33.1):
+/// `channelId` (UUID), `content` (non-blank, ≤ 32 000 chars), `attachmentIds?` (UUIDs), `asTask?`,
+/// `randomId?` (1–128 chars, the optimistic-send key), `mentions?` (`{ type: user | agent | external,
+/// id: UUID, name }`), `timezone?` (IANA, best effort). Refusals: 400 `invalid_request`,
+/// `content_required`, `message_too_long`, `mentions_invalid`, `mention_binding_conflict`.
 struct SendMessageBody: Encodable, Sendable, Hashable {
+    static let maxContentLength = 32_000
+    static let maxRandomIdLength = 128
+
     var channelId: String
     var content: String
     var attachmentIds: [String] = []
     var asTask = false
     var randomId: String?
     var mentions: [MessageMention]?
+    var timezone: String? = TimeZone.current.identifier
 
-    private enum CodingKeys: String, CodingKey { case channelId, content, attachmentIds, asTask, randomId, mentions }
+    private enum CodingKeys: String, CodingKey { case channelId, content, attachmentIds, asTask, randomId, mentions, timezone }
 
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
@@ -239,17 +247,19 @@ struct SendMessageBody: Encodable, Sendable, Hashable {
         try c.encode(asTask, forKey: .asTask)
         try c.encodeIfPresent(randomId, forKey: .randomId)
         try c.encodeIfPresent(mentions, forKey: .mentions)
+        try c.encodeIfPresent(timezone, forKey: .timezone)
     }
 }
 
-/// `POST v2/messages` answer: `{ message, pendingMentionActions?, unresolvedMentionHandles? }`,
-/// or a bare message from older servers.
+/// `POST v2/messages` answer: `{ message, pendingMentionActions?, unresolvedMentionHandles?,
+/// deliveryWarnings? }` (the optional keys only when non-empty), or a bare message (v1).
 struct SendMessageResult: Sendable, Hashable, Decodable {
     var message: Message
     var pendingMentionActions: JSONValue?
     var unresolvedMentionHandles: [String]
+    var deliveryWarnings: JSONValue?
 
-    private enum CodingKeys: String, CodingKey { case message, pendingMentionActions, unresolvedMentionHandles }
+    private enum CodingKeys: String, CodingKey { case message, pendingMentionActions, unresolvedMentionHandles, deliveryWarnings }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -257,10 +267,12 @@ struct SendMessageResult: Sendable, Hashable, Decodable {
             self.message = message
             pendingMentionActions = c.nonNullJSON(.pendingMentionActions)
             unresolvedMentionHandles = c.lenient(.unresolvedMentionHandles) ?? []
+            deliveryWarnings = c.nonNullJSON(.deliveryWarnings)
         } else {
             message = try Message(from: decoder)
             pendingMentionActions = nil
             unresolvedMentionHandles = []
+            deliveryWarnings = nil
         }
     }
 }

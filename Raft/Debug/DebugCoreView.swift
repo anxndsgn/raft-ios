@@ -139,7 +139,11 @@ struct DebugCoreView: View {
         } header: {
             Text("Two-step verification")
         } footer: {
-            Text(verbatim: "Asked by \(prompt.refusedCall)")
+            if case .signInChallenge(let challenge) = prompt.stage, let masked = challenge.maskedEmail {
+                Text(verbatim: "Signing in as \(masked) · asked by \(prompt.refusedCall)")
+            } else {
+                Text(verbatim: "Asked by \(prompt.refusedCall)")
+            }
         }
     }
 

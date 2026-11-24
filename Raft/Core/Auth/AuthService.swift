@@ -6,10 +6,10 @@ struct SecondFactorPrompt: Sendable, Hashable, CustomStringConvertible, CustomDe
         /// Tokens were issued, then a call answered `403 second_factor_step_up_required`. Answered with
         /// `POST auth/second-factor/step-up` on those tokens (the documented step-up contract).
         case session(TokenPair, user: AuthUser?)
-        /// `POST auth/login` itself refused (403 `second_factor_step_up_required`, or a 2xx
-        /// `{ secondFactorRequired: true }` without tokens). No bearer exists, so the code is re-sent
-        /// with the credentials: see `LoginSecondFactorContract` (UNVERIFIED against the server).
-        case credentials(email: String, password: String, challenge: JSONValue?)
+        /// `POST auth/login` answered `200 { secondFactorRequired: true, challenge, expiresAt, methods,
+        /// maskedEmail }` and no tokens. Answered at `POST auth/second-factor/verify` with the
+        /// challenge (`LoginSecondFactorContract`); the password is not kept.
+        case signInChallenge(SignInChallenge)
     }
 
     var stage: Stage
@@ -33,7 +33,7 @@ struct SecondFactorPrompt: Sendable, Hashable, CustomStringConvertible, CustomDe
     var description: String {
         let stageName = switch stage {
         case .session: "session"
-        case .credentials: "credentials"
+        case .signInChallenge: "sign-in challenge"
         }
         return "SecondFactorPrompt(stage: \(stageName), methods: \(methods.map(\.rawValue)), refused: \(refusedCall), trigger: \(trigger))"
     }
@@ -73,19 +73,38 @@ enum AuthFlowError: Error, Sendable, Equatable, LocalizedError {
     }
 }
 
-/// The answer of `POST auth/login` / `POST auth/app-login/complete`: `{ user, accessToken,
-/// refreshToken }`, or (web contract) `{ secondFactorRequired: true, challenge?, methods? }`.
+/// A password sign-in's second step (server `services/secondFactor/signIn.ts`): an opaque,
+/// single-use challenge, valid 5 minutes and for a few attempts. Redacted in descriptions.
+struct SignInChallenge: Sendable, Hashable, CustomStringConvertible, CustomDebugStringConvertible {
+    let token: String
+    let expiresAt: Date?
+    /// `a***@example.com`: shown so the person recognises the account.
+    let maskedEmail: String?
+    /// The methods as sent: `totp`, `passkey`, `backup_code`, `recovery` (only what is set up).
+    let methodNames: [String]
+
+    var description: String { "SignInChallenge(redacted, methods: \(methodNames))" }
+    var debugDescription: String { description }
+}
+
+/// The answer of `POST auth/login`, `POST auth/second-factor/verify` and `POST auth/app-login/complete`:
+/// `{ user, accessToken, refreshToken, backupCodesRemaining? (verify with a backup code),
+/// accountDeletion?, linkedProvider? }`, or (login with two-step verification on)
+/// `{ secondFactorRequired: true, challenge, expiresAt, methods, maskedEmail }`.
 struct LoginAnswer: Decodable, Sendable {
     var user: AuthUser?
     var accessToken: String?
     var refreshToken: String?
     var secondFactorRequired: Bool
-    var challenge: JSONValue?
+    var challenge: String?
+    var expiresAt: String?
+    var maskedEmail: String?
     var methods: [String]
+    var backupCodesRemaining: Int?
     var keys: [String]
 
     private enum CodingKeys: String, CodingKey {
-        case user, accessToken, refreshToken, secondFactorRequired, challenge, methods
+        case user, accessToken, refreshToken, secondFactorRequired, challenge, expiresAt, maskedEmail, methods, backupCodesRemaining
     }
 
     init(from decoder: Decoder) throws {
@@ -94,8 +113,11 @@ struct LoginAnswer: Decodable, Sendable {
         accessToken = container.lenient(.accessToken, as: String.self).flatMap { $0.isEmpty ? nil : $0 }
         refreshToken = container.lenient(.refreshToken, as: String.self).flatMap { $0.isEmpty ? nil : $0 }
         secondFactorRequired = container.lenient(.secondFactorRequired) ?? false
-        challenge = container.lenient(.challenge)
+        challenge = container.lenient(.challenge, as: String.self).flatMap { $0.isEmpty ? nil : $0 }
+        expiresAt = container.lenient(.expiresAt)
+        maskedEmail = container.lenient(.maskedEmail)
         methods = container.lenient(.methods) ?? []
+        backupCodesRemaining = container.flexibleInt(.backupCodesRemaining)
         keys = try decoder.container(keyedBy: AnyCodingKey.self).allKeys.map(\.stringValue).sorted()
     }
 
@@ -104,26 +126,31 @@ struct LoginAnswer: Decodable, Sendable {
         return TokenPair(accessToken: accessToken, refreshToken: refreshToken)
     }
 
-    /// A sign-in that stopped at the second factor (no tokens, but a flag or a challenge).
-    var asksForSecondFactor: Bool { tokens == nil && (secondFactorRequired || (challenge.map { !$0.isNull } ?? false)) }
+    /// A sign-in that stopped at the second factor (no tokens, but the flag or a challenge).
+    var asksForSecondFactor: Bool { tokens == nil && (secondFactorRequired || challenge != nil) }
+
+    /// What the server answered, for diagnostics: the flag and key names, never values.
+    var diagnosticSummary: String {
+        "secondFactorRequired=\(secondFactorRequired) challenge=\(challenge == nil ? "absent" : "present") keys=[\(keys.joined(separator: ","))] methods=[\(methods.joined(separator: ","))]"
+    }
 }
 
-/// How a second-factor code is sent when `POST auth/login` itself asked for it.
-///
-/// UNVERIFIED: the old app never answered a login-time challenge (its password login had none and
-/// its release QA script stops on `secondFactorRequired`). This re-sends `auth/login` with the
-/// credentials plus `code` (authenticator) or `backupCode`, mirroring the step-up body, and echoes
-/// the server's `challenge` when it sent one. Change only this type once the server contract is known.
+/// Answering a sign-in challenge (server `routes/auth.ts` `secondFactorVerifyHandler`, v1.33.1):
+/// `POST auth/second-factor/verify { challenge, code | backupCode }` (exactly one answer; `totp` is
+/// the earlier name of `code`; `webauthn` and `recovery: true` are not offered here). Unauthenticated.
+/// Success is `/login`'s body plus `backupCodesRemaining` after a backup code. Refusals are
+/// `{ error, code, ...extra }`: 400 `second_factor_code_invalid` / `backup_code_used` /
+/// `invalid_request`, 410 `challenge_expired`, 429 `challenge_attempts_exhausted` /
+/// `second_factor_locked` (`lockedUntil`, `methods`), 503 `second_factor_unavailable`.
 enum LoginSecondFactorContract {
-    static let path = "auth/login"
+    static let path = "auth/second-factor/verify"
 
-    static func body(email: String, password: String, challenge: JSONValue?, answer: SecondFactorAnswer) -> JSONValue {
-        var object: [String: JSONValue] = ["email": .string(email), "password": .string(password)]
+    static func body(challenge: String, answer: SecondFactorAnswer) -> JSONValue {
+        var object: [String: JSONValue] = ["challenge": .string(challenge)]
         switch answer {
         case .totp: object["code"] = .string(answer.normalizedCode)
         case .backupCode: object["backupCode"] = .string(answer.normalizedCode)
         }
-        if let challenge, !challenge.isNull { object["challenge"] = challenge }
         return .object(object)
     }
 }
@@ -157,25 +184,21 @@ struct AuthService: Sendable {
         var request = try APIRequest.json("POST", "auth/login", body: Body(email: email, password: password))
         request.authenticated = false
         request.serverScope = .none
-        let answer: LoginAnswer
-        do {
-            answer = try await client.send(request, as: LoginAnswer.self)
-        } catch APIError.secondFactorRequired(let challenge) {
-            return .secondFactorRequired(SecondFactorPrompt(
-                stage: .credentials(email: email, password: password, challenge: nil),
-                methods: challenge.methods,
-                serverMessage: challenge.serverMessage,
-                refusedCall: "POST auth/login",
-                trigger: "HTTP 403 \(SecondFactorChallenge.requiredCode) methods=[\(challenge.methodNames.joined(separator: ","))]"
-            ))
-        }
+        let answer = try await client.send(request, as: LoginAnswer.self)
         if answer.asksForSecondFactor {
+            guard let token = answer.challenge else { throw AuthFlowError.missingTokens(keys: answer.keys) }
+            let challenge = SignInChallenge(
+                token: token,
+                expiresAt: answer.expiresAt.flatMap { ISO8601.parse($0) },
+                maskedEmail: answer.maskedEmail,
+                methodNames: answer.methods
+            )
             return .secondFactorRequired(SecondFactorPrompt(
-                stage: .credentials(email: email, password: password, challenge: answer.challenge),
+                stage: .signInChallenge(challenge),
                 methods: answer.methods.compactMap(SecondFactorMethod.init(rawValue:)),
                 serverMessage: nil,
                 refusedCall: "POST auth/login",
-                trigger: "HTTP 2xx secondFactorRequired=\(answer.secondFactorRequired) challenge=\(answer.challenge.map { $0.isNull ? "null" : "present" } ?? "absent") keys=[\(answer.keys.joined(separator: ","))] methods=[\(answer.methods.joined(separator: ","))]"
+                trigger: "HTTP 2xx \(answer.diagnosticSummary)"
             ))
         }
         guard let tokens = answer.tokens else { throw AuthFlowError.missingTokens(keys: answer.keys) }
@@ -198,8 +221,8 @@ struct AuthService: Sendable {
             default:
                 return .secondFactorRefused(result, prompt)
             }
-        case .credentials(let email, let password, let challenge):
-            let body = LoginSecondFactorContract.body(email: email, password: password, challenge: challenge, answer: answer)
+        case .signInChallenge(let challenge):
+            let body = LoginSecondFactorContract.body(challenge: challenge.token, answer: answer)
             var request = try APIRequest.json("POST", LoginSecondFactorContract.path, body: body)
             request.authenticated = false
             request.serverScope = .none
@@ -210,9 +233,8 @@ struct AuthService: Sendable {
             guard let answer = try? RaftJSON.decode(LoginAnswer.self, from: response.data) else {
                 throw APIError.decoding(path: LoginSecondFactorContract.path, detail: "unreadable login answer", traceId: response.traceId)
             }
-            if let tokens = answer.tokens { return try await finishSignIn(tokens: tokens, user: answer.user) }
-            if answer.asksForSecondFactor { return .secondFactorRefused(.codeInvalid, prompt) }
-            throw AuthFlowError.missingTokens(keys: answer.keys)
+            guard let tokens = answer.tokens else { throw AuthFlowError.missingTokens(keys: answer.keys) }
+            return try await finishSignIn(tokens: tokens, user: answer.user)
         }
     }
 
@@ -264,7 +286,7 @@ struct AuthService: Sendable {
     func startBrowserLogin() async throws -> BrowserLoginAttempt {
         let pkce = PKCEPair.generate()
         let returnUri = appInfo.loginCallbackURI
-        struct Body: Encodable { let returnUri: String; let codeChallenge: String }
+        struct Body: Encodable { let returnUri: String; let codeChallenge: String; let codeChallengeMethod = "S256" }
         struct Answer: Decodable { let requestId: String; let loginUrl: String; let expiresAt: String? }
         var request = try APIRequest.json("POST", "auth/app-login/start", body: Body(returnUri: returnUri, codeChallenge: pkce.challenge))
         request.authenticated = false
@@ -288,8 +310,10 @@ struct AuthService: Sendable {
         }
         if let error = callback.error { throw AuthFlowError.browserError(error) }
         guard let code = callback.code else { throw AuthFlowError.callbackInvalid }
-        struct Body: Encodable { let code: String; let codeVerifier: String }
-        var request = try APIRequest.json("POST", "auth/app-login/complete", body: Body(code: code, codeVerifier: attempt.pkce.verifier))
+        // Two-step verification happens on the web page: approving needs a verified sign-in, and the
+        // issued session inherits it. `returnUri` must equal the one sent at start.
+        struct Body: Encodable { let code: String; let codeVerifier: String; let returnUri: String }
+        var request = try APIRequest.json("POST", "auth/app-login/complete", body: Body(code: code, codeVerifier: attempt.pkce.verifier, returnUri: attempt.returnUri))
         request.authenticated = false
         request.serverScope = .none
         let answer = try await client.send(request, as: LoginAnswer.self)

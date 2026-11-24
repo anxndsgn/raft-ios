@@ -91,11 +91,11 @@ struct PKCEAndTOTPTests {
         #expect(challenge.usableMethods == [.totp, .backupCode])
         #expect(!challenge.passkeyOnly)
         #expect(SecondFactorChallenge.parse(status: 401, body: body, path: "servers") == nil)
-        let passkeyOnly = SecondFactorPrompt(stage: .credentials(email: "e", password: "p", challenge: nil), methods: [.passkey], serverMessage: nil, refusedCall: "x")
+        let passkeyOnly = SecondFactorPrompt(stage: .signInChallenge(SignInChallenge(token: "t", expiresAt: nil, maskedEmail: nil, methodNames: [])), methods: [.passkey], serverMessage: nil, refusedCall: "x")
         #expect(passkeyOnly.passkeyOnly)
         #expect(passkeyOnly.usableMethods.isEmpty)
         #expect(!passkeyOnly.description.contains("p,"), "no secrets in descriptions")
-        let unknown = SecondFactorPrompt(stage: .credentials(email: "e", password: "p", challenge: nil), methods: [], serverMessage: nil, refusedCall: "x")
+        let unknown = SecondFactorPrompt(stage: .signInChallenge(SignInChallenge(token: "t", expiresAt: nil, maskedEmail: nil, methodNames: [])), methods: [], serverMessage: nil, refusedCall: "x")
         #expect(unknown.usableMethods == [.totp, .backupCode], "no list: offer both")
 
         let status = try RaftJSON.decode(SecondFactorStatus.self, from: Data(#"{"enabled":true,"methods":{"totp":true,"passkeys":"2","backupCodesRemaining":0},"sessionVerified":false}"#.utf8))
