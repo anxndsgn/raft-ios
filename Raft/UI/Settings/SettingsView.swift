@@ -40,8 +40,10 @@ struct SettingsView: View {
                 // so its shots match the shipping screen.
                 if !model.isPreview { developerGroup }
                 #endif
+                // 120pt below Sign out keeps the footer off the first screen (Colo 5227); the
+                // ScrollView's tab-bar inset plus 16 lets it rest fully above the bar at the end.
                 MadeWithAirBuild()
-                    .padding(.top, 28)
+                    .padding(.top, 120)
                     .padding(.bottom, 16)
             }
         }
