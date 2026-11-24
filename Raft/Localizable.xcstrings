@@ -3,6 +3,2700 @@
   "strings" : {
     "Made with AirBuild" : {
       "comment" : "Credit at the bottom of Settings. Keep the name AirBuild as is."
+    },
+    "activity_action_mute_activity" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:194",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mute Activity"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "静音动态"
+          }
+        }
+      }
+    },
+    "activity_filter_all" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:85",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部"
+          }
+        }
+      }
+    },
+    "activity_filter_mentions" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:87",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mentions"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提及"
+          }
+        }
+      }
+    },
+    "activity_filter_unread" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:86, Raft/UI/Activity/ActivityView.swift:424, Raft/UI/Home/HomeView.swift:136",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unread"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未读"
+          }
+        }
+      }
+    },
+    "activity_list_day_today" : {
+      "comment" : "gen-strings: Raft/UI/Design/RaftFormat.swift:31",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今天"
+          }
+        }
+      }
+    },
+    "activity_list_day_yesterday" : {
+      "comment" : "gen-strings: Raft/UI/Design/RaftFormat.swift:33",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yesterday"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "昨天"
+          }
+        }
+      }
+    },
+    "activity_list_self_sender" : {
+      "comment" : "gen-strings: Raft/UI/Design/Stickers.swift:291, Raft/UI/Home/HomeView.swift:552, Raft/UI/Home/HomeView.swift:563",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你"
+          }
+        }
+      }
+    },
+    "activity_list_time_hours" : {
+      "comment" : "gen-strings: Raft/UI/Design/RaftFormat.swift:53",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$dh"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d 小时"
+          }
+        }
+      }
+    },
+    "activity_list_time_minutes" : {
+      "comment" : "gen-strings: Raft/UI/Design/RaftFormat.swift:52",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$dm"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d 分钟"
+          }
+        }
+      }
+    },
+    "activity_list_time_now" : {
+      "comment" : "gen-strings: Raft/UI/Design/RaftFormat.swift:51",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "now"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刚刚"
+          }
+        }
+      }
+    },
+    "activity_swipe_layer_unread" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:185",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unread"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未读"
+          }
+        }
+      }
+    },
+    "auth_action_sign_in" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:180",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录"
+          }
+        }
+      }
+    },
+    "auth_error_incorrect_credentials" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:60, Raft/UI/Auth/AuthViews.swift:118",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incorrect email or password."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "邮箱或密码不正确。"
+          }
+        }
+      }
+    },
+    "auth_error_legal_acceptance_required" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:172, Raft/UI/Auth/AuthViews.swift:260",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review and accept Raft’s Terms of Service and Privacy Policy to continue."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请查看并接受 Raft 的服务条款和隐私政策后继续。"
+          }
+        }
+      }
+    },
+    "auth_link_privacy_policy" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:224, Raft/UI/Auth/AuthViews.swift:240",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy Policy"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐私政策"
+          }
+        }
+      }
+    },
+    "auth_link_terms_of_service" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:223, Raft/UI/Auth/AuthViews.swift:238",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terms of Service"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务条款"
+          }
+        }
+      }
+    },
+    "auth_server_signed_in_as" : {
+      "comment" : "gen-strings: Raft/UI/Auth/ServerPickerView.swift:38",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signed in as %1$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已登录为 %1$@"
+          }
+        }
+      }
+    },
+    "auth_server_title_choose" : {
+      "comment" : "gen-strings: Raft/UI/Auth/ServerPickerView.swift:27",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose server"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择服务器"
+          }
+        }
+      }
+    },
+    "auth_social_divider_or" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:248",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "or"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "或"
+          }
+        }
+      }
+    },
+    "auth_terms_agreement_acknowledgement" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:239",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "acknowledge the "
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确认"
+          }
+        }
+      }
+    },
+    "auth_terms_agreement_connector" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:239",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " and "
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "并"
+          }
+        }
+      }
+    },
+    "auth_terms_agreement_prefix" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:237",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I agree to the "
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "我同意"
+          }
+        }
+      }
+    },
+    "auth_web_login_button" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:91",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to Raft"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录到 Raft"
+          }
+        }
+      }
+    },
+    "common_cancel" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:50",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
+          }
+        }
+      }
+    },
+    "common_copied" : {
+      "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:531, Raft/UI/Chat/ChatView.swift:543, Raft/UI/Chat/ThreadView.swift:388",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已复制"
+          }
+        }
+      }
+    },
+    "common_copy" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:302",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制"
+          }
+        }
+      }
+    },
+    "common_delete" : {
+      "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:496, Raft/UI/Chat/ThreadView.swift:346",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除"
+          }
+        }
+      }
+    },
+    "common_hide_password" : {
+      "comment" : "gen-strings: Raft/UI/Design/Controls.swift:235",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide password"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏密码"
+          }
+        }
+      }
+    },
+    "common_ok" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageActions.swift:106",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定"
+          }
+        }
+      }
+    },
+    "common_retry" : {
+      "comment" : "gen-strings: Raft/UI/Design/Controls.swift:411",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重试"
+          }
+        }
+      }
+    },
+    "common_show_password" : {
+      "comment" : "gen-strings: Raft/UI/Design/Controls.swift:235",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show password"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示密码"
+          }
+        }
+      }
+    },
+    "composer_mention_actor_agent" : {
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:555",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent"
+          }
+        }
+      }
+    },
+    "error_session_expired" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:77",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your session expired. Sign in again to continue."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会话已过期。请重新登录后继续。"
+          }
+        }
+      }
+    },
+    "file_preview_action_copy_text" : {
+      "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:473, Raft/UI/Chat/ChatView.swift:495, Raft/UI/Chat/ChatView.swift:503",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy text"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制文本"
+          }
+        }
+      }
+    },
+    "home_error_load" : {
+      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:124",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not load Home"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法加载首页"
+          }
+        }
+      }
+    },
+    "home_nav_saved" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:479, Raft/UI/Home/HomeView.swift:217",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已保存"
+          }
+        }
+      }
+    },
+    "home_section_channels" : {
+      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:152",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Channels"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "频道"
+          }
+        }
+      }
+    },
+    "home_section_direct_messages" : {
+      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:161",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direct messages"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "私信"
+          }
+        }
+      }
+    },
+    "home_section_empty" : {
+      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:170",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No conversations"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有会话"
+          }
+        }
+      }
+    },
+    "home_server_switcher_switch_or_create" : {
+      "comment" : "gen-strings: Raft/UI/Home/ServerSwitcher.swift:50",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch or create server"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换或创建服务器"
+          }
+        }
+      }
+    },
+    "inbox_action_mark_all_read" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:39, Raft/UI/Home/HomeView.swift:140",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark all read"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部已读"
+          }
+        }
+      }
+    },
+    "inbox_empty_all_detail" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:141",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Channels, DMs, and followed threads stay here until they are done."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "频道、私信和已关注的消息列会一直保留在这里，直到处理完成。"
+          }
+        }
+      }
+    },
+    "inbox_empty_mentions_detail" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:143",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Channels, DMs, and threads where someone @mentions you will appear here."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有人在频道、私信或消息列中 @提到你时，会显示在这里。"
+          }
+        }
+      }
+    },
+    "inbox_empty_saved_detail" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:457",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save a message and its thread shows up here."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存一条消息后，它所在的消息列会显示在这里。"
+          }
+        }
+      }
+    },
+    "inbox_empty_unread_detail" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:142",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Channels, DMs, and followed threads stay here until they are done."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "频道、私信和已关注的消息列会一直保留在这里，直到处理完成。"
+          }
+        }
+      }
+    },
+    "inbox_error_load_activity" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:104",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not load activity"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法加载动态"
+          }
+        }
+      }
+    },
+    "ios_activity_empty_title" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:110",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You’re all caught up"
+          }
+        }
+      }
+    },
+    "ios_activity_posted" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:363",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ posted a message"
+          }
+        }
+      }
+    },
+    "ios_activity_replied_thread" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:361",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ replied to a thread"
+          }
+        }
+      }
+    },
+    "ios_activity_sent_message" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:362",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ sent you a message"
+          }
+        }
+      }
+    },
+    "ios_activity_someone" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:375",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Someone"
+          }
+        }
+      }
+    },
+    "ios_attach_camera" : {
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:278",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera"
+          }
+        }
+      }
+    },
+    "ios_attach_file" : {
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:281",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attach file"
+          }
+        }
+      }
+    },
+    "ios_attach_photo" : {
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:276",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo library"
+          }
+        }
+      }
+    },
+    "ios_attachment_one_a11y" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageRow.swift:264",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 attachment"
+          }
+        }
+      }
+    },
+    "ios_attachments_count_a11y" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageRow.swift:266",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d attachments"
+          }
+        }
+      }
+    },
+    "ios_backup_detail" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:470",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter one of the backup codes you saved when you turned on two-step verification."
+          }
+        }
+      }
+    },
+    "ios_backup_help" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:533",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A backup code works once. Format: %1$@"
+          }
+        }
+      }
+    },
+    "ios_browser_hint" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:188",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens app.raft.build in a secure browser sheet"
+          }
+        }
+      }
+    },
+    "ios_channel_empty_detail" : {
+      "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:362",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share updates, files and questions with people and agents here."
+          }
+        }
+      }
+    },
+    "ios_channel_empty_title" : {
+      "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:361",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is the start of #%1$@"
+          }
+        }
+      }
+    },
+    "ios_chat_error_load" : {
+      "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:304",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not load messages"
+          }
+        }
+      }
+    },
+    "ios_composer_hint" : {
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:264",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Double-tap to write a message"
+          }
+        }
+      }
+    },
+    "ios_dm_empty_title" : {
+      "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:353",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is the start of your conversation with %1$@"
+          }
+        }
+      }
+    },
+    "ios_error_offline" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:66, Raft/UI/Auth/AuthViews.swift:297, Raft/UI/Auth/AuthViews.swift:457",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're offline. Check your connection and try again."
+          }
+        }
+      }
+    },
+    "ios_error_passkey_only" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:65",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This account signs in with a passkey. Use Continue in browser."
+          }
+        }
+      }
+    },
+    "ios_forgot_password" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:158",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forgot password?"
+          }
+        }
+      }
+    },
+    "ios_image" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageRow.swift:508",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image"
+          }
+        }
+      }
+    },
+    "ios_jump_to_latest" : {
+      "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:382",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jump to latest"
+          }
+        }
+      }
+    },
+    "ios_loading" : {
+      "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:301, Raft/UI/Chat/ThreadView.swift:179, Raft/UI/Home/HomeView.swift:655",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading"
+          }
+        }
+      }
+    },
+    "ios_login_subtitle" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:96",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Where humans and AI agents build together."
+          }
+        }
+      }
+    },
+    "ios_mark_as_read" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:183, Raft/UI/Home/HomeView.swift:192",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark as read"
+          }
+        }
+      }
+    },
+    "ios_mention_members" : {
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:525",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Members"
+          }
+        }
+      }
+    },
+    "ios_mention_members_matching" : {
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:525",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Members matching “%1$@”"
+          }
+        }
+      }
+    },
+    "ios_mention_suggestions" : {
+      "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:189",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d suggestions"
+          }
+        }
+      }
+    },
+    "ios_mention_you" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageText.swift:182",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "you"
+          }
+        }
+      }
+    },
+    "ios_mentions_you_a11y" : {
+      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:576",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "mentions you"
+          }
+        }
+      }
+    },
+    "ios_message_deleted" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageRow.swift:241",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This message was deleted."
+          }
+        }
+      }
+    },
+    "ios_not_sent" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageRow.swift:268",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not sent"
+          }
+        }
+      }
+    },
+    "ios_not_sent_tap_to_retry" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageRow.swift:601",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not sent · Tap to retry"
+          }
+        }
+      }
+    },
+    "ios_open_web" : {
+      "comment" : "gen-strings: Raft/UI/Auth/ServerPickerView.swift:94",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Raft on the web"
+          }
+        }
+      }
+    },
+    "ios_password" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:142",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password"
+          }
+        }
+      }
+    },
+    "ios_pause_1h" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:145",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 hour"
+          }
+        }
+      }
+    },
+    "ios_pause_tomorrow" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:146",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Until tomorrow"
+          }
+        }
+      }
+    },
+    "ios_paused_until" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:165",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Until %1$@"
+          }
+        }
+      }
+    },
+    "ios_presence_busy" : {
+      "comment" : "gen-strings: Raft/UI/Design/Stickers.swift:23",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Working"
+          }
+        }
+      }
+    },
+    "ios_reaction_including_you" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageRow.swift:358",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "including you"
+          }
+        }
+      }
+    },
+    "ios_reconnecting" : {
+      "comment" : "gen-strings: Raft/UI/Design/Controls.swift:321, Raft/UI/Home/HomeView.swift:50",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reconnecting…"
+          }
+        }
+      }
+    },
+    "ios_remove_attachment" : {
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:450",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove %1$@"
+          }
+        }
+      }
+    },
+    "ios_retry_hint" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageRow.swift:256",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Double-tap to retry"
+          }
+        }
+      }
+    },
+    "ios_saved_error_load" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:451",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not load saved messages"
+          }
+        }
+      }
+    },
+    "ios_send" : {
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:332, Raft/UI/Chat/Composer.swift:345",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send"
+          }
+        }
+      }
+    },
+    "ios_servers_empty_detail" : {
+      "comment" : "gen-strings: Raft/UI/Auth/ServerPickerView.swift:89",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask a teammate for an invite link, or create a server on the web. Servers hold your channels, agents and activity."
+          }
+        }
+      }
+    },
+    "ios_servers_empty_title" : {
+      "comment" : "gen-strings: Raft/UI/Auth/ServerPickerView.swift:84",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You’re not in any server yet"
+          }
+        }
+      }
+    },
+    "ios_settings_device_notifications" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:132",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications on this device"
+          }
+        }
+      }
+    },
+    "ios_signout_message" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:55",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You’ll need to sign in again to see your servers on this iPhone. Drafts that haven’t been sent will be lost."
+          }
+        }
+      }
+    },
+    "ios_signout_title" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:49",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign out of Raft?"
+          }
+        }
+      }
+    },
+    "ios_switch_server_a11y" : {
+      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:316",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, switch server"
+          }
+        }
+      }
+    },
+    "ios_thread_error_load" : {
+      "comment" : "gen-strings: Raft/UI/Chat/ThreadView.swift:181",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not load this thread"
+          }
+        }
+      }
+    },
+    "ios_thread_preview_a11y" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageRow.swift:448",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, latest from %2$@: %3$@"
+          }
+        }
+      }
+    },
+    "ios_thread_reply_preview" : {
+      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:530, Raft/UI/Home/HomeView.swift:540",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ replied in “%2$@”"
+          }
+        }
+      }
+    },
+    "ios_thread_unread_a11y" : {
+      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:577",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d thread replies"
+          }
+        }
+      }
+    },
+    "ios_totp_detail" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:353",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the 6-digit code from your authenticator app for %1$@."
+          }
+        }
+      }
+    },
+    "ios_totp_detail_plain" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:358",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the 6-digit code from your authenticator app."
+          }
+        }
+      }
+    },
+    "ios_totp_progress" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:400",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d of 6 digits entered"
+          }
+        }
+      }
+    },
+    "ios_unread_count_a11y" : {
+      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:575",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d unread"
+          }
+        }
+      }
+    },
+    "ios_updated_at" : {
+      "comment" : "gen-strings: Raft/UI/Design/Controls.swift:326",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updated %1$@"
+          }
+        }
+      }
+    },
+    "member_label_agent" : {
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:574, Raft/UI/Chat/MessageRow.swift:229, Raft/UI/Home/HomeView.swift:571",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent"
+          }
+        }
+      }
+    },
+    "member_label_connected" : {
+      "comment" : "gen-strings: Raft/UI/Design/Stickers.swift:22",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Online"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在线"
+          }
+        }
+      }
+    },
+    "member_label_muted" : {
+      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:339, Raft/UI/Home/HomeView.swift:574",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muted"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已静音"
+          }
+        }
+      }
+    },
+    "member_label_offline" : {
+      "comment" : "gen-strings: Raft/UI/Design/Stickers.swift:24",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "离线"
+          }
+        }
+      }
+    },
+    "member_label_you_suffix" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageRow.swift:227",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(you)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "（你）"
+          }
+        }
+      }
+    },
+    "push_preview_sender_only_mention" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:360",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ mentioned you"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 提到了你"
+          }
+        }
+      }
+    },
+    "saved_empty_title" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:457",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No saved messages yet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无收藏的消息"
+          }
+        }
+      }
+    },
+    "settings_about_label_version" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:294",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "版本"
+          }
+        }
+      }
+    },
+    "settings_about_title" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:290",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关于"
+          }
+        }
+      }
+    },
+    "settings_about_version_copy_hint" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:301",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Long press to copy"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "长按复制"
+          }
+        }
+      }
+    },
+    "settings_account_email" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:132",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "邮箱"
+          }
+        }
+      }
+    },
+    "settings_account_logout" : {
+      "comment" : "gen-strings: Raft/UI/Auth/ServerPickerView.swift:69, Raft/UI/Auth/ServerPickerView.swift:99, Raft/UI/Settings/SettingsView.swift:31",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign out"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退出登录"
+          }
+        }
+      }
+    },
+    "settings_account_logout_action" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:51",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign out"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退出登录"
+          }
+        }
+      }
+    },
+    "settings_account_title" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:207",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "账户"
+          }
+        }
+      }
+    },
+    "settings_account_two_step_title" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:306, Raft/UI/Auth/AuthViews.swift:466, Raft/UI/Settings/SettingsView.swift:245",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Two-step verification"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "两步验证"
+          }
+        }
+      }
+    },
+    "settings_language_region_title" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:233",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language & region"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "语言与地区"
+          }
+        }
+      }
+    },
+    "settings_notifications_mode_all" : {
+      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:337",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All new messages"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有新消息"
+          }
+        }
+      }
+    },
+    "settings_notifications_mode_mentions" : {
+      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:338",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direct messages, mentions & followed threads"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅 DM、@我 和关注的线程"
+          }
+        }
+      }
+    },
+    "settings_notifications_pause_title" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:151",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause notifications"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂停通知"
+          }
+        }
+      }
+    },
+    "settings_notifications_show_previews_title" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:139",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show message previews"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示消息预览"
+          }
+        }
+      }
+    },
+    "settings_notifications_title" : {
+      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:347, Raft/UI/Settings/SettingsView.swift:128",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通知"
+          }
+        }
+      }
+    },
+    "settings_option_off" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:147, Raft/UI/Settings/SettingsView.swift:164, Raft/UI/Settings/SettingsView.swift:246",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭"
+          }
+        }
+      }
+    },
+    "settings_option_on" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:246",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开启"
+          }
+        }
+      }
+    },
+    "settings_server_title" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:214",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务器"
+          }
+        }
+      }
+    },
+    "settings_step_up_backup_code_invalid" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:455",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That backup code didn't work. Check it and try again."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备用码不对。请检查后再试。"
+          }
+        }
+      }
+    },
+    "settings_step_up_backup_code_label" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:475",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup code"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备用码"
+          }
+        }
+      }
+    },
+    "settings_step_up_code_invalid" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:67, Raft/UI/Auth/AuthViews.swift:295",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That code didn't work. Check the time on your phone is set automatically, then try the newest code."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证码不对。请确认手机时间设为自动，然后试试最新的验证码。"
+          }
+        }
+      }
+    },
+    "settings_step_up_code_label" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:399",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authenticator code"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证器验证码"
+          }
+        }
+      }
+    },
+    "settings_step_up_lost_authenticator" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:505",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lost the device with your authenticator?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "装有验证器的设备丢了？"
+          }
+        }
+      }
+    },
+    "settings_step_up_use_authenticator" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:500",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use authenticator code"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用验证器验证码"
+          }
+        }
+      }
+    },
+    "settings_step_up_use_backup_code" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:327",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use a backup code"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用备用码"
+          }
+        }
+      }
+    },
+    "settings_step_up_verify" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:320, Raft/UI/Auth/AuthViews.swift:492",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verify"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证"
+          }
+        }
+      }
+    },
+    "settings_step_up_verifying" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:320, Raft/UI/Auth/AuthViews.swift:492",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifying…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在验证…"
+          }
+        }
+      }
+    },
+    "settings_step_up_web_continue" : {
+      "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:184",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue in browser"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在浏览器中继续"
+          }
+        }
+      }
+    },
+    "settings_title" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:47",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置"
+          }
+        }
+      }
+    },
+    "tab_activity" : {
+      "comment" : "gen-strings: Raft/UI/RootView.swift:99, Raft/UI/Activity/ActivityView.swift:30, Raft/UI/Activity/ActivityView.swift:77",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activity"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "动态"
+          }
+        }
+      }
+    },
+    "tab_activity_unread_dot" : {
+      "comment" : "gen-strings: Raft/UI/RootView.swift:102",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unread activity"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未读动态"
+          }
+        }
+      }
+    },
+    "tab_home" : {
+      "comment" : "gen-strings: Raft/UI/RootView.swift:91, Raft/UI/Home/HomeView.swift:23",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "主页"
+          }
+        }
+      }
+    },
+    "tab_settings" : {
+      "comment" : "gen-strings: Raft/UI/RootView.swift:109",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置"
+          }
+        }
+      }
+    },
+    "thread_action_add_reaction" : {
+      "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:474, Raft/UI/Chat/MessageActions.swift:237, Raft/UI/Chat/MessageRow.swift:194",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add reaction"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加回应"
+          }
+        }
+      }
+    },
+    "thread_action_copy_link" : {
+      "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:475, Raft/UI/Chat/MessageRow.swift:196, Raft/UI/Chat/ThreadView.swift:363",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy link"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制链接"
+          }
+        }
+      }
+    },
+    "thread_action_follow_thread" : {
+      "comment" : "gen-strings: Raft/UI/Chat/ThreadView.swift:98",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follow thread"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关注消息列"
+          }
+        }
+      }
+    },
+    "thread_action_reply_in_thread" : {
+      "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:472, Raft/UI/Chat/MessageRow.swift:193",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reply in thread"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在消息列中回复"
+          }
+        }
+      }
+    },
+    "thread_action_unfollow_thread" : {
+      "comment" : "gen-strings: Raft/UI/Chat/ThreadView.swift:98",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unfollow thread"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消关注消息列"
+          }
+        }
+      }
+    },
+    "thread_agent_typing_agent_fallback" : {
+      "comment" : "gen-strings: Raft/Stores/DirectoryStore.swift:58",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent"
+          }
+        }
+      }
+    },
+    "thread_agent_typing_many" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageRow.swift:644",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{first}, {second} and {others} other agents are typing…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{first}、{second} 等 {count} 个 agent 正在输入…"
+          }
+        }
+      }
+    },
+    "thread_agent_typing_one" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageRow.swift:637",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{first} is typing…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{first} 正在输入…"
+          }
+        }
+      }
+    },
+    "thread_agent_typing_two" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageRow.swift:639",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{first} and {second} are typing…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{first} 和 {second} 正在输入…"
+          }
+        }
+      }
+    },
+    "thread_composer_as_task" : {
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:289",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As task"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作为任务"
+          }
+        }
+      }
+    },
+    "thread_composer_attachment_upload_failed" : {
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:423, Raft/UI/Chat/Composer.swift:474",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upload failed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上传失败"
+          }
+        }
+      }
+    },
+    "thread_composer_placeholder_channel" : {
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:171",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Message #%1$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送消息到 #%1$@"
+          }
+        }
+      }
+    },
+    "thread_composer_placeholder_dm" : {
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:172",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Message @%1$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "给 @%1$@ 发消息"
+          }
+        }
+      }
+    },
+    "thread_composer_placeholder_reply" : {
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:173",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reply in thread"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在消息列中回复"
+          }
+        }
+      }
+    },
+    "thread_direct_message_title" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:379, Raft/UI/Activity/ActivityView.swift:509",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direct message"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "私信"
+          }
+        }
+      }
+    },
+    "thread_inline_reply_count_many" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageRow.swift:400, Raft/UI/Chat/ThreadView.swift:53",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d replies"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d 条回复"
+          }
+        }
+      }
+    },
+    "thread_inline_reply_count_one" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageRow.swift:399, Raft/UI/Chat/ThreadView.swift:52",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 reply"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 条回复"
+          }
+        }
+      }
+    },
+    "thread_message_a11y_add_reaction" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageRow.swift:378",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add reaction"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加回应"
+          }
+        }
+      }
+    },
+    "thread_message_a11y_open_thread" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageRow.swift:441",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open thread"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开消息列"
+          }
+        }
+      }
+    },
+    "thread_reply_title" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:511, Raft/UI/Chat/ThreadView.swift:89",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thread"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "消息列"
+          }
+        }
+      }
+    },
+    "thread_send_failure_details" : {
+      "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:499, Raft/UI/Chat/MessageActions.swift:105, Raft/UI/Chat/ThreadView.swift:349",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "详情"
+          }
+        }
+      }
+    },
+    "thread_send_failure_retry" : {
+      "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:492, Raft/UI/Chat/Composer.swift:502, Raft/UI/Chat/ThreadView.swift:343",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重试"
+          }
+        }
+      }
+    },
+    "thread_send_failure_summary" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageActions.swift:108",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send failed: %1$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送失败：%1$@"
+          }
+        }
+      }
+    },
+    "thread_state_loading_older" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageRow.swift:676",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading older messages…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在加载更早的消息…"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
