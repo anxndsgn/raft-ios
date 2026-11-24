@@ -54,6 +54,8 @@ final class ComposerModel {
     }
 
     var isUploading: Bool { attachments.contains { $0.state == .uploading } }
+    /// Unsent text or files: keeps the composer expanded with the keyboard down.
+    var hasDraft: Bool { !text.isEmpty || !attachments.isEmpty }
 
     /// Mentions still written in the text.
     var resolvedMentions: [MessageMention] {
@@ -172,34 +174,95 @@ struct ComposerPanel: View {
         }
     }
 
+    /// Collapsed: a 48pt glass capsule holding only the placeholder (§2.8, XIN 5210).
+    /// Expanded: the r26 panel with tray, field and tool row.
+    @State private var expanded = false
+    @Namespace private var glass
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorScheme) private var scheme
+
+    /// Expanded while focused, or while a draft (text or files) is waiting.
+    private var wantsExpanded: Bool { focus.wrappedValue || model.hasDraft }
+
     var body: some View {
+        GlassEffectContainer {
+            panel
+        }
+        .onAppear {
+            expanded = wantsExpanded
+            #if DEBUG
+            // Gallery 15 shows the expanded panel without a draft (spec still, no keyboard).
+            if PreviewGallery.screen == "15" { expanded = true }
+            #endif
+        }
+        .onChange(of: wantsExpanded) { _, target in setExpanded(target) }
+        .animation(.smooth(duration: 0.25), value: model.attachments.count)
+    }
+
+    private func setExpanded(_ target: Bool) {
+        guard target != expanded else { return }
+        let animation: Animation = reduceMotion
+            ? .easeInOut(duration: 0.2)
+            : (target ? .spring(response: 0.35, dampingFraction: 0.86) : .smooth(duration: 0.25))
+        withAnimation(animation) { expanded = target }
+    }
+
+    /// Starts the morph on the tap itself, together with the keyboard (the focus change
+    /// lands ~0.3 s later). If focus never arrives, fall back to the collapsed capsule.
+    private func expandFromTap() {
+        guard !expanded else { return }
+        focus.wrappedValue = true
+        setExpanded(true)
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(800))
+            if !wantsExpanded { setExpanded(false) }
+        }
+    }
+
+    private var panel: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if !model.attachments.isEmpty {
+            if expanded, !model.attachments.isEmpty {
                 AttachmentTray(model: model, retry: retryUpload)
                     .padding(.bottom, 8)
+                    .transition(.opacity)
             }
-            TextField(text: $model.text, axis: .vertical) {
-                Text(verbatim: placeholder).foregroundStyle(Color.raftTextTertiary)
+            field
+            if expanded {
+                toolRow
+                    .transition(reduceMotion ? .opacity : .asymmetric(
+                        insertion: .opacity.animation(.easeOut(duration: 0.2).delay(0.08)),
+                        removal: .opacity.animation(.easeOut(duration: 0.1))
+                    ))
             }
-            .font(RaftFont.body.font)
-            .foregroundStyle(Color.raftTextPrimary)
-            .lineLimit(1...5)
-            .focused(focus)
-            .padding(.top, 2)
-            .padding(.bottom, 6)
-            .onKeyPress(.upArrow) { moveHighlight(-1) }
-            .onKeyPress(.downArrow) { moveHighlight(1) }
-            .onKeyPress(.return) {
-                guard !candidates.isEmpty else { return .ignored }
-                model.pick(candidates[min(model.highlightedMention, candidates.count - 1)])
-                return .handled
-            }
-            .accessibilityIdentifier("composer-field")
-            toolRow
         }
-        .padding(EdgeInsets(top: 10, leading: 16, bottom: 8, trailing: 10))
-        .raftGlass(RoundedRectangle(cornerRadius: 26, style: .continuous))
-        .animation(.smooth(duration: 0.25), value: model.attachments.count)
+        .padding(expanded ? EdgeInsets(top: 10, leading: 16, bottom: 8, trailing: 10) : EdgeInsets(top: 0, leading: 18, bottom: 0, trailing: 18))
+        .frame(minHeight: 48)
+        .contentShape(.rect(cornerRadius: 24))
+        // The whole capsule is the tap target (buttons inside keep their own taps).
+        .simultaneousGesture(TapGesture().onEnded { expandFromTap() })
+        .modifier(ComposerGlass(expanded: expanded, namespace: glass, reduceTransparency: reduceTransparency, dark: scheme == .dark))
+    }
+
+    private var field: some View {
+        TextField(text: $model.text, axis: .vertical) {
+            Text(verbatim: placeholder).foregroundStyle(Color.raftTextTertiary)
+        }
+        .font(RaftFont.body.font)
+        .foregroundStyle(Color.raftTextPrimary)
+        .lineLimit(expanded ? 1...5 : 1...1)
+        .focused(focus)
+        .padding(.top, expanded ? 2 : 0)
+        .padding(.bottom, expanded ? 6 : 0)
+        .onKeyPress(.upArrow) { moveHighlight(-1) }
+        .onKeyPress(.downArrow) { moveHighlight(1) }
+        .onKeyPress(.return) {
+            guard !candidates.isEmpty else { return .ignored }
+            model.pick(candidates[min(model.highlightedMention, candidates.count - 1)])
+            return .handled
+        }
+        .accessibilityHint(expanded ? Text(verbatim: "") : Text(L10n.t("ios_composer_hint", "Double-tap to write a message")))
+        .accessibilityIdentifier("composer-field")
     }
 
     private func moveHighlight(_ delta: Int) -> KeyPress.Result {
@@ -286,6 +349,27 @@ struct ComposerPanel: View {
     }
 }
 
+/// One glass shape that morphs between the collapsed capsule (r24 at 48pt) and the r26 panel.
+private struct ComposerGlass: ViewModifier {
+    let expanded: Bool
+    let namespace: Namespace.ID
+    let reduceTransparency: Bool
+    let dark: Bool
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: expanded ? 26 : 24, style: .continuous)
+        if reduceTransparency {
+            content
+                .background(dark ? Color(hex: 0x2C2C29) : Color.raftCard, in: shape)
+                .overlay(shape.stroke(dark ? Color.white.opacity(0.12) : Color.raftInk.opacity(0.12), lineWidth: 0.5))
+        } else {
+            content
+                .glassEffect(.regular.interactive(), in: shape)
+                .glassEffectID("composer", in: namespace)
+        }
+    }
+}
+
 // MARK: Attachment tray (§3-13)
 
 struct AttachmentTray: View {
@@ -326,29 +410,11 @@ struct AttachmentTray: View {
                     .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Color.raftInk.opacity(0.2), lineWidth: 0.5))
                     .opacity(item.state == .uploading ? 0.8 : 1)
             } else {
-                HStack(spacing: 8) {
-                    FileTypeTile(filename: item.filename, mimeType: item.mimeType, small: true)
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(verbatim: item.filename)
-                            .font(.custom(RaftFont.semibold, size: 13, relativeTo: .footnote))
-                            .foregroundStyle(Color.raftTextPrimary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                        Text(verbatim: RaftFormat.bytes(Int64(item.data.count)))
-                            .raftFont(.monoCaption)
-                            .foregroundStyle(Color.raftTextTertiary)
-                    }
-                    .frame(maxWidth: 140, alignment: .leading)
-                }
-                .padding(.leading, 8)
-                .padding(.trailing, 12)
-                .frame(height: 52)
-                .background(TrayFill(), in: .rect(cornerRadius: 12, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.raftInk.opacity(0.16), lineWidth: 0.5))
+                fileBlock(item)
             }
         }
         .overlay {
-            if case .failed = item.state {
+            if case .failed = item.state, item.isImage, item.thumbnail != nil {
                 Button {
                     retry(item.id)
                 } label: {
@@ -363,7 +429,7 @@ struct AttachmentTray: View {
                     .background(Color.raftCard.opacity(0.85), in: .rect(cornerRadius: 10, style: .continuous))
                 }
                 .buttonStyle(.plain)
-            } else if item.state == .uploading {
+            } else if item.state == .uploading, item.isImage, item.thumbnail != nil {
                 ProgressView().controlSize(.small).tint(.raftInk)
             }
         }
@@ -385,6 +451,58 @@ struct AttachmentTray: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text(verbatim: item.filename))
+    }
+
+    /// Non-image draft: tile + name + size. A failed upload swaps the size for a red
+    /// "Upload failed" line and the whole block becomes the retry button.
+    @ViewBuilder private func fileBlock(_ item: ComposerModel.DraftAttachment) -> some View {
+        let failed: Bool = {
+            if case .failed = item.state { return true }
+            return false
+        }()
+        let block = HStack(spacing: 8) {
+            FileTypeTile(filename: item.filename, mimeType: item.mimeType, small: true)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(verbatim: item.filename)
+                    .font(.custom(RaftFont.semibold, size: 13, relativeTo: .footnote))
+                    .foregroundStyle(Color.raftTextPrimary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                if failed {
+                    HStack(spacing: 3) {
+                        Image(systemName: "exclamationmark.circle").font(.system(size: 11, weight: .semibold))
+                        Text(L10n.t("thread_composer_attachment_upload_failed", "Upload failed"))
+                            .font(.custom(RaftFont.semibold, size: 12, relativeTo: .caption))
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(Color.raftDanger)
+                } else {
+                    Text(verbatim: RaftFormat.bytes(Int64(item.data.count)))
+                        .raftFont(.monoCaption)
+                        .foregroundStyle(Color.raftTextTertiary)
+                }
+            }
+            .frame(maxWidth: 140, alignment: .leading)
+        }
+        .padding(.leading, 8)
+        .padding(.trailing, 12)
+        .frame(height: 52)
+        .background(TrayFill(), in: .rect(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(failed ? Color.raftDanger.opacity(0.5) : Color.raftInk.opacity(0.16), lineWidth: failed ? 1 : 0.5)
+        )
+        if failed {
+            Button {
+                retry(item.id)
+            } label: {
+                block
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint(Text(L10n.t("thread_send_failure_retry", "Retry")))
+        } else {
+            block
+        }
     }
 }
 

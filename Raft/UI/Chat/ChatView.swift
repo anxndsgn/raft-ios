@@ -117,7 +117,7 @@ struct ChatView: View {
             .toolbar {
                 ToolbarItem(placement: .principal) { title }
             }
-            .safeAreaInset(edge: .top, spacing: 0) {
+            .safeAreaBar(edge: .top, spacing: 0) {
                 if showsBanner {
                     StatusBanner(updatedAt: workspace.lastConnectedAt)
                         .padding(.vertical, 4)
@@ -143,6 +143,18 @@ struct ChatView: View {
             }
             .sensoryFeedback(.impact(weight: .light), trigger: sendTick)
             .animation(showsBanner ? .easeOut(duration: 0.25) : .easeIn(duration: 0.2), value: showsBanner)
+            // The keyboard and the composer's collapse/expand change the bottom inset together;
+            // the bottom anchor can overshoot past the last message. Re-pin when it was at the bottom.
+            .onChange(of: composerFocused) {
+                guard edges.atBottom else { return }
+                Task {
+                    try? await Task.sleep(for: .milliseconds(380))
+                    // By id: `scrollTo(edge:)` is a no-op here, the position still reads as "bottom".
+                    if let last = entries.last?.id {
+                        withAnimation(.smooth(duration: 0.2)) { position.scrollTo(id: last, anchor: .bottom) }
+                    }
+                }
+            }
             .task { await start() }
             .task(id: workspace.isOffline) {
                 guard workspace.isOffline else {
@@ -159,7 +171,12 @@ struct ChatView: View {
                 try? await Task.sleep(for: .milliseconds(300))
                 if !Task.isCancelled { showsSpinner = true }
             }
-            .onAppear { store.isVisible = scenePhase == .active }
+            .onAppear {
+                store.isVisible = scenePhase == .active
+                #if DEBUG
+                if let draft = PreviewGallery.takeDraft(for: store.channelId) { composer = draft }
+                #endif
+            }
             .onDisappear { store.isVisible = false }
             .onChange(of: scenePhase) { _, phase in store.isVisible = phase == .active }
             .onChange(of: store.errorMessage) { _, message in
@@ -176,7 +193,15 @@ struct ChatView: View {
 
     private func start() async {
         await store.start(focusMessageId: ref.focusMessageId)
-        guard !didFocus, let focus = store.focusMessageId else { return }
+        guard !didFocus, let focus = store.focusMessageId else {
+            // Lazy rows are measured as they appear; settle on the real bottom once they are.
+            if !didFocus {
+                didFocus = true
+                try? await Task.sleep(for: .milliseconds(150))
+                position.scrollTo(edge: .bottom)
+            }
+            return
+        }
         didFocus = true
         try? await Task.sleep(for: .milliseconds(120))
         position.scrollTo(id: "m:\(focus)", anchor: .center)
@@ -237,6 +262,8 @@ struct ChatView: View {
         .defaultScrollAnchor((isEmpty || store.isLoadingOlder || store.phase != .loaded) ? .top : .bottom, for: .alignment)
         .defaultScrollAnchor((edges.atBottom || holdingForOlder) ? .bottom : .top, for: .sizeChanges)
         .scrollDismissesKeyboard(.interactively)
+        // System soft fade under the nav bar (§2.12); no custom bar background or divider.
+        .scrollEdgeEffectStyle(.soft, for: .top)
         .onScrollGeometryChange(for: StreamEdges.self) { geometry in
             StreamEdges(
                 nearTop: geometry.visibleRect.minY < 600,

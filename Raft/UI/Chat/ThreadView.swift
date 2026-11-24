@@ -111,6 +111,18 @@ struct ThreadView: View {
             if case .success(let urls) = result { addFiles(AttachmentImport.load(urls)) }
         }
         .sensoryFeedback(.impact(weight: .light), trigger: sendTick)
+        // The keyboard and the composer's collapse/expand change the bottom inset together;
+        // the bottom anchor can overshoot past the last message. Re-pin when it was at the bottom.
+        .onChange(of: composerFocused) {
+            guard edges.atBottom else { return }
+            Task {
+                try? await Task.sleep(for: .milliseconds(380))
+                // By id: `scrollTo(edge:)` is a no-op here, the position still reads as "bottom".
+                if let last = replies.flatMap({ replyEntries($0).last?.id }) {
+                    withAnimation(.smooth(duration: 0.2)) { position.scrollTo(id: last, anchor: .bottom) }
+                }
+            }
+        }
         .task {
             await store.start()
             replies?.isVisible = scenePhase == .active
