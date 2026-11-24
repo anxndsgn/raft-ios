@@ -73,6 +73,8 @@ struct LaunchView: View {
 struct MainTabView: View {
     @Environment(AppModel.self) private var model
     @Environment(Workspace.self) private var workspace
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.displayScale) private var displayScale
 
     private var activityUnread: Bool {
         guard workspace.channelList.phase == .loaded else { return false }
@@ -96,9 +98,17 @@ struct MainTabView: View {
                     ActivityView().routeDestinations()
                 }
             } label: {
-                tabLabel(L10n.t("tab_activity", "Activity"), "waveform.path.ecg")
+                if activityUnread {
+                    Label {
+                        Text(verbatim: L10n.t("tab_activity", "Activity"))
+                    } icon: {
+                        Image(uiImage: ActivityTabImage.image(selected: model.tab == .activity, dark: scheme == .dark, scale: displayScale))
+                            .renderingMode(.original)
+                    }
+                } else {
+                    tabLabel(L10n.t("tab_activity", "Activity"), "waveform.path.ecg")
+                }
             }
-            .badge(activityUnread ? Text(verbatim: "") : nil)
             .accessibilityValue(activityUnread ? Text(L10n.t("tab_activity_unread_dot", "Unread activity")) : Text(verbatim: ""))
             .accessibilityIdentifier("tab-activity")
             Tab(value: AppTab.settings) {
@@ -121,6 +131,45 @@ struct MainTabView: View {
         } icon: {
             Image(systemName: symbol).environment(\.symbolVariants, .none)
         }
+    }
+}
+
+/// The Activity tab's icon while there is unread activity (§2.11): the tab's waveform with an
+/// 8×8 pink square, 1pt ink ring, at its top-right. Drawn into an `.alwaysOriginal` bitmap (the
+/// tab bar would tint a template image, and its own badge is a round number capsule), with a
+/// selected and an unselected variant per appearance. The bar itself stays native.
+enum ActivityTabImage {
+    @MainActor private static var cache: [String: UIImage] = [:]
+
+    @MainActor static func image(selected: Bool, dark: Bool, scale: CGFloat) -> UIImage {
+        let key = "\(selected)|\(dark)|\(scale)"
+        if let hit = cache[key] { return hit }
+        let traits = UITraitCollection(userInterfaceStyle: dark ? .dark : .light)
+        // Selected: the TabView tint (raftTextPrimary); unselected: the bar's default label color.
+        let color = selected ? UIColor(Color.raftTextPrimary).resolvedColor(with: traits) : UIColor.label.resolvedColor(with: traits)
+        let config = UIImage.SymbolConfiguration(textStyle: .body, scale: .large)
+            .applying(UIImage.SymbolConfiguration(weight: .medium))
+        guard let symbol = UIImage(systemName: "waveform.path.ecg", withConfiguration: config)?
+            .withTintColor(color, renderingMode: .alwaysOriginal) else { return UIImage() }
+        let glyph = symbol.size
+        // Pad every side by the dot's overhang so the waveform stays centered in the item.
+        let dot: CGFloat = 8
+        let overhang: CGFloat = 4
+        let canvas = CGSize(width: glyph.width + overhang * 2, height: glyph.height + overhang * 2)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = max(scale, 1)
+        let image = UIGraphicsImageRenderer(size: canvas, format: format).image { _ in
+            symbol.draw(in: CGRect(x: overhang, y: overhang, width: glyph.width, height: glyph.height))
+            let rect = CGRect(x: canvas.width - dot - 0.5, y: 0.5, width: dot, height: dot)
+            let square = UIBezierPath(roundedRect: rect, cornerRadius: 2)
+            UIColor(Color.raftPink).setFill()
+            square.fill()
+            square.lineWidth = 1
+            UIColor(Color.raftInk).setStroke()
+            square.stroke()
+        }.withRenderingMode(.alwaysOriginal)
+        cache[key] = image
+        return image
     }
 }
 

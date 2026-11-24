@@ -249,23 +249,7 @@ enum RaftFonts {
             let scaled = UIFontMetrics(forTextStyle: .subheadline).scaledFont(for: segment)
             UISegmentedControl.appearance().setTitleTextAttributes([.font: scaled], for: .normal)
         }
-        // Tab bar (§2.11): unselected items system gray (selected: the TabView tint, ink);
-        // the Activity dot pink and small (empty badge, tiny badge font). Background left
-        // at the default so the bar keeps the system glass.
-        let pink = UIColor(Color.raftPink)
-        let tabs = UITabBarAppearance()
-        tabs.configureWithDefaultBackground()
-        for layout in [tabs.stackedLayoutAppearance, tabs.inlineLayoutAppearance, tabs.compactInlineLayoutAppearance] {
-            layout.normal.iconColor = .systemGray
-            layout.normal.titleTextAttributes = [.foregroundColor: UIColor.systemGray]
-            for state in [layout.normal, layout.selected] {
-                state.badgeBackgroundColor = pink
-                state.badgeTextAttributes = [.font: UIFont.systemFont(ofSize: 2), .foregroundColor: pink]
-            }
-        }
-        UITabBar.appearance().standardAppearance = tabs
-        UITabBar.appearance().scrollEdgeAppearance = tabs
-        UITabBarItem.appearance().badgeColor = pink
-        UITabBar.appearance().unselectedItemTintColor = .systemGray
+        // Tab bar (§2.11): system defaults (glass, ink/black items). The Activity dot is drawn
+        // into its tab image (`ActivityTabImage`), not a system badge.
     }
 }
