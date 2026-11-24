@@ -160,6 +160,12 @@ struct RaftAPI: Sendable {
         return try ListEnvelope<ServerMember>.decode(response.data, keys: ["members", "items", "results"], path: "servers/{id}/members", traceId: response.traceId)
     }
 
+    /// `GET agents`: the server's agents (bare array) with avatar, runtime and live activity.
+    func agents() async throws -> [AgentProfile] {
+        let response = try await client.send(.get("agents"))
+        return try ListEnvelope<AgentProfile>.decode(response.data, keys: ["agents", "items"], path: "agents", traceId: response.traceId)
+    }
+
     /// A path segment with `/`, `?`, `#` and `%` escaped.
     static func segment(_ value: String) -> String {
         var allowed = CharacterSet.urlPathAllowed

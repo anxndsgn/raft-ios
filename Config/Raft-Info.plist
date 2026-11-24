@@ -15,6 +15,29 @@
 			</array>
 		</dict>
 	</array>
+	<key>UIAppFonts</key>
+	<array>
+		<string>space_grotesk_regular.ttf</string>
+		<string>space_grotesk_medium.ttf</string>
+		<string>space_grotesk_semibold.ttf</string>
+		<string>space_grotesk_bold.ttf</string>
+		<string>space_mono_regular.ttf</string>
+		<string>space_mono_bold.ttf</string>
+	</array>
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+		<key>UIImageName</key>
+		<string>LaunchMark</string>
+		<key>UIImageRespectsSafeAreaInsets</key>
+		<true/>
+	</dict>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>zh-Hans</string>
+	</array>
 	<key>RaftOAuthCallbackScheme</key>
 	<string>$(RAFT_OAUTH_CALLBACK_SCHEME)</string>
 	<key>RaftBuildType</key>

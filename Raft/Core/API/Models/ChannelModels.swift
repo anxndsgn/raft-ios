@@ -267,3 +267,63 @@ extension KeyedDecodingContainer {
         return result
     }
 }
+
+/// An agent row of `GET agents` (server `routes/agents.ts` `buildAgentListItems`): only the fields
+/// the app shows. `avatarUrl` is `pixel:<key>` for the built-in pixel faces.
+struct AgentProfile: Sendable, Hashable, Decodable, Identifiable {
+    var id: String
+    var name: String
+    var displayName: String?
+    var avatarUrl: String?
+    /// Runtime id (`claude`, `codex`, ...).
+    var runtime: String?
+    /// `online`, `working`, `thinking`, `offline`, ... (orchestrator activity).
+    var activity: String?
+    var status: String?
+
+    private enum CodingKeys: String, CodingKey { case id, name, displayName, avatarUrl, runtime, activity, status }
+
+    init(id: String, name: String, displayName: String? = nil, avatarUrl: String? = nil, runtime: String? = nil, activity: String? = nil, status: String? = nil) {
+        self.id = id
+        self.name = name
+        self.displayName = displayName
+        self.avatarUrl = avatarUrl
+        self.runtime = runtime
+        self.activity = activity
+        self.status = status
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.requiredId(.id)
+        name = c.lenient(.name) ?? ""
+        displayName = c.lenient(.displayName)
+        avatarUrl = c.lenient(.avatarUrl)
+        runtime = c.lenient(.runtime)
+        activity = c.lenient(.activity)
+        status = c.lenient(.status)
+    }
+
+    var visibleName: String {
+        if let displayName, !displayName.isEmpty { return displayName }
+        return name
+    }
+
+    /// The pixel face key of `pixel:<key>`.
+    var pixelKey: String? {
+        guard let avatarUrl, avatarUrl.hasPrefix("pixel:") else { return nil }
+        return String(avatarUrl.dropFirst("pixel:".count))
+    }
+
+    /// Runtime display name (shared `runtimeCatalog.ts`).
+    var runtimeName: String? {
+        guard let runtime, !runtime.isEmpty else { return nil }
+        let names = [
+            "claude": "Claude Code", "codex": "Codex", "grok": "Grok Build", "builtin": "Built-in Pi",
+            "antigravity": "Antigravity CLI", "kimi-sdk": "Kimi Code", "kimi": "Kimi CLI", "copilot": "Copilot CLI",
+            "cursor": "Cursor CLI", "gemini": "Gemini CLI", "opencode": "OpenCode", "pi": "Pi", "qwen": "Qwen Code",
+            "qoder": "Qoder", "dsh": "DeepSeek Harness",
+        ]
+        return names[runtime] ?? runtime
+    }
+}
