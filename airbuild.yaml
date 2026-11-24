@@ -1,0 +1,33 @@
+version: 3
+signing:
+  bundles:
+    - com.xinan.raft
+build:
+  script: |
+    airbuild-xcode install \
+      -project Raft.xcodeproj \
+      -scheme Raft \
+      DSTROOT="$PWD/.airbuild/artifacts/install"
+  artifact:
+    path: .airbuild/artifacts/install/Applications/Raft.app
+release:
+  script: |
+    rm -rf -- .airbuild/artifacts/Raft.xcarchive
+
+    airbuild-xcode archive \
+      -project Raft.xcodeproj \
+      -scheme Raft \
+      -archivePath .airbuild/artifacts/Raft.xcarchive
+  artifact:
+    path: .airbuild/artifacts/Raft.xcarchive
+
+test:
+  app:
+    script: |
+      airbuild-xcode test \
+        -project Raft.xcodeproj \
+        -scheme Raft \
+        -resultBundlePath .airbuild/artifacts/TestResults.xcresult \
+        $additional_options
+    outputs:
+      - .airbuild/artifacts/TestResults.xcresult

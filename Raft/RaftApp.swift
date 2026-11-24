@@ -1,10 +1,10 @@
 import SwiftUI
 
 @main
-struct AirbuildApp: App {
+struct RaftApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            DebugCoreView()
         }
     }
 }
