@@ -899,7 +899,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已保存"
+            "value" : "收藏"
           }
         }
       }
@@ -1979,7 +1979,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "存储"
+            "value" : "保存"
           }
         }
       }
@@ -2951,7 +2951,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已从收藏中移除"
+            "value" : "已取消收藏"
           }
         }
       }
@@ -3725,7 +3725,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "从收藏中移除"
+            "value" : "取消收藏"
           }
         }
       }
@@ -3743,7 +3743,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$d 项"
+            "value" : "%1$d 条收藏"
           }
         }
       }
@@ -3761,7 +3761,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$d 项"
+            "value" : "%1$d 条收藏"
           }
         }
       }
@@ -3797,7 +3797,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已保存"
+            "value" : "收藏"
           }
         }
       }
@@ -4697,7 +4697,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "从收藏中移除"
+            "value" : "取消收藏"
           }
         }
       }
@@ -5021,7 +5021,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法存储到照片，请重试。"
+            "value" : "无法保存到相册，请重试。"
           }
         }
       }
@@ -5057,7 +5057,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "存储到照片"
+            "value" : "保存到相册"
           }
         }
       }
@@ -5075,7 +5075,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已存储到照片"
+            "value" : "已保存到相册"
           }
         }
       }
@@ -5093,7 +5093,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在存储到照片…"
+            "value" : "正在保存到相册…"
           }
         }
       }
