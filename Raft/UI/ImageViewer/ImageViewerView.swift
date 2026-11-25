@@ -67,18 +67,31 @@ struct ImageViewerView: View {
     private var dragFade: Double { ImageViewerDismiss.fade(dy: drag.height, height: max(screen.height, 1)) }
     private var chromeVisible: Bool { chromeIn && (!chromeHidden || voiceOver) }
 
+    /// The system bar (Close, Share) shows with the chrome and goes once a swipe-down is under way.
+    private var barsVisible: Bool { chromeVisible && dragFade > 0.8 }
+
     var body: some View {
-        ZStack {
-            GeometryReader { proxy in
-                images(size: proxy.size)
-                    .onAppear { screen = proxy.frame(in: .global) }
-                    .onChange(of: proxy.size) { screen = proxy.frame(in: .global) }
+        // Close and Share are system toolbar items, so the system places them: across the top on
+        // iPhone, in the vertical bar (with the status bar) on iPhone Duo.
+        NavigationStack {
+            ZStack {
+                GeometryReader { proxy in
+                    images(size: proxy.size)
+                        .onAppear { screen = proxy.frame(in: .global) }
+                        .onChange(of: proxy.size) { screen = proxy.frame(in: .global) }
+                }
+                .ignoresSafeArea()
+                chrome
+                    .opacity(chromeVisible ? dragFade : 0)
+                    .allowsHitTesting(chromeVisible && stage == .shown)
+                toastLayer
             }
-            .ignoresSafeArea()
-            chrome
-                .opacity(chromeVisible ? dragFade : 0)
-                .allowsHitTesting(chromeVisible && stage == .shown)
-            toastLayer
+            .toolbar { toolbarItems }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbarVisibility(barsVisible ? .visible : .hidden, for: .navigationBar)
+            .containerBackground(.clear, for: .navigation)
         }
         .environment(\.colorScheme, .dark)
         .statusBarHidden(!chromeVisible)
@@ -343,36 +356,31 @@ struct ImageViewerView: View {
 
     // MARK: Chrome
 
+    @ToolbarContentBuilder private var toolbarItems: some ToolbarContent {
+        ToolbarItem(placement: .cancellationAction) {
+            Button(action: close) {
+                Label(L10n.t("common_close", "Close"), systemImage: "xmark")
+            }
+            .disabled(stage != .shown)
+        }
+        ToolbarItem(placement: .primaryAction) {
+            shareButton
+        }
+    }
+
     private var chrome: some View {
         VStack(spacing: 0) {
-            GlassEffectContainer(spacing: 16) {
-                HStack(spacing: 0) {
-                    Button(action: close) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .frame(width: 44, height: 44)
-                            .raftGlass(Circle(), interactive: true)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(Text(L10n.t("common_close", "Close")))
-                    Spacer(minLength: 8)
-                    if count >= 2 {
-                        Text(verbatim: L10n.f("ios_image_viewer_page", "%1$d / %2$d", index + 1, count))
-                            .font(.custom(RaftFont.mono, size: 13, relativeTo: .footnote))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 12)
-                            .frame(height: 32)
-                            .raftGlass(Capsule())
-                            .contentTransition(.numericText())
-                            .accessibilityLabel(Text(verbatim: L10n.f("image_lightbox_counter", "%1$d of %2$d", index + 1, count)))
-                    }
-                    Spacer(minLength: 8)
-                    shareButton
-                }
+            if count >= 2 {
+                Text(verbatim: L10n.f("ios_image_viewer_page", "%1$d / %2$d", index + 1, count))
+                    .font(.custom(RaftFont.mono, size: 13, relativeTo: .footnote))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .frame(height: 32)
+                    .raftGlass(Capsule())
+                    .contentTransition(.numericText())
+                    .accessibilityLabel(Text(verbatim: L10n.f("image_lightbox_counter", "%1$d of %2$d", index + 1, count)))
+                    .padding(.top, 6)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 6)
             Spacer(minLength: 0)
             infoBar
                 .padding(.horizontal, 16)
@@ -380,32 +388,17 @@ struct ImageViewerView: View {
     }
 
     @ViewBuilder private var shareButton: some View {
-        let label = Text(L10n.t("common_share", "Share"))
+        let title = L10n.t("common_share", "Share")
         if let file = files[current.id] {
             ShareLink(item: file) {
-                Image(systemName: "square.and.arrow.up")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 44, height: 44)
-                    .raftGlass(Circle(), interactive: true)
+                Label(title, systemImage: "square.and.arrow.up")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(label)
         } else {
-            ZStack {
-                if unavailable.contains(current.id) {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.4))
-                } else {
-                    ProgressView().controlSize(.small).tint(.white)
-                }
+            // Not downloaded yet (or unavailable): the same item, disabled, so the bar keeps its shape.
+            Button {} label: {
+                Label(title, systemImage: "square.and.arrow.up")
             }
-            .frame(width: 44, height: 44)
-            .raftGlass(Circle())
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(label)
-            .accessibilityAddTraits([.isButton])
+            .disabled(true)
             .accessibilityValue(unavailable.contains(current.id) ? Text(L10n.t("thread_image_preview_unavailable", "Image unavailable")) : Text(L10n.t("ios_loading", "Loading")))
         }
     }
