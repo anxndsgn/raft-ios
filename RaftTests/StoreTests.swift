@@ -460,6 +460,43 @@ struct ThreadAndActivityStoreTests {
         #expect(core.server.requests("POST v2/messages").first?.json?["randomId"]?.stringValue == item.randomId)
     }
 
+    @Test func taskStatusNoticeReadsAsAMovedTask() {
+        let live = SystemNotice.parse(#"🚫 XIN moved #1 "@Betty 你看一下 raft 源码，支持给 agent 配置 skill 与 mcp 吗？" to Closed"#)
+        #expect(live == .taskStatus(mover: "XIN", task: "@Betty 你看一下 raft 源码，支持给 agent 配置 skill 与 mcp 吗？", status: "Closed"))
+        #expect(live.title == "XIN moved a task to Closed")
+        #expect(live.moverFormat == "%1$@ moved a task to Closed")
+        #expect(live.preview == "@Betty 你看一下 raft 源码，支持给 agent 配置 skill 与 mcp 吗？")
+        #expect(!live.title.contains("🚫") && !live.preview.contains("🚫"))
+
+        // Nobody named: the second form, never an empty name.
+        let anonymous = SystemNotice.parse(#"✅ moved #12 "Ship it" to Done."#)
+        #expect(anonymous == .taskStatus(mover: nil, task: "Ship it", status: "Done"))
+        #expect(anonymous.title == "A task was moved to Done")
+        let symbolsOnly = SystemNotice.parse(#"🚫 ✅ moved #3 "x" to Closed"#)
+        #expect(symbolsOnly.mover == nil)
+
+        // Quotes inside the title, curly quotes, multi-word names and statuses.
+        let quoted = SystemNotice.parse(#"🔄 Ruby Chen moved #7 “Fix "login" bug” to In Progress"#)
+        #expect(quoted == .taskStatus(mover: "Ruby Chen", task: #"Fix "login" bug"#, status: "In Progress"))
+        #expect(quoted.title == "Ruby Chen moved a task to In progress")
+
+        // A status the app does not know is shown as the server wrote it.
+        #expect(SystemNotice.statusName("Blocked by vendor") == "Blocked by vendor")
+        #expect(SystemNotice.statusName("in_review") == "In review")
+    }
+
+    @Test func otherSystemNoticesFallBackToUpdate() {
+        // A server-cut preview (no closing quote and status) does not match.
+        let cut = SystemNotice.parse(#"🚫 XIN moved #1 "@Betty 你看一下 raft 源…"#)
+        #expect(cut == .other(preview: #"XIN moved #1 "@Betty 你看一下 raft 源…"#))
+        #expect(cut.title == "Update")
+        #expect(cut.mover == nil)
+        let joined = SystemNotice.parse("Ruby joined #general")
+        #expect(joined.title == "Update")
+        #expect(joined.preview == "Ruby joined #general")
+        #expect(SystemNotice.parse(nil).title == "Update")
+    }
+
     @Test func systemNoticesAreFromSystemNotSomeone() throws {
         // A task row's status notice: a "user" sender whose id is "system", no name.
         let task = try RaftJSON.decode(InboxItem.self, from: Data(#"{"kind":"task","threadChannelId":"t2","parentMessageId":"p2","parentChannelId":"c1","parentChannelName":"general","latestActivitySenderId":"system","latestActivitySenderType":"user","latestActivityPreview":"moved #1","unreadCount":0}"#.utf8))

@@ -214,6 +214,7 @@ struct ActivityView: View {
     }
 
     private func persona(for item: InboxItem) -> Persona {
+        if ActivityRow.isSystemSender(item) { return .system(name: ActivityRow.senderName(item)) }
         let type = item.senderType == "agent" ? "agent" : "user"
         return workspace.directory.persona(type: type, id: item.senderId ?? item.id, name: ActivityRow.senderName(item))
     }
@@ -421,6 +422,33 @@ struct ActivityRow: View {
 
     private var date: Date? { RaftDate.parse(item.activityAt) }
 
+    /// Set for a server notice: its own title and preview, read from the notice text.
+    private var notice: SystemNotice? {
+        Self.isSystemSender(item) ? SystemNotice.parse(item.preview) : nil
+    }
+
+    private var previewText: String { notice?.preview ?? PlainText.preview(item.preview) }
+
+    private var strongFont: String { unread ? RaftFont.bold : RaftFont.semibold }
+    private var strongColor: Color { unread ? .raftTextPrimary : .raftTextSecondary }
+
+    @ViewBuilder
+    private var titleView: some View {
+        if let notice {
+            if let mover = notice.mover {
+                Text.emphasized(notice.moverFormat, mover, base: .activityTitle, strongFont: strongFont, strongColor: strongColor)
+            } else {
+                Text(verbatim: notice.title).raftStyle(.activityTitle)
+            }
+        } else {
+            Text.emphasized(titleFormat, name, base: .activityTitle, strongFont: strongFont, strongColor: strongColor)
+        }
+    }
+
+    private var titleString: String {
+        notice?.title ?? titleFormat.replacingOccurrences(of: "%1$@", with: name)
+    }
+
     var body: some View {
         ActivityRowLayout(
             persona: persona,
@@ -429,7 +457,7 @@ struct ActivityRow: View {
             time: date.map { RaftFormat.relative($0) },
             location: location,
             preview: MessageTextBuilder(
-                content: PlainText.preview(item.preview),
+                content: previewText,
                 mentions: [],
                 currentUserId: currentUserId,
                 channelNames: channelNames,
@@ -438,14 +466,8 @@ struct ActivityRow: View {
                 pills: false
             ).text
         ) {
-            Text.emphasized(
-                titleFormat,
-                name,
-                base: .activityTitle,
-                strongFont: unread ? RaftFont.bold : RaftFont.semibold,
-                strongColor: unread ? .raftTextPrimary : .raftTextSecondary
-            )
-            .foregroundStyle(unread ? Color.raftTextPrimary : Color.raftTextSecondary)
+            titleView
+                .foregroundStyle(unread ? Color.raftTextPrimary : Color.raftTextSecondary)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: a11yLabel))
@@ -455,11 +477,93 @@ struct ActivityRow: View {
     private var a11yLabel: String {
         var parts: [String] = []
         if unread { parts.append(L10n.t("activity_filter_unread", "Unread")) }
-        parts.append(titleFormat.replacingOccurrences(of: "%1$@", with: name) + ", " + location)
-        let preview = PlainText.preview(item.preview)
+        parts.append(titleString + ", " + location)
+        let preview = previewText
         if !preview.isEmpty { parts.append(preview) }
         if let date { parts.append(RaftFormat.spoken(date)) }
         return parts.joined(separator: ". ")
+    }
+}
+
+/// A server notice in Activity, read from its text. Task status changes arrive as
+/// `🚫 XIN moved #1 "Fix the login" to Closed`; anything else is a plain "Update".
+enum SystemNotice: Equatable {
+    /// `mover` is nil when the notice names nobody.
+    case taskStatus(mover: String?, task: String, status: String)
+    case other(preview: String)
+
+    private static let pattern = try! NSRegularExpression(
+        pattern: #"^(?:(.*?)\s+)?moved\s+#\d+\s+["“](.*)["”]\s+to\s+(.+?)[.。]?$"#,
+        options: [.dotMatchesLineSeparators]
+    )
+
+    static func parse(_ preview: String?) -> SystemNotice {
+        let text = stripLeadingSymbols(PlainText.preview(preview))
+        let range = NSRange(text.startIndex..., in: text)
+        guard let match = pattern.firstMatch(in: text, range: range),
+              let taskRange = Range(match.range(at: 2), in: text),
+              let statusRange = Range(match.range(at: 3), in: text) else {
+            return .other(preview: text)
+        }
+        let status = text[statusRange].trimmingCharacters(in: .whitespaces)
+        guard !status.isEmpty else { return .other(preview: text) }
+        var mover: String?
+        if let moverRange = Range(match.range(at: 1), in: text) {
+            let name = stripLeadingSymbols(String(text[moverRange])).trimmingCharacters(in: .whitespaces)
+            if name.contains(where: { $0.isLetter || $0.isNumber }) { mover = name }
+        }
+        return .taskStatus(mover: mover, task: String(text[taskRange]).trimmingCharacters(in: .whitespaces), status: status)
+    }
+
+    /// Drops the status emoji (and any other leading symbols) before the text.
+    private static func stripLeadingSymbols(_ text: String) -> String {
+        String(text.drop { !($0.isLetter || $0.isNumber || "\"“#@".contains($0)) })
+    }
+
+    var mover: String? {
+        if case .taskStatus(let mover, _, _) = self { return mover }
+        return nil
+    }
+
+    /// The title with the mover left as `%1$@` (bolded by the row), status filled in.
+    var moverFormat: String {
+        guard case .taskStatus(_, _, let status) = self else { return title }
+        return L10n.t("ios_activity_task_moved_by", "%1$@ moved a task to %2$@")
+            .replacingOccurrences(of: "%2$@", with: Self.statusName(status))
+    }
+
+    /// The whole title, as read aloud and shown when nobody is named.
+    var title: String {
+        switch self {
+        case .taskStatus(let mover, _, let status):
+            if let mover { return moverFormat.replacingOccurrences(of: "%1$@", with: mover) }
+            return L10n.t("ios_activity_task_moved", "A task was moved to %1$@")
+                .replacingOccurrences(of: "%1$@", with: Self.statusName(status))
+        case .other:
+            return L10n.t("ios_activity_system_update", "Update")
+        }
+    }
+
+    /// The preview line: the task's title, or the notice as sent.
+    var preview: String {
+        switch self {
+        case .taskStatus(_, let task, _): task
+        case .other(let preview): preview
+        }
+    }
+
+    /// The task statuses the app knows, translated; any other is shown as the server wrote it.
+    static func statusName(_ raw: String) -> String {
+        let key = raw.lowercased().filter { $0.isLetter }
+        switch key {
+        case "backlog": return L10n.t("tasks_status_backlog", "Backlog")
+        case "todo": return L10n.t("tasks_status_todo", "Todo")
+        case "inprogress": return L10n.t("tasks_status_in_progress", "In progress")
+        case "inreview": return L10n.t("tasks_status_in_review", "In review")
+        case "done": return L10n.t("tasks_status_done", "Done")
+        case "closed": return L10n.t("tasks_status_closed", "Closed")
+        default: return raw
+        }
     }
 }
 

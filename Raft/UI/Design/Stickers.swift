@@ -36,9 +36,10 @@ enum Presence: Hashable, Sendable {
     }
 }
 
-/// Who an avatar shows: a person (initials or photo) or an agent (pixel face).
+/// Who an avatar shows: a person (initials or photo), an agent (pixel face) or the server
+/// itself (a neutral glyph, for system notices).
 struct Persona: Hashable, Sendable {
-    enum Kind: Hashable, Sendable { case human, agent }
+    enum Kind: Hashable, Sendable { case human, agent, system }
 
     var id: String
     var name: String
@@ -54,6 +55,11 @@ struct Persona: Hashable, Sendable {
 
     static func agent(id: String, name: String, pixelKey: String? = nil, presence: Presence? = nil, runtime: String? = nil) -> Persona {
         Persona(id: id, name: name, kind: .agent, pixelKey: pixelKey, presence: presence, runtime: runtime)
+    }
+
+    /// Server notices: no person behind them, so no initials.
+    static func system(name: String) -> Persona {
+        Persona(id: "system", name: name, kind: .system)
     }
 
     static func httpURL(_ text: String?) -> URL? {
@@ -159,6 +165,13 @@ struct AvatarView: View {
                     .interpolation(.none)
                     .clipShape(.rect(cornerRadius: 1.5))
                     .padding(size == .xs ? 0.5 : 1.5)
+            }
+        case .system:
+            ZStack {
+                Color.raftFill
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: size.initialsSize * min(scale, 1.6), weight: .regular))
+                    .foregroundStyle(Color.raftTextSecondary)
             }
         case .human:
             ZStack {

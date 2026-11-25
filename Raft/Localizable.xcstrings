@@ -910,6 +910,60 @@
         }
       }
     },
+    "ios_activity_system_update" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:543",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新"
+          }
+        }
+      }
+    },
+    "ios_activity_task_moved" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:540",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A task was moved to %1$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一个任务被改成了「%1$@」"
+          }
+        }
+      }
+    },
+    "ios_activity_task_moved_by" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:531",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ moved a task to %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 把一个任务改成了「%2$@」"
+          }
+        }
+      }
+    },
     "ios_activity_you" : {
       "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:398",
       "extractionState" : "manual",
@@ -2322,6 +2376,114 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "设置"
+          }
+        }
+      }
+    },
+    "tasks_status_backlog" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:559",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backlog"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂缓"
+          }
+        }
+      }
+    },
+    "tasks_status_closed" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:564",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Closed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已关闭"
+          }
+        }
+      }
+    },
+    "tasks_status_done" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:563",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已完成"
+          }
+        }
+      }
+    },
+    "tasks_status_in_progress" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:561",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In progress"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "进行中"
+          }
+        }
+      }
+    },
+    "tasks_status_in_review" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:562",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In review"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "评审中"
+          }
+        }
+      }
+    },
+    "tasks_status_todo" : {
+      "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:560",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "待办"
           }
         }
       }
