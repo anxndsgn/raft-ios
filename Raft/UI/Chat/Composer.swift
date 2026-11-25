@@ -187,7 +187,7 @@ struct ComposerPanel: View {
     }
 
     /// Collapsed: a 48pt glass capsule holding only the placeholder (§2.8, XIN 5210).
-    /// Expanded: the r26 panel with tray, field and tool row.
+    /// Expanded: the panel with tray, field and tool row (concentric with the keyboard down, r26 up).
     @State private var expanded = false
     @Namespace private var glass
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -262,10 +262,10 @@ struct ComposerPanel: View {
             ? EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12)
             : (expanded ? EdgeInsets(top: 10, leading: 16, bottom: 8, trailing: 10) : EdgeInsets(top: 0, leading: 18, bottom: 0, trailing: 18)))
         .frame(minHeight: 48)
-        .contentShape(.rect(cornerRadius: 24))
+        .contentShape(ComposerGlass.shape(focused: focus.wrappedValue))
         // The whole capsule is the tap target (buttons inside keep their own taps).
         .simultaneousGesture(TapGesture().onEnded { if join == nil { expandFromTap() } })
-        .modifier(ComposerGlass(expanded: expanded || join != nil, namespace: glass, reduceTransparency: reduceTransparency, dark: scheme == .dark))
+        .modifier(ComposerGlass(focused: focus.wrappedValue, namespace: glass, reduceTransparency: reduceTransparency, dark: scheme == .dark))
     }
 
     /// 26: "You're previewing #name" (or the failure line) over Join channel.
@@ -414,15 +414,22 @@ struct ComposerPanel: View {
     }
 }
 
-/// One glass shape that morphs between the collapsed capsule (r24 at 48pt) and the r26 panel.
+/// One glass shape for the capsule, the expanded panel and the Join bar.
+/// Keyboard down: concentric with the display corners (the bar sits 38pt from the screen's
+/// left, right and bottom edges; on a 62pt-corner screen that resolves to 24, the 48pt
+/// capsule's half height). Keyboard up: the r26 panel.
 private struct ComposerGlass: ViewModifier {
-    let expanded: Bool
+    let focused: Bool
     let namespace: Namespace.ID
     let reduceTransparency: Bool
     let dark: Bool
 
+    static func shape(focused: Bool) -> ConcentricRectangle {
+        ConcentricRectangle(corners: focused ? .fixed(26) : .concentric, isUniform: true)
+    }
+
     func body(content: Content) -> some View {
-        let shape = RoundedRectangle(cornerRadius: expanded ? 26 : 24, style: .continuous)
+        let shape = Self.shape(focused: focused)
         if reduceTransparency {
             content
                 .background(dark ? Color(hex: 0x2C2C29) : Color.raftCard, in: shape)
@@ -432,6 +439,36 @@ private struct ComposerGlass: ViewModifier {
                 .glassEffect(.regular.interactive(), in: shape)
                 .glassEffectID("composer", in: namespace)
         }
+    }
+}
+
+// MARK: Composer bar insets (§2.8)
+
+extension View {
+    /// Keyboard down: 38pt from the screen's left, right and bottom edges (whatever the
+    /// device's bottom safe area), so the concentric glass shares the display's corner centre.
+    /// Keyboard up: 10pt sides, 8pt above the keyboard. Driven by focus, which flips in the
+    /// keyboard's own transaction, so the width change rides the keyboard animation.
+    func composerBarInsets(focused: Bool) -> some View {
+        modifier(ComposerBarInsets(focused: focused))
+    }
+}
+
+private struct ComposerBarInsets: ViewModifier {
+    let focused: Bool
+    static let screenInset: CGFloat = 38
+
+    /// The window's bottom safe area (home indicator), without the keyboard.
+    private var bottomSafeArea: CGFloat {
+        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+        return scene?.keyWindow?.safeAreaInsets.bottom ?? 0
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, focused ? 10 : Self.screenInset)
+            // The bar sits on the bottom safe area; reach down to 38pt from the physical edge.
+            .padding(.bottom, focused ? 8 : Self.screenInset - bottomSafeArea)
     }
 }
 

@@ -558,8 +558,7 @@ struct ChatView: View {
             )
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.bottom, composerFocused ? 8 : -8)
+        .composerBarInsets(focused: composerFocused)
         .animation(.smooth(duration: 0.2), value: mentionCandidates.isEmpty)
     }
 
