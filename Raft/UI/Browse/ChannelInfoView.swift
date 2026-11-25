@@ -396,7 +396,6 @@ struct ChannelMembersView: View {
         }
         .scrollDismissesKeyboard(.immediately)
         .background(Color.raftCanvasWarm.ignoresSafeArea())
-        .raftNavigationTitle(L10n.t("channel_settings_members", "Members"), subtitle: workspace.channelList.channel(id: channelId).map { "#\($0.name)" })
         .safeAreaBar(edge: .top, spacing: 0) {
             SearchHeader(
                 text: $query,
@@ -407,9 +406,12 @@ struct ChannelMembersView: View {
                     query = ""
                     searchFocused = false
                 },
-                closeWhileFocused: true
+                closeWhileFocused: true,
+                solid: true
             )
         }
+        // After the search bar: with the vertical bar the title block goes above it.
+        .raftNavigationTitle(L10n.t("channel_settings_members", "Members"), subtitle: workspace.channelList.channel(id: channelId).map { "#\($0.name)" })
         .task { await members.load(channelId, workspace: workspace) }
         .task(id: members.phase == .loading) {
             showsSkeleton = false

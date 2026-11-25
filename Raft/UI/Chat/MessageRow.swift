@@ -138,6 +138,10 @@ struct MessageRowView: View {
     var actions = MessageRowActions()
 
     @State private var frameBox = FrameBox()
+    /// The avatar's Dynamic Type scale: a continued message's empty avatar column is exactly as
+    /// wide as the first message's avatar, so their text lines up at every size.
+    @ScaledMetric(relativeTo: .body) private var avatarScale: CGFloat = 1
+    @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(SavedStore.self) private var savedStore: SavedStore?
 
@@ -148,11 +152,12 @@ struct MessageRowView: View {
         HStack(alignment: .top, spacing: 10) {
             if continuation {
                 // The mark of a continued message sits in the avatar column (12c).
+                let column = AvatarSize.md.scaledSide(avatarScale)
                 ZStack(alignment: .topTrailing) {
-                    Color.clear.frame(width: AvatarSize.md.side, height: 1)
+                    Color.clear.frame(width: column, height: 1)
                     if isSaved { SavedMark().padding(.top, 1).transition(SavedMark.transition) }
                 }
-                .frame(width: AvatarSize.md.side, alignment: .topTrailing)
+                .frame(width: column, alignment: .topTrailing)
                 .animation(.spring(duration: 0.25, bounce: 0.3), value: isSaved)
             } else {
                 AvatarView(persona: row.persona, size: .md, showsPresence: true, ringColor: .raftCanvas)
@@ -230,34 +235,64 @@ struct MessageRowView: View {
 
     // MARK: Header
 
-    private var header: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text(verbatim: row.persona.name)
-                .raftFont(.author)
-                .foregroundStyle(Color.raftTextPrimary)
-                .lineLimit(1)
-                .layoutPriority(1)
-            if row.persona.kind == .agent, let runtime = row.persona.runtime {
-                Text(verbatim: runtime)
-                    .raftFont(.caption)
-                    .foregroundStyle(Color.raftTextTertiary)
-                    .lineLimit(1)
-            }
-            if let date = row.date {
-                Text(verbatim: RaftFormat.clock(date))
-                    .raftFont(.monoCaption)
-                    .foregroundStyle(Color.raftTextTertiary)
-                    .fixedSize()
-            }
-            if isSaved {
-                SavedMark()
-                    .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 4 }
-                    .transition(SavedMark.transition)
+    /// Name · runtime · time on one line; from accessibility1 the name gets its own line(s) and
+    /// runtime and time go under it (§0: the message header may wrap).
+    @ViewBuilder private var header: some View {
+        Group {
+            if typeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 0) {
+                    authorName.lineLimit(3)
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        runtimeLabel
+                        timeLabel
+                        savedMark
+                    }
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    authorName.lineLimit(1).layoutPriority(1)
+                    runtimeLabel
+                    timeLabel
+                    savedMark
+                }
             }
         }
         .animation(.spring(duration: 0.25, bounce: 0.3), value: isSaved)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: a11yHeader))
+    }
+
+    private var authorName: some View {
+        Text(verbatim: row.persona.name)
+            .raftFont(.author)
+            .foregroundStyle(Color.raftTextPrimary)
+    }
+
+    @ViewBuilder private var runtimeLabel: some View {
+        if row.persona.kind == .agent, let runtime = row.persona.runtime {
+            Text(verbatim: runtime)
+                .raftFont(.caption)
+                .foregroundStyle(Color.raftTextTertiary)
+                .lineLimit(1)
+        }
+    }
+
+    @ViewBuilder private var timeLabel: some View {
+        if let date = row.date {
+            Text(verbatim: RaftFormat.clock(date))
+                .raftFont(.monoCaption)
+                .foregroundStyle(Color.raftTextTertiary)
+                .lineLimit(1)
+                .fixedSize()
+        }
+    }
+
+    @ViewBuilder private var savedMark: some View {
+        if isSaved {
+            SavedMark()
+                .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 4 }
+                .transition(SavedMark.transition)
+        }
     }
 
     private var a11yHeader: String {
@@ -495,7 +530,7 @@ struct ThreadPreviewBox: View {
     }
 }
 
-/// The solid inset card (thread preview, file card): pressed fill darkens 4%.
+/// The solid inset card (thread preview, file card): pressed fill darkens 4%. No ring (§1.5).
 struct InsetCardStyle: ButtonStyle {
     let radius: CGFloat
 
@@ -506,7 +541,6 @@ struct InsetCardStyle: ButtonStyle {
             .overlay {
                 if configuration.isPressed { shape.fill(Color.raftInk.opacity(0.04)) }
             }
-            .overlay(shape.strokeBorder(Color.raftInsetRing, lineWidth: 0.5))
             .contentShape(shape)
     }
 }

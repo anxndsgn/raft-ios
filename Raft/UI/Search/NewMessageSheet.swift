@@ -198,7 +198,6 @@ struct NewMessageSheet: View {
             // One DM at a time: the list takes no taps while one is being created.
             .allowsHitTesting(openingId == nil)
             .background(Color.raftCanvasWarm.ignoresSafeArea())
-            .raftNavigationTitle(L10n.t("ios_new_message_title", "New message"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L10n.t("common_cancel", "Cancel")) { dismiss() }
@@ -220,6 +219,8 @@ struct NewMessageSheet: View {
                     closeWhileFocused: true
                 )
             }
+            // After the search bar: with the vertical bar the title block goes above it.
+            .raftNavigationTitle(L10n.t("ios_new_message_title", "New message"))
             .onChange(of: query) { failedId = nil }
         }
         .presentationDetents([.large])

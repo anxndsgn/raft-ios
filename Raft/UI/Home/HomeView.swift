@@ -374,6 +374,7 @@ struct HomeView: View {
                 Image(systemName: extras.notificationLevel == NotificationLevel.none ? "bell.slash" : "bell")
             }
             .accessibilityLabel(Text(L10n.t("settings_notifications_title", "Notifications")))
+            .raftLargeContent(systemImage: extras.notificationLevel == NotificationLevel.none ? "bell.slash" : "bell", label: L10n.t("settings_notifications_title", "Notifications"))
             .accessibilityIdentifier("notifications-menu")
         }
     }
@@ -418,30 +419,37 @@ struct HomeChip<Trailing: View>: View {
         }
         .padding(.horizontal, 12)
         .frame(height: 40)
-        .raftCardSurface(.chip, radius: 12)
+        .raftCardSurface(radius: 12)
         .accessibilityElement(children: .combine)
     }
 }
 
 struct ChannelRowView: View {
     let row: HomeRow
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
-        HStack(spacing: 12) {
-            ChannelTile(isPrivate: row.channelType == "private", isMuted: row.isMuted, row: true)
-            HStack(spacing: 6) {
-                Text(verbatim: row.displayTitle)
-                    .raftFont(row.isMuted ? .rowTitleMedium : .rowTitle)
-                    .foregroundStyle(row.isMuted ? Color.raftTextTertiary : Color.raftTextPrimary)
-                    .lineLimit(1)
-                if row.isMuted {
-                    Image(systemName: "bell.slash")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Color.raftTextTertiary)
+        Group {
+            if typeSize.isAccessibilitySize {
+                // AX: the tile tops the first line; the date / stickers go under the name.
+                HStack(alignment: .top, spacing: 12) {
+                    ChannelTile(isPrivate: row.channelType == "private", isMuted: row.isMuted, row: true)
+                        .padding(.top, 2)
+                    VStack(alignment: .leading, spacing: 2) {
+                        name.lineLimit(3)
+                        trailing
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(.vertical, 12)
+            } else {
+                HStack(spacing: 12) {
+                    ChannelTile(isPrivate: row.channelType == "private", isMuted: row.isMuted, row: true)
+                    name.lineLimit(1)
+                    Spacer(minLength: 8)
+                    trailing
                 }
             }
-            Spacer(minLength: 8)
-            trailing
         }
         .padding(.horizontal, 14)
         .frame(minHeight: 60)
@@ -449,6 +457,19 @@ struct ChannelRowView: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: HomeA11y.label(row)))
         .accessibilityAddTraits(.isButton)
+    }
+
+    private var name: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(verbatim: row.displayTitle)
+                .raftFont(row.isMuted ? .rowTitleMedium : .rowTitle)
+                .foregroundStyle(row.isMuted ? Color.raftTextTertiary : Color.raftTextPrimary)
+            if row.isMuted {
+                Image(systemName: "bell.slash")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.raftTextTertiary)
+            }
+        }
     }
 
     @ViewBuilder private var trailing: some View {
@@ -460,6 +481,8 @@ struct ChannelRowView: View {
             Text(verbatim: RaftFormat.listTime(date))
                 .raftFont(.monoCaption)
                 .foregroundStyle(Color.raftTextTertiary)
+                .lineLimit(1)
+                .fixedSize()
         }
     }
 }
@@ -469,38 +492,58 @@ struct DMRowView: View {
     let persona: Persona
     var selfNames: Set<String> = []
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
     var body: some View {
-        HStack(spacing: 12) {
+        let ax = typeSize.isAccessibilitySize
+        HStack(alignment: ax ? .top : .center, spacing: 12) {
             AvatarView(persona: persona, size: .row, showsPresence: true, ringColor: .raftCard)
+                .padding(.top, ax ? 2 : 0)
             VStack(alignment: .leading, spacing: 2) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(verbatim: row.displayTitle)
-                        .raftFont(.rowTitle)
-                        .foregroundStyle(Color.raftTextPrimary)
-                        .lineLimit(1)
-                    Spacer(minLength: 4)
-                    if let date = row.lastActivity {
-                        Text(verbatim: RaftFormat.listTime(date))
-                            .raftFont(.monoCaption)
-                            .foregroundStyle(Color.raftTextTertiary)
+                if ax {
+                    // AX: name on its own (wrapping), the time under it.
+                    title.lineLimit(3)
+                    time
+                } else {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        title.lineLimit(1)
+                        Spacer(minLength: 4)
+                        time
                     }
                 }
                 HStack(spacing: 6) {
                     Text(verbatim: HomeA11y.dmPreview(row, selfNames: selfNames))
                         .raftFont(.preview)
                         .foregroundStyle(Color.raftTextTertiary)
-                        .lineLimit(1)
+                        .lineLimit(ax ? 2 : 1)
                     Spacer(minLength: 0)
                     UnreadStickers(unread: row.unreadCount, mention: row.hasMention, threadUnread: row.threadUnreadCount, muted: row.isMuted)
                 }
             }
         }
+        .padding(.vertical, ax ? 12 : 0)
         .padding(.horizontal, 14)
         .frame(minHeight: 62)
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: HomeA11y.label(row, preview: HomeA11y.dmPreview(row, selfNames: selfNames), presence: persona.presence)))
         .accessibilityAddTraits(.isButton)
+    }
+
+    private var title: some View {
+        Text(verbatim: row.displayTitle)
+            .raftFont(.rowTitle)
+            .foregroundStyle(Color.raftTextPrimary)
+    }
+
+    @ViewBuilder private var time: some View {
+        if let date = row.lastActivity {
+            Text(verbatim: RaftFormat.listTime(date))
+                .raftFont(.monoCaption)
+                .foregroundStyle(Color.raftTextTertiary)
+                .lineLimit(1)
+                .fixedSize()
+        }
     }
 }
 
@@ -547,7 +590,7 @@ struct UnreadCard: View {
         .padding(12)
         .frame(width: fixed ? 166 : nil, height: fixed ? 132 : nil, alignment: .topLeading)
         .frame(maxWidth: fixed ? nil : .infinity, alignment: .leading)
-        .raftCardSurface(.unreadCard, radius: 16)
+        .raftCardSurface(radius: 16)
         .contentShape(.rect(cornerRadius: 16))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: HomeA11y.label(row, preview: plainPreview)))

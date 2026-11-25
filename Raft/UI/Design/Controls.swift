@@ -55,8 +55,10 @@ struct SecondaryButton: View {
     }
 }
 
-/// A capsule button whose outer frame is its label's frame: interactive glass, tinted when
-/// `tint` is set (the pink primary), a solid fill with Reduce Transparency.
+/// A capsule button whose outer frame is its label's frame: a solid capsule, pink when `tint`
+/// is set (the primary), white otherwise. No glass: the system glass's own shadow read as a
+/// card shadow on the sign-in page (§1.5, Colo); the buttons sit on the plain canvas, where
+/// glass showed nothing through anyway.
 struct GlassCapsuleButtonStyle: ButtonStyle {
     var tint: Color?
 
@@ -71,18 +73,9 @@ struct GlassCapsuleButtonStyle: ButtonStyle {
 
 private struct GlassCapsuleSurface: ViewModifier {
     let tint: Color?
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     func body(content: Content) -> some View {
-        if let tint {
-            if reduceTransparency {
-                content.background(tint, in: Capsule())
-            } else {
-                content.glassEffect(.regular.tint(tint).interactive(), in: .capsule)
-            }
-        } else {
-            content.raftGlass(Capsule(), interactive: true)
-        }
+        content.background(tint ?? Color.raftCard, in: Capsule())
     }
 }
 
@@ -125,7 +118,7 @@ struct RaftGroupCard<Content: View>: View {
         VStack(spacing: 0, content: content)
             .frame(maxWidth: .infinity)
             .clipShape(.rect(cornerRadius: 16, style: .continuous))
-            .raftCardSurface(.card)
+            .raftCardSurface()
             .padding(.horizontal, 16)
     }
 }
@@ -149,35 +142,69 @@ struct SettingsRowLabel: View {
     var value: String?
     var valueMono = false
     var chevron = true
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: systemImage)
-                .font(.system(size: 17, weight: .regular))
-                .foregroundStyle(Color.raftTextSecondary)
-                .frame(width: 24)
-                .accessibilityHidden(true)
-            Text(verbatim: title)
-                .raftFont(.rowTitleMedium)
-                .foregroundStyle(Color.raftTextPrimary)
-            Spacer(minLength: 8)
-            if let value {
-                Text(verbatim: value)
-                    .font(valueMono ? .custom(RaftFont.mono, size: 15, relativeTo: .subheadline) : RaftFont.callout.font)
-                    .foregroundStyle(Color.raftTextTertiary)
-                    .lineLimit(1)
+        let ax = typeSize.isAccessibilitySize
+        HStack(alignment: ax ? .top : .center, spacing: 12) {
+            SettingsRowIcon(systemImage: systemImage)
+            if ax {
+                // AX (§0): the value goes under the title; both wrap, never letter by letter.
+                VStack(alignment: .leading, spacing: 2) {
+                    titleText
+                    if let value { valueText(value) }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                titleText
+                Spacer(minLength: 8)
+                if let value { valueText(value).lineLimit(1) }
             }
             if chevron {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Color.raftTextDisabled)
-                    .padding(.leading, value == nil ? 0 : -8)
+                    .padding(.leading, value == nil || ax ? 0 : -8)
+                    .frame(minHeight: ax ? 26 : nil)
                     .accessibilityHidden(true)
             }
         }
         .padding(.horizontal, 14)
+        .padding(.vertical, ax ? 12 : 0)
         .frame(minHeight: 50)
         .contentShape(Rectangle())
+    }
+
+    private var titleText: some View {
+        Text(verbatim: title)
+            .raftFont(.rowTitleMedium)
+            .foregroundStyle(Color.raftTextPrimary)
+            .padding(.vertical, 4)
+    }
+
+    private func valueText(_ value: String) -> some View {
+        Text(verbatim: value)
+            .font(valueMono ? .custom(RaftFont.mono, size: 15, relativeTo: .subheadline) : RaftFont.callout.font)
+            .foregroundStyle(Color.raftTextTertiary)
+    }
+}
+
+/// A settings row's leading icon (大字号补充 B.2): 20 scaled with the text, at most 28, in a box
+/// 4 wider (24 at the default size); at AX sizes it tops the title's first line.
+struct SettingsRowIcon: View {
+    let systemImage: String
+    @ScaledMetric(relativeTo: .body) private var icon: CGFloat = 20
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        let side = min(icon, 28)
+        Image(systemName: systemImage)
+            // 17pt draws the 20pt symbol of the spec at the default size.
+            .font(.system(size: side * 17 / 20, weight: .regular))
+            .foregroundStyle(Color.raftTextSecondary)
+            .frame(width: side + 4, height: typeSize.isAccessibilitySize ? side + 6 : nil)
+            .padding(.top, typeSize.isAccessibilitySize ? 2 : 0)
+            .accessibilityHidden(true)
     }
 }
 

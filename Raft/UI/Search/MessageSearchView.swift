@@ -22,6 +22,7 @@ struct HomeSearchToolbarItems: ToolbarContent {
                 Image(systemName: "magnifyingglass")
             }
             .accessibilityLabel(Text(L10n.t("home_nav_search", "Search")))
+            .raftLargeContent(systemImage: "magnifyingglass", label: L10n.t("home_nav_search", "Search"))
             .accessibilityHint(Text(L10n.f("ios_search_messages_in", "Search messages in %1$@", serverName)))
             .accessibilityIdentifier("home-search")
         }
@@ -96,7 +97,8 @@ struct MessageSearchView: View {
                 prompt: L10n.t("ios_search_messages_prompt", "Search messages"),
                 focus: $fieldFocused,
                 submit: { store.submit() },
-                close: cancel
+                close: cancel,
+                top: 12
             )
         }
         .onChange(of: store.text) { store.textChanged() }
@@ -624,6 +626,12 @@ struct SearchHeader: View {
     var closeWhileFocused = false
     var closeLabel = L10n.t("common_cancel", "Cancel")
     var fieldIdentifier = "search-field"
+    /// Space above the field: 2 under a navigation bar; 12 on message search, which has no bar
+    /// (so the field is 12 below the safe-area top).
+    var top: CGFloat = 2
+    /// A solid white field with no shadow (Browse, Members: the field sits on the page's warm
+    /// canvas, where the system glass's own shadow read as a card shadow, §1.5); glass otherwise.
+    var solid = false
 
     var body: some View {
         HStack(spacing: 10) {
@@ -661,12 +669,14 @@ struct SearchHeader: View {
                     .accessibilityIdentifier("search-clear")
                 }
             }
-            .padding(.leading, 14)
+            // 12: the magnifier's ink (2 inside its frame) starts at 16 + 14 = 30, the list
+            // tiles' left edge (Browse, Members).
+            .padding(.leading, 12)
             .padding(.trailing, text.isEmpty ? 14 : 4)
             .frame(height: 44)
             .contentShape(Capsule())
             .onTapGesture { focus.wrappedValue = true }
-            .raftGlass(Capsule(), interactive: true)
+            .modifier(SearchFieldSurface(solid: solid))
             if !closeWhileFocused || focus.wrappedValue {
                 Button(action: close) {
                     Image(systemName: "xmark")
@@ -683,7 +693,19 @@ struct SearchHeader: View {
         }
         .animation(.easeOut(duration: 0.2), value: focus.wrappedValue)
         .padding(.horizontal, 16)
-        .padding(.top, 2)
+        .padding(.top, top)
         .padding(.bottom, 8)
+    }
+}
+
+private struct SearchFieldSurface: ViewModifier {
+    let solid: Bool
+
+    func body(content: Content) -> some View {
+        if solid {
+            content.background(Color.raftCard, in: Capsule())
+        } else {
+            content.raftGlass(Capsule(), interactive: true)
+        }
     }
 }

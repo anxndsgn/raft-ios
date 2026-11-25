@@ -144,6 +144,22 @@ enum AvatarSize {
     }
 
     var cornerRadius: CGFloat { self == .header ? 8 : 4 }
+
+    /// The largest Dynamic Type scale of the side. List tiles (row, compact) stop at 44
+    /// (大字号补充 B.1); the rest at 1.6×; the header does not scale.
+    var maxScale: CGFloat {
+        switch self {
+        case .header: 1
+        case .row, .compact: 44 / side
+        default: 1.6
+        }
+    }
+
+    /// The side at a `@ScaledMetric` scale (`scale` is 1 at the default text size).
+    func scaledSide(_ scale: CGFloat, max: CGFloat? = nil) -> CGFloat {
+        let value = side * Swift.min(scale, maxScale)
+        return max.map { Swift.min(value, $0) } ?? value
+    }
 }
 
 /// A square sticker avatar (§2.2): initials or photo for people, a pixel face for agents, and
@@ -153,10 +169,15 @@ struct AvatarView: View {
     var size: AvatarSize = .md
     var showsPresence = false
     var ringColor: Color = .raftCanvas
+    /// A cap on the scaled side (Activity's 35 avatars stop at 44 like the list tiles).
+    var maxSide: CGFloat?
     @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
 
+    /// Side / unscaled side: glyphs and the presence light follow it.
+    private var factor: CGFloat { size.scaledSide(scale, max: maxSide) / size.side }
+
     var body: some View {
-        let side = size.side * (size == .header ? 1 : min(scale, 1.6))
+        let side = size.scaledSide(scale, max: maxSide)
         let shape = RoundedRectangle(cornerRadius: size.cornerRadius, style: .continuous)
         content(side: side)
             .frame(width: side, height: side)
@@ -188,14 +209,14 @@ struct AvatarView: View {
             ZStack {
                 Color.raftFill
                 Image(systemName: "gearshape.fill")
-                    .font(.system(size: size.initialsSize * min(scale, 1.6), weight: .regular))
+                    .font(.system(size: size.initialsSize * factor, weight: .regular))
                     .foregroundStyle(Color.raftTextSecondary)
             }
         case .human:
             ZStack {
                 Color.raftLavender
                 Text(verbatim: persona.initials)
-                    .font(.custom(RaftFont.bold, size: size.initialsSize * (size == .header ? 1 : min(scale, 1.6))))
+                    .font(.custom(RaftFont.bold, size: size.initialsSize * factor))
                     .tracking(-0.02 * size.initialsSize)
                     .foregroundStyle(Color.raftInk)
                 if let url = persona.imageURL {
@@ -209,7 +230,9 @@ struct AvatarView: View {
 
     private func presenceLight(_ presence: Presence) -> some View {
         let small = size == .xs
-        let side: CGFloat = small ? 7 : (size == .row ? 10 : 11)
+        // Grows with the avatar, at most 11 (大字号补充 B.1).
+        let base: CGFloat = small ? 7 : (size == .row ? 10 : 11)
+        let side = min(base * factor, max(base, 11))
         let ring: CGFloat = small ? 1 : 1.5
         return RoundedRectangle(cornerRadius: 2, style: .continuous)
             .fill(presence.color)
@@ -337,11 +360,16 @@ struct ChannelTile: View {
     var row = false
     @ScaledMetric(relativeTo: .body) private var side: CGFloat = 27
     @ScaledMetric(relativeTo: .body) private var rowSide: CGFloat = 32
+    @ScaledMetric(relativeTo: .body) private var rowGlyph: CGFloat = 16
 
     var body: some View {
-        let size = large ? 64 : (row ? min(rowSide, 51) : min(side, 44))
+        // List tiles: 32 scaled, at most 44; the # / lock with them, at most 22 (大字号补充 B.1).
+        let size = large ? 64 : (row ? min(rowSide, 44) : min(side, 44))
         let radius: CGFloat = row ? 6 : 4
-        let glyph: CGFloat = large ? (isPrivate ? 26 : 30) : row ? (isPrivate ? 15 : 16) : (isPrivate ? 13 : 14)
+        let scale = min(side, 44) / 27
+        let glyph: CGFloat = large ? (isPrivate ? 26 : 30)
+            : row ? min(rowGlyph, 22) * (isPrivate ? 15.0 / 16 : 1)
+            : (isPrivate ? 13 : 14) * scale
         RoundedRectangle(cornerRadius: radius, style: .continuous)
             .fill(large ? Color.raftCyan : Color.raftStone)
             .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(Color.raftInk, lineWidth: 1.5))
@@ -496,26 +524,42 @@ extension SectionHeader where Trailing == EmptyView {
 }
 
 /// Inline navigation title with an optional subtitle (§2.12).
+///
+/// Title and subtitle follow the text size up to XXXL (大字号补充 A): AX sizes stop there and a
+/// long press shows the full title in the Large Content Viewer. The bar hosts its items at its
+/// own text size, so the page's size comes in as `typeSize` (read outside the toolbar).
 struct NavTitle: View {
     let title: String
     var hashPrefix = false
     var subtitle: String?
+    var typeSize: DynamicTypeSize?
 
     var body: some View {
-        VStack(spacing: 0) {
-            (hashPrefix ? Text(verbatim: "# ").foregroundStyle(Color.raftTextTertiary) : Text(verbatim: ""))
+        let content = VStack(spacing: 0) {
+            ((hashPrefix ? Text(verbatim: "# ").foregroundStyle(Color.raftTextTertiary) : Text(verbatim: ""))
                 .raftStyle(.navTitle)
-                + Text(verbatim: title).raftStyle(.navTitle).foregroundStyle(Color.raftTextPrimary)
+                + Text(verbatim: title).raftStyle(.navTitle).foregroundStyle(Color.raftTextPrimary))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .minimumScaleFactor(0.85)
             if let subtitle, !subtitle.isEmpty {
                 Text(verbatim: subtitle)
                     .raftFont(.caption)
                     .foregroundStyle(Color.raftTextTertiary)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
         }
-        .lineLimit(1)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
+        .accessibilityShowsLargeContentViewer {
+            Text(verbatim: (hashPrefix ? "# " : "") + title)
+        }
+        if let typeSize {
+            content.dynamicTypeSize(min(typeSize, .xxxLarge))
+        } else {
+            content.dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        }
     }
 }
 

@@ -270,7 +270,7 @@ struct MessageActionsOverlay: View {
         .clipped()
         .background(Color.raftCanvas, in: .rect(cornerRadius: 20, style: .continuous))
         .clipShape(.rect(cornerRadius: 20, style: .continuous))
-        .shadow(color: Color.black.opacity(0.16), radius: 24, y: 10)
+        .shadowLift(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .accessibilityHidden(true)
     }
 

@@ -182,6 +182,7 @@ struct ChatView: View {
     @State private var sendTick = 0
     @State private var joinFlow = ChannelJoinFlow()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     init(store: ConversationStore, ref: ConversationRef) {
         self.store = store
@@ -249,13 +250,26 @@ struct ChatView: View {
     }
 
     var body: some View {
+        VerticalBarReader { vertical in page(verticalBar: vertical) }
+    }
+
+    /// `verticalBar`: the system stacks the bars on the trailing edge (Duo folded, unfolded
+    /// landscape). The title then sits at the top of the content (大字号补充 A.4) instead of
+    /// floating over the messages.
+    private func page(verticalBar: Bool) -> some View {
         stream
             .background(Color.raftCanvas.ignoresSafeArea())
             .navigationTitle(Text(verbatim: peerTitle ?? store.title))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if dmHeaderPeer == nil {
-                    ToolbarItem(placement: .principal) { title }
+                    ToolbarItem(placement: .principal) {
+                        if verticalBar {
+                            Color.clear.frame(width: 1, height: 1).accessibilityHidden(true)
+                        } else {
+                            title
+                        }
+                    }
                 } else {
                     // A DM shows its peer under the bar (33a); the bar keeps only back and ⓘ
                     // (vertical on Duo folded / unfolded landscape), and the title stays for
@@ -268,6 +282,7 @@ struct ChatView: View {
                             Button(action: dmInfo) {
                                 Label(L10n.t("ios_dm_info", "Conversation info"), systemImage: "info.circle")
                             }
+                            .raftLargeContent(systemImage: "info.circle", label: L10n.t("ios_dm_info", "Conversation info"))
                             .accessibilityIdentifier("dm-info")
                         }
                     }
@@ -277,6 +292,8 @@ struct ChatView: View {
                 VStack(spacing: 0) {
                     if let peer = dmHeaderPeer {
                         DMHeaderBar(peer: peer, name: peerTitle ?? peer.name, subtitle: dmSubtitle(peer), info: dmInfo)
+                    } else if verticalBar {
+                        TopTitleBlock { title }
                     }
                     if showsBanner {
                         StatusBanner(updatedAt: workspace.lastConnectedAt)
@@ -285,7 +302,6 @@ struct ChatView: View {
                     }
                 }
             }
-            .safeAreaBar(edge: .bottom) { composerBar }
             .messageInteractions(interactions) { messageId, emoji in react(messageId, emoji) }
             .photosPicker(isPresented: $pickingPhotos, selection: $photoItems, maxSelectionCount: 10, matching: .images)
             .onChange(of: photoItems) { _, items in
@@ -396,13 +412,13 @@ struct ChatView: View {
     @ViewBuilder private var title: some View {
         // A DM with its peer loaded shows it under the bar (`DMHeaderBar`).
         if isTask || isDirectMessage {
-            NavTitle(title: store.title, hashPrefix: !isDirectMessage, subtitle: isDirectMessage ? nil : (ref.subtitle ?? topic))
+            NavTitle(title: store.title, hashPrefix: !isDirectMessage, subtitle: isDirectMessage ? nil : (ref.subtitle ?? topic), typeSize: typeSize)
         } else {
             // A channel: the title opens Channel info (§11 27).
             Button {
                 model.push(.channelInfo(store.channelId))
             } label: {
-                NavTitle(title: store.title, hashPrefix: true, subtitle: channelSubtitle)
+                NavTitle(title: store.title, hashPrefix: true, subtitle: channelSubtitle, typeSize: typeSize)
                     .contentTransition(.numericText())
                     .contentShape(Rectangle())
             }
@@ -440,15 +456,18 @@ struct ChatView: View {
             .scrollTargetLayout()
             .coordinateSpace(name: AnchoredLanding.space)
             .padding(.bottom, 12)
+            .opacity(landing && store.phase == .loaded ? 0 : 1)
         }
-        .opacity(landing && store.phase == .loaded ? 0 : 1)
+        // The composer (and the join bar) is the scroll view's own bottom bar, so the system's
+        // soft scroll-edge effect fades whatever passes under it, down to the screen's edge.
+        .safeAreaBar(edge: .bottom) { composerBar }
         .scrollPosition($position)
         .defaultScrollAnchor(.bottom, for: .initialOffset)
         .defaultScrollAnchor((isEmpty || store.isLoadingOlder || store.phase != .loaded) ? .top : .bottom, for: .alignment)
         .defaultScrollAnchor((edges.atBottom || holdingForOlder) ? .bottom : .top, for: .sizeChanges)
         .scrollDismissesKeyboard(.interactively)
         // System soft fade under the nav bar (§2.12); no custom bar background or divider.
-        .scrollEdgeEffectStyle(.soft, for: .top)
+        .scrollEdgeEffectStyle(.soft, for: [.top, .bottom])
         .onScrollGeometryChange(for: StreamEdges.self) { geometry in
             StreamEdges(
                 nearTop: geometry.visibleRect.minY < 600,

@@ -6,16 +6,18 @@ import SwiftUI
 /// channel tiles above it (corner 6), so the name starts at x=58 like theirs.
 struct BrowseEntryRow: View {
     @ScaledMetric(relativeTo: .body) private var side: CGFloat = 32
+    @ScaledMetric(relativeTo: .body) private var glyph: CGFloat = 16
 
     var body: some View {
         HStack(spacing: 12) {
-            let size = min(side, 51)
+            // Like the channel tiles: 32 scaled, at most 44; the magnifier at most 22 (B.1).
+            let size = min(side, 44)
             RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .fill(Color.raftCard)
                 .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(Color.raftInk, lineWidth: 1.5))
                 .overlay {
                     Image(systemName: "magnifyingglass")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.system(size: min(glyph, 22), weight: .semibold))
                         .foregroundStyle(Color.raftTextSecondary)
                 }
                 .frame(width: size, height: size)
@@ -24,7 +26,7 @@ struct BrowseEntryRow: View {
             Text(L10n.t("ios_browse_title", "Browse channels"))
                 .raftFont(.rowTitleMedium)
                 .foregroundStyle(Color.raftTextSecondary)
-                .lineLimit(1)
+                .lineLimit(3)
             Spacer(minLength: 8)
             Image(systemName: "chevron.right")
                 .font(.system(size: 13, weight: .semibold))
@@ -64,7 +66,6 @@ struct BrowseChannelsView: View {
         }
         .scrollDismissesKeyboard(.immediately)
         .background(Color.raftCanvasWarm.ignoresSafeArea())
-        .raftNavigationTitle(L10n.t("ios_browse_title", "Browse channels"), subtitle: model.servers.selectedServer?.displayName)
         .refreshable { await list.refresh() }
         .safeAreaBar(edge: .top, spacing: 0) {
             VStack(spacing: 0) {
@@ -74,7 +75,8 @@ struct BrowseChannelsView: View {
                     focus: $searchFocused,
                     submit: {},
                     close: endSearch,
-                    closeWhileFocused: true
+                    closeWhileFocused: true,
+                solid: true
                 )
                 if showsBanner {
                     StatusBanner(updatedAt: workspace.lastConnectedAt)
@@ -83,6 +85,8 @@ struct BrowseChannelsView: View {
                 }
             }
         }
+        // After the search bar: with the vertical bar the title block goes above it.
+        .raftNavigationTitle(L10n.t("ios_browse_title", "Browse channels"), subtitle: model.servers.selectedServer?.displayName)
         .animation(.easeOut(duration: 0.25), value: showsBanner)
         .task {
             if list.phase != .loaded && list.phase != .loading { await list.refresh() }
@@ -191,13 +195,17 @@ struct BrowseChannelRow: View {
         return PlainText.preview(text)
     }
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
     var body: some View {
-        HStack(spacing: 12) {
+        let ax = typeSize.isAccessibilitySize
+        HStack(alignment: ax ? .top : .center, spacing: 12) {
             ChannelTile(isPrivate: channel.isPrivate)
+                .padding(.top, ax ? 2 : 0)
             VStack(alignment: .leading, spacing: 0) {
                 Text(Self.highlighted(channel.name, query: query))
                     .foregroundStyle(Color.raftTextPrimary)
-                    .lineLimit(1)
+                    .lineLimit(ax ? 3 : 1)
                 if topic != nil || memberCount != nil {
                     HStack(spacing: 4) {
                         if let topic {
@@ -217,17 +225,12 @@ struct BrowseChannelRow: View {
                         }
                     }
                 }
+                // AX: "Joined ✓" goes under the name (§0).
+                if ax && channel.joined { joinedLabel.padding(.top, 2) }
             }
             Spacer(minLength: 8)
             if channel.joined {
-                HStack(spacing: 4) {
-                    Text(L10n.t("ios_browse_joined", "Joined"))
-                        .raftFont(.caption)
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 12, weight: .semibold))
-                        .accessibilityHidden(true)
-                }
-                .foregroundStyle(Color.raftTextTertiary)
+                if !ax { joinedLabel }
             } else {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .semibold))
@@ -236,12 +239,25 @@ struct BrowseChannelRow: View {
             }
         }
         .padding(.horizontal, 14)
+        .padding(.vertical, ax ? 12 : 0)
         .frame(minHeight: 62)
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: Self.accessibilityLabel(channel, topic: topic, memberCount: memberCount)))
         .accessibilityHint(Text(channel.joined ? L10n.t("ios_browse_hint_open", "Open channel") : L10n.t("ios_browse_hint_preview", "Preview channel")))
         .accessibilityAddTraits(.isButton)
+    }
+
+    private var joinedLabel: some View {
+        HStack(spacing: 4) {
+            Text(L10n.t("ios_browse_joined", "Joined"))
+                .raftFont(.caption)
+            Image(systemName: "checkmark")
+                .font(.system(size: 12, weight: .semibold))
+                .accessibilityHidden(true)
+        }
+        .foregroundStyle(Color.raftTextTertiary)
+        .fixedSize()
     }
 
     /// "research, <topic>, 18 members" (+ ", joined").

@@ -37,6 +37,7 @@ struct ActivityView: View {
                 }
                 .disabled(!hasUnread)
                 .accessibilityLabel(Text(L10n.t("inbox_action_mark_all_read", "Mark all read")))
+                .raftLargeContent(systemImage: "checkmark.circle", label: L10n.t("inbox_action_mark_all_read", "Mark all read"))
                 .accessibilityIdentifier("activity-mark-all-read")
             }
         }
@@ -62,7 +63,53 @@ struct ActivityView: View {
         }
     }
 
-    private var filterPicker: some View {
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    /// The segmented control; at AX sizes a horizontally scrolling row of capsules instead, so no
+    /// title is truncated (大字号补充 C).
+    @ViewBuilder private var filterPicker: some View {
+        if typeSize.isAccessibilitySize {
+            ScrollView(.horizontal) {
+                HStack(spacing: 8) {
+                    ForEach(Self.filters) { filter in
+                        let selected = store.filter == filter
+                        Button {
+                            select(filter)
+                        } label: {
+                            Text(Self.title(filter))
+                                .raftFont(.segment)
+                                .foregroundStyle(Color.raftTextPrimary)
+                                .lineLimit(1)
+                                .fixedSize()
+                                .padding(.horizontal, 16)
+                                .frame(minHeight: 44)
+                                .background(selected ? Color.raftTextPrimary.opacity(0.1) : Color.raftFill, in: Capsule())
+                                .overlay(Capsule().strokeBorder(selected ? Color.raftTextPrimary : Color.clear, lineWidth: 1.5))
+                                .contentShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 2)
+            }
+            .scrollIndicators(.hidden)
+            .padding(.horizontal, -16)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(Text(L10n.t("tab_activity", "Activity")))
+            .accessibilityIdentifier("activity-filter")
+        } else {
+            segmentedPicker
+        }
+    }
+
+    private func select(_ value: ActivityStore.Filter) {
+        storedFilter = value.rawValue
+        Task { await store.setFilter(value) }
+    }
+
+    private var segmentedPicker: some View {
         Picker(selection: Binding(
             get: { store.filter },
             set: { value in
@@ -291,24 +338,29 @@ struct ActivityRowLayout<Title: View>: View {
     let location: String
     let preview: Text
     @ViewBuilder let title: () -> Title
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
+        let ax = typeSize.isAccessibilitySize
         HStack(alignment: .top, spacing: 12) {
-            AvatarView(persona: persona, size: .md)
+            // Stops at 44 like the list tiles (大字号补充 B.1).
+            AvatarView(persona: persona, size: .md, maxSide: 44)
                 .overlay(alignment: .bottomTrailing) {
                     if let badge { badgeView(badge).offset(x: 6, y: 6) }
                 }
                 .padding(.top, 2)
             VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                if ax {
+                    // AX: the title wraps on its own lines, the time goes under it.
                     title()
-                        .lineLimit(1)
-                    Spacer(minLength: 4)
-                    if let time {
-                        Text(verbatim: time)
-                            .raftFont(.monoCaption)
-                            .foregroundStyle(Color.raftTextTertiary)
-                            .fixedSize()
+                        .lineLimit(4)
+                    timeText
+                } else {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        title()
+                            .lineLimit(1)
+                        Spacer(minLength: 4)
+                        timeText
                     }
                 }
                 if !location.isEmpty {
@@ -316,10 +368,10 @@ struct ActivityRowLayout<Title: View>: View {
                         .raftFont(.footnoteMedium)
                         // Read rows go quiet as a whole: title, location and preview secondary.
                         .foregroundStyle(unread ? Color.raftTextTertiary : Color.raftTextSecondary)
-                        .lineLimit(1)
+                        .lineLimit(ax ? 2 : 1)
                 }
                 preview
-                    .lineLimit(1)
+                    .lineLimit(ax ? 2 : 1)
                     .padding(.top, 2)
             }
         }
@@ -338,6 +390,16 @@ struct ActivityRowLayout<Title: View>: View {
             }
         }
         .contentShape(Rectangle())
+    }
+
+    @ViewBuilder private var timeText: some View {
+        if let time {
+            Text(verbatim: time)
+                .raftFont(.monoCaption)
+                .foregroundStyle(Color.raftTextTertiary)
+                .lineLimit(1)
+                .fixedSize()
+        }
     }
 
     private func badgeView(_ badge: ActivityBadge) -> some View {

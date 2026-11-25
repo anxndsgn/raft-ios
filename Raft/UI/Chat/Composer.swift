@@ -280,7 +280,10 @@ struct ComposerPanel: View {
         .padding(joinPadding)
         .frame(minHeight: 48)
         .contentShape(ComposerGlass.shape(focused: focus.wrappedValue || tallJoin))
-        .modifier(ComposerGlass(focused: focus.wrappedValue || tallJoin, namespace: glass, reduceTransparency: reduceTransparency, dark: scheme == .dark))
+        // The Join bar is drawn solid (the Reduce Transparency look): the system glass's own
+        // drop shadow showed as a grey shadow under it (Colo). Joining crossfades to the glass
+        // composer instead of morphing.
+        .modifier(ComposerGlass(focused: focus.wrappedValue || tallJoin, namespace: glass, reduceTransparency: reduceTransparency || join != nil, dark: scheme == .dark))
     }
 
     /// Accessibility sizes: the Join bar takes two rows (text over a full-width button), r26.
@@ -305,14 +308,35 @@ struct ComposerPanel: View {
                 joinButton(join, height: 44, fullWidth: true)
             }
         } else {
-            HStack(spacing: 10) {
-                joinMessage(join)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                Spacer(minLength: 8)
+            // Never cut in the middle ("You're pr…#chit-chat"): the whole sentence, else only the
+            // channel name (the title already says Preview), else just the button, centred.
+            ViewThatFits(in: .horizontal) {
+                joinRow(join) { joinMessage(join) }
+                if !join.failed {
+                    joinRow(join) {
+                        Text(verbatim: join.channelName)
+                            .raftFont(.footnote)
+                            .foregroundStyle(Color.raftTextSecondary)
+                    }
+                }
                 joinButton(join, height: 36, fullWidth: false)
+                    .frame(maxWidth: .infinity, minHeight: 48)
+                    // Centred in the capsule: undo the row's uneven 18 / 6 padding.
+                    .offset(x: -6)
             }
             .frame(minHeight: 48)
+        }
+    }
+
+    /// One row: the text (never truncated: `fixedSize`, so `ViewThatFits` moves to the next
+    /// tier instead) and the button.
+    private func joinRow<Message: View>(_ join: ComposerJoin, @ViewBuilder message: () -> Message) -> some View {
+        HStack(spacing: 10) {
+            message()
+                .lineLimit(1)
+                .fixedSize()
+            Spacer(minLength: 8)
+            joinButton(join, height: 36, fullWidth: false)
         }
     }
 
@@ -355,12 +379,26 @@ struct ComposerPanel: View {
     }
 
     private var field: some View {
-        TextField(text: $model.text, axis: .vertical) {
-            Text(verbatim: placeholder).foregroundStyle(Color.raftTextTertiary)
+        // The typed text follows Dynamic Type uncapped; the placeholder stops at XXXL and stays
+        // on one line (大字号补充 B.4), so it is drawn over an empty prompt rather than as one.
+        TextField(text: $model.text, prompt: Text(verbatim: ""), axis: .vertical) {
+            Text(verbatim: placeholder)
         }
         .font(RaftFont.body.font)
         .foregroundStyle(Color.raftTextPrimary)
         .lineLimit(expanded ? 1...5 : 1...1)
+        .overlay(alignment: .leading) {
+            if model.text.isEmpty {
+                Text(verbatim: placeholder)
+                    .font(RaftFont.body.font)
+                    .foregroundStyle(Color.raftTextTertiary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+        }
         .focused(focus)
         .padding(.top, expanded ? 2 : 0)
         .padding(.bottom, expanded ? 6 : 0)

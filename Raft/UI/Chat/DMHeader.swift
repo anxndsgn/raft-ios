@@ -17,9 +17,11 @@ import SwiftUI
 /// at least 8 below the screen's top (`minimumTop`). The short one-line version for low windows
 /// (矮版) is not built yet: low windows get this one too. Left and right it is
 /// centred in the corner-adapted safe area (`BarInsetsReader`), so neither the side safe area (the
-/// Duo's status column with the vertical bar) nor a rounded display corner reaches it. Under the
-/// caption the block is 32 deeper, with the canvas fading out over it, so the fade reaches 32
-/// below the caption; the message list's top inset follows the block's real height.
+/// Duo's status column with the vertical bar) nor a rounded display corner reaches it. The block
+/// has no background or fade of its own (XIN 5497): only the system's soft scroll edge
+/// (`.scrollEdgeEffectStyle(.soft, for: .top)` on the message list) fades messages under it,
+/// and it ends at the caption's bottom, the block's bottom; the list's top inset follows the
+/// block's real height.
 struct DMHeaderBar: View {
     let peer: Persona
     /// "Ruby", or "XIN (you)" for a DM with yourself.
@@ -31,23 +33,31 @@ struct DMHeaderBar: View {
     var info: (() -> Void)?
 
     static let height: CGFloat = 92
-    /// The fade under the caption.
-    static let fadeExtension: CGFloat = 32
     /// The least space between the window's safe-area top and the bar.
     static let minimumTop: CGFloat = 8
 
     @State private var insets = BarInsets()
 
     /// Moves the block to where the avatar's top belongs, from where SwiftUI put it. Under a
-    /// horizontal navigation bar it goes up into the bar's row (avatar top = the window's
-    /// safe-area top, between the system's back and ⓘ); with the vertical bar (no top inset) it
+    /// horizontal navigation bar it goes up into the bar's row (avatar top = the bar's top, the
+    /// status bar's bottom, between the system's back and ⓘ); with the vertical bar (no top inset) it
     /// goes down to `minimumTop`. The origin is measured before this padding, so it never feeds back.
-    private var top: CGFloat {
-        let wanted = insets.windowTop < Self.minimumTop ? Self.minimumTop : insets.windowTop
+    private func top(verticalBar: Bool) -> CGFloat {
+        let wanted: CGFloat
+        if !verticalBar, let barTop = insets.navigationBarTop {
+            // Horizontal bar: the avatar's top in the bar's row, level with back and ⓘ.
+            wanted = barTop
+        } else {
+            wanted = insets.windowTop < Self.minimumTop ? Self.minimumTop : insets.windowTop
+        }
         return wanted - insets.originY
     }
 
     var body: some View {
+        VerticalBarReader { vertical in block(top: top(verticalBar: vertical)) }
+    }
+
+    private func block(top: CGFloat) -> some View {
         Group {
             VStack(spacing: 4) {
                 identity
@@ -73,19 +83,6 @@ struct DMHeaderBar: View {
                 .frame(height: max(56 + top, 1))
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
-        }
-        .padding(.bottom, Self.fadeExtension)
-        // The fade (大字号补充 A.4): canvas behind the header, then canvas → clear over the 32
-        // under it, so messages scrolled up are gone before they reach the caption.
-        .background {
-            VStack(spacing: 0) {
-                Color.raftCanvas
-                LinearGradient(colors: [.raftCanvas, .raftCanvas.opacity(0)], startPoint: .top, endPoint: .bottom)
-                    .frame(height: Self.fadeExtension)
-            }
-            .ignoresSafeArea(.container, edges: .top)
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
         }
         .ignoresSafeArea(.container, edges: .horizontal)
     }
@@ -182,11 +179,14 @@ struct BarInsets: Equatable {
     var leading: CGFloat = 0
     var trailing: CGFloat = 0
     var windowTop: CGFloat = 20
+    /// The top of the horizontal navigation bar in the window (the status bar's bottom), when
+    /// there is one. The window's safe-area top already includes the bar itself.
+    var navigationBarTop: CGFloat?
     /// The bar's top in the window (before its own top padding).
     var originY: CGFloat = 20
 }
 
-private struct BarInsetsReader: UIViewRepresentable {
+struct BarInsetsReader: UIViewRepresentable {
     let report: (BarInsets) -> Void
 
     func makeUIView(context: Context) -> ReaderView {
@@ -223,6 +223,20 @@ private struct BarInsetsReader: UIViewRepresentable {
             DispatchQueue.main.async { [weak self] in self?.measure() }
         }
 
+        /// The navigation bar's top in the window, if this view is under a shown navigation bar.
+        private func navigationBarTop(in window: UIWindow) -> CGFloat? {
+            var responder: UIResponder? = self
+            while let r = responder {
+                if let vc = r as? UIViewController, let nav = vc.navigationController {
+                    let bar = nav.navigationBar
+                    guard !nav.isNavigationBarHidden, !bar.isHidden, bar.bounds.height > 0 else { return nil }
+                    return bar.convert(bar.bounds, to: window).minY.rounded()
+                }
+                responder = r.next
+            }
+            return nil
+        }
+
         private func measure() {
             guard let window, bounds.width > 0 else { return }
             // SwiftUI gives a hosted UIView no safe area of its own, so the guide here only
@@ -238,6 +252,7 @@ private struct BarInsetsReader: UIViewRepresentable {
                 leading: (rtl ? right : left).rounded(),
                 trailing: (rtl ? left : right).rounded(),
                 windowTop: window.safeAreaInsets.top,
+                navigationBarTop: navigationBarTop(in: window),
                 originY: inWindow.minY.rounded()
             )
             guard value != last else { return }

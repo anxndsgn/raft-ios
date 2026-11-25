@@ -118,7 +118,7 @@ struct SettingsView: View {
         }
         .buttonStyle(RowButtonStyle())
         .clipShape(.rect(cornerRadius: 16, style: .continuous))
-        .raftCardSurface(.card)
+        .raftCardSurface()
         .padding(.horizontal, 16)
         .accessibilityIdentifier("settings-profile")
     }
@@ -412,22 +412,21 @@ private struct ToggleRow: View {
     let systemImage: String
     let title: String
     @Binding var isOn: Bool
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         Toggle(isOn: $isOn) {
-            HStack(spacing: 12) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 17, weight: .regular))
-                    .foregroundStyle(Color.raftTextSecondary)
-                    .frame(width: 24)
-                    .accessibilityHidden(true)
+            HStack(alignment: typeSize.isAccessibilitySize ? .top : .center, spacing: 12) {
+                SettingsRowIcon(systemImage: systemImage)
                 Text(verbatim: title)
                     .raftFont(.rowTitleMedium)
                     .foregroundStyle(Color.raftTextPrimary)
+                    .padding(.vertical, 4)
             }
         }
         .tint(Color.raftYellow)
         .padding(.horizontal, 14)
+        .padding(.vertical, typeSize.isAccessibilitySize ? 12 : 0)
         .frame(minHeight: 50)
     }
 }

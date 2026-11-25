@@ -84,8 +84,12 @@ struct ThreadView: View {
             .scrollTargetLayout()
             .coordinateSpace(name: AnchoredLanding.space)
             .padding(.bottom, 12)
+            .opacity(landing ? 0 : 1)
         }
-        .opacity(landing ? 0 : 1)
+        // The composer is the scroll view's own bottom bar: the soft scroll-edge effect fades
+        // replies passing under it.
+        .safeAreaBar(edge: .bottom) { composerBar }
+        .scrollEdgeEffectStyle(.soft, for: [.top, .bottom])
         .scrollPosition($position)
         .defaultScrollAnchor(.top, for: .alignment)
         // Short content sits at the top (alignment): kept there as it grows. Pinning its bottom
@@ -121,11 +125,11 @@ struct ThreadView: View {
                     Image(systemName: following ? "bell.fill" : "bell")
                 }
                 .accessibilityLabel(Text(following ? L10n.t("thread_action_unfollow_thread", "Unfollow thread") : L10n.t("thread_action_follow_thread", "Follow thread")))
+                .raftLargeContent(systemImage: following ? "bell.fill" : "bell", label: following ? L10n.t("thread_action_unfollow_thread", "Unfollow thread") : L10n.t("thread_action_follow_thread", "Follow thread"))
                 .accessibilityIdentifier("thread-follow")
             }
             }
         }
-        .safeAreaBar(edge: .bottom) { composerBar }
         .messageInteractions(interactions) { messageId, emoji in react(messageId, emoji) }
         .photosPicker(isPresented: $pickingPhotos, selection: $photoItems, maxSelectionCount: 10, matching: .images)
         .onChange(of: photoItems) { _, items in

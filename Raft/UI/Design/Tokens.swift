@@ -52,7 +52,6 @@ extension Color {
     // MARK: Lines
     static let raftHairline = Color(light: Color(hex: 0x141111, alpha: 0.14), dark: Color(hex: 0xFAFAF7, alpha: 0.10))
     static let raftDivider = Color(light: Color(hex: 0x141111, alpha: 0.15), dark: Color(hex: 0xFAFAF7, alpha: 0.12))
-    static let raftCardRing = Color(light: Color(hex: 0x141111, alpha: 0.08), dark: Color(hex: 0xFFFFFF, alpha: 0.08))
     static let raftDieCut = Color(light: .clear, dark: Color(hex: 0xFAFAF7, alpha: 0.35))
 
     // MARK: Highlight
@@ -169,35 +168,17 @@ extension Shape where Self == RoundedRectangle {
     }
 }
 
-enum RaftShadow {
-    case card
-    case unreadCard
-    case chip
-}
-
-private struct RaftShadowModifier<S: InsettableShape>: ViewModifier {
-    let kind: RaftShadow
-    let shape: S
-    @Environment(\.colorScheme) private var scheme
-
-    func body(content: Content) -> some View {
-        let dark = scheme == .dark
-        let (ring, color, radius, y): (Double, Double, CGFloat, CGFloat) = switch kind {
-        case .card: (0.08, 0.04, 5, 2)
-        case .unreadCard: (0.10, 0.06, 7, 4)
-        case .chip: (0.10, 0.05, 4, 2)
-        }
-        content
-            .overlay(shape.strokeBorder(dark ? Color.white.opacity(0.08) : Color.raftInk.opacity(ring), lineWidth: 0.5))
-            .shadow(color: dark ? .clear : Color.raftInk.opacity(color), radius: radius, y: y)
-    }
-}
-
 extension View {
-    /// Solid `raftCard` surface with its ring and light-mode shadow.
-    func raftCardSurface(_ kind: RaftShadow = .card, radius: CGFloat = 16, fill: Color = .raftCard) -> some View {
+    /// Solid `raftCard` surface (§1.5, XIN 5453): fill + corner radius only. Cards, the Home
+    /// chips and Unread cards carry no shadow and no ring; the canvas/card contrast groups them.
+    func raftCardSurface(radius: CGFloat = 16, fill: Color = .raftCard) -> some View {
         background(fill, in: .raftRect(radius))
-            .modifier(RaftShadowModifier(kind: kind, shape: RoundedRectangle(cornerRadius: radius, style: .continuous)))
+    }
+
+    /// `shadowLift` (§1.5): the long-pressed message lifted above the dimming layer.
+    func shadowLift<S: InsettableShape>(_ shape: S) -> some View {
+        overlay(shape.strokeBorder(Color.black.opacity(0.06), lineWidth: 0.5))
+            .shadow(color: Color.black.opacity(0.18), radius: 20, y: 18)
     }
 
     /// The hard ink offset shadow of illustration stickers.

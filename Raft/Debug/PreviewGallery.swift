@@ -2,7 +2,7 @@
 import SwiftUI
 
 /// Screens with prepared data for design review: launch with `RAFT_PREVIEW=<screen>`
-/// (`02`, `03`, `04`, `05`, `05b`, `06`, `06d`, `06e`, `07`, `08`, `09`, `10`, `11`, `12b`, `12c`,
+/// (`01`, `02`, `03`, `04`, `05`, `05b`, `06`, `06d`, `06e`, `07`, `08`, `09`, `10`, `11`, `12b`, `12c`,
 /// `13`, `14`, `15`, `16`, `17`, `18`, `19`, `20`, `28`, `28b`, `28c`, `29`, `29b`, `29c`, `29d`,
 /// `29e`, `30`, `30b`, `30c`, `31a`, `31`, `31c`, `31d`, `saved`). Nothing reaches a server: every
 /// request fails offline.
@@ -69,6 +69,8 @@ private struct Fixtures {
 
     func install(_ screen: String) {
         switch screen {
+        case "01":
+            model.session.debugSet(phase: .signedOut)
         case "02":
             model.session.debugSet(phase: .signedOut, failure: .incorrectCredentials)
         case "03", "04":
