@@ -404,13 +404,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Review and accept Raft’s Terms of Service and Privacy Policy to continue."
+            "value" : "Review and accept Rafto’s Terms of Service and Privacy Policy to continue."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请查看并接受 Raft 的服务条款和隐私政策后继续。"
+            "value" : "请查看并接受 Rafto 的服务条款和隐私政策后继续。"
           }
         }
       }
@@ -566,13 +566,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sign in to Raft"
+            "value" : "Sign in to Rafto"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "登录到 Raft"
+            "value" : "登录到 Rafto"
           }
         }
       }
@@ -2654,13 +2654,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Open Raft on the web"
+            "value" : "Open on the web"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打开 Raft 网页版"
+            "value" : "在网页版中打开"
           }
         }
       }
@@ -2744,13 +2744,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Allow Raft to save photos?"
+            "value" : "Allow Rafto to save photos?"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "允许 Raft 保存照片？"
+            "value" : "允许 Rafto 保存照片？"
           }
         }
       }
@@ -3374,13 +3374,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sign out of Raft?"
+            "value" : "Sign out of Rafto?"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "要退出 Raft 吗？"
+            "value" : "要退出 Rafto 吗？"
           }
         }
       }
@@ -5000,7 +5000,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请在“设置”中允许 Raft 保存照片，然后重试。"
+            "value" : "请在“设置”中允许 Rafto 保存照片，然后重试。"
           }
         }
       }
@@ -5018,7 +5018,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此设备不允许 Raft 保存照片。"
+            "value" : "此设备不允许 Rafto 保存照片。"
           }
         }
       }
