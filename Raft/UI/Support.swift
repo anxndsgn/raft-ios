@@ -30,10 +30,10 @@ extension View {
     /// title for VoiceOver and the back menu. With the vertical bar (Duo folded, unfolded
     /// landscape) the title is a block at the top of the content instead (`TopTitleBlock`), so
     /// content scrolls under it and fades rather than running through the title.
-    /// `headerBlur`: a page whose content scrolls under the title (thread) gets the title-high
-    /// blur (`HeaderBlurBackdrop`) instead of the system's soft scroll edge.
-    func raftNavigationTitle(_ title: String, hashPrefix: Bool = false, subtitle: String? = nil, headerBlur: Bool = false) -> some View {
-        modifier(RaftNavigationTitle(title: title, hashPrefix: hashPrefix, subtitle: subtitle, headerBlur: headerBlur))
+    /// `headerStyle`: a page whose content scrolls under the title (thread) follows `HeaderStyle`
+    /// (B: the title in a glass capsule, no top scroll edge).
+    func raftNavigationTitle(_ title: String, hashPrefix: Bool = false, subtitle: String? = nil, headerStyle: Bool = false) -> some View {
+        modifier(RaftNavigationTitle(title: title, hashPrefix: hashPrefix, subtitle: subtitle, headerStyle: headerStyle))
     }
 }
 
@@ -41,19 +41,24 @@ private struct RaftNavigationTitle: ViewModifier {
     let title: String
     let hashPrefix: Bool
     let subtitle: String?
-    let headerBlur: Bool
+    let headerStyle: Bool
     @Environment(\.dynamicTypeSize) private var typeSize
-    @State private var titleBottom: CGFloat?
 
-    private var navTitle: some View {
-        NavTitle(title: title, hashPrefix: hashPrefix, subtitle: subtitle, typeSize: typeSize)
-            .reportsHeaderBottom(headerBlur ? $titleBottom : nil)
+    private var glass: Bool { headerStyle && HeaderStyle.isGlass }
+
+    @ViewBuilder private var navTitle: some View {
+        if glass {
+            NavTitle(title: title, hashPrefix: hashPrefix, subtitle: subtitle, typeSize: typeSize, lineSpacing: 2)
+                .headerTitleGlass()
+        } else {
+            NavTitle(title: title, hashPrefix: hashPrefix, subtitle: subtitle, typeSize: typeSize)
+        }
     }
 
     func body(content: Content) -> some View {
         VerticalBarReader { vertical in
             content
-                .headerBlur(headerBlur ? titleBottom : nil, enabled: headerBlur)
+                .scrollEdgeEffectHidden(glass, for: .top)
                 .navigationTitle(Text(verbatim: title))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -107,67 +112,54 @@ private struct VerticalBarReader271<Content: View>: View {
     var body: some View { content(edge != nil) }
 }
 
-/// The blur behind a page's top title (Colo 5653 / 5655), in place of the system's soft scroll
-/// edge, which on the Duo folded (status bar in the side column, small top inset) covered only
-/// the top ~60pt and left message text running through the title and subtitle. From the
-/// screen's top to the title area's bottom (the subtitle's bottom edge, measured from its real
-/// layout, so it grows with the text size) + 8 the blur is full, then it fades out over 20; the
-/// page's background colour at 70% over the blur keeps text beneath unreadable.
-struct HeaderBlurBackdrop: View {
-    /// The title area's bottom in the window.
-    let bottom: CGFloat
-    var color: Color = .raftCanvas
+/// The top title's treatment on chat and thread pages. A (Colo 5661, the default): only the
+/// system's soft scroll edge (`.scrollEdgeEffectStyle(.soft, for: .top)`) under the bars. B
+/// (XIN 5662, Colo 5665): title and subtitle in a Liquid Glass capsule and no top scroll edge at
+/// all. DEBUG builds switch to B with `RAFT_HEADER=B` for comparison.
+enum HeaderStyle {
+    case edge
+    case glass
 
-    static let below: CGFloat = 8
-    static let fade: CGFloat = 20
+    static let current: HeaderStyle = {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["RAFT_HEADER"] == "B" { return .glass }
+        #endif
+        return .edge
+    }()
 
-    var body: some View {
-        GeometryReader { proxy in
-            let full = max(bottom - proxy.frame(in: .global).minY + Self.below, 0)
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .overlay(color.opacity(0.7))
-                .frame(height: full + Self.fade)
-                .mask {
-                    VStack(spacing: 0) {
-                        Rectangle().frame(height: full)
-                        LinearGradient(colors: [.black, .black.opacity(0)], startPoint: .top, endPoint: .bottom)
-                            .frame(height: Self.fade)
-                    }
-                }
-        }
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
+    static var isGlass: Bool { current == .glass }
 }
 
 extension View {
-    /// Lays `HeaderBlurBackdrop` over the page's scrolling content (under its top bars) down to
-    /// `bottom`, and hides the system's top scroll edge it replaces. Nothing while `bottom` is
-    /// not measured yet; a page without `enabled` keeps the system's edge.
-    func headerBlur(_ bottom: CGFloat?, enabled: Bool = true) -> some View {
-        scrollEdgeEffectHidden(enabled, for: .top)
-            .overlay(alignment: .top) {
-                if enabled, let bottom { HeaderBlurBackdrop(bottom: bottom) }
-            }
-    }
-
-    /// Reports the view's bottom edge in the window into `bottom` (for `headerBlur`).
-    @ViewBuilder func reportsHeaderBottom(_ bottom: Binding<CGFloat?>?) -> some View {
-        if let bottom {
-            onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY.rounded() } action: { bottom.wrappedValue = $0 }
+    /// B: the title in the glass capsule (Colo 5665): 16 × 8 padding, at least 36 tall, two
+    /// lines centred. A: unchanged.
+    @ViewBuilder func headerTitleGlass() -> some View {
+        if HeaderStyle.isGlass {
+            padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .frame(minHeight: 36)
+                .raftGlass(Capsule())
         } else {
             self
         }
     }
 }
 
+/// The channel title as a button: plain (A), or the capsule shrinking to 0.97 while pressed (B).
+struct HeaderTitleButtonStyle: ButtonStyle {
+    var scales: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(scales && configuration.isPressed ? 0.97 : 1)
+            .animation(.smooth(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
 /// A page title shown at the top of the content where the bars are vertical (大字号补充 A.4),
 /// at least 8 below the safe-area top. It sits in the page's `.safeAreaBar(edge: .top)` with no
-/// background of its own: on chat and thread pages the header blur (`headerBlur`) covers content
-/// scrolled under it; elsewhere the system's soft scroll edge fades it. Its height is the title's real height (Dynamic Type),
-/// so the content's top inset follows it.
+/// background of its own: the system's soft scroll edge fades content scrolled under it. Its
+/// height is the title's real height (Dynamic Type), so the content's top inset follows it.
 struct TopTitleBlock<Title: View>: View {
     @ViewBuilder var title: () -> Title
     @State private var insets = BarInsets()

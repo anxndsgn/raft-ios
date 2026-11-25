@@ -533,9 +533,11 @@ struct NavTitle: View {
     var hashPrefix = false
     var subtitle: String?
     var typeSize: DynamicTypeSize?
+    /// Between title and subtitle (2 in the glass capsule, Colo 5665).
+    var lineSpacing: CGFloat = 0
 
     var body: some View {
-        let content = VStack(spacing: 0) {
+        let content = VStack(spacing: lineSpacing) {
             ((hashPrefix ? Text(verbatim: "# ").foregroundStyle(Color.raftTextTertiary) : Text(verbatim: ""))
                 .raftStyle(.navTitle)
                 + Text(verbatim: title).raftStyle(.navTitle).foregroundStyle(Color.raftTextPrimary))

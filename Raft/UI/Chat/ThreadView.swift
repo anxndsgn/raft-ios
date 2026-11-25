@@ -113,7 +113,7 @@ struct ThreadView: View {
                 .jumpToLatest(shown: farFromEnd && !landing && store.phase == .loaded, action: scrollToLatest)
         }
         .composerPageBottom()
-        // The top edge is the title-high blur (`raftNavigationTitle(headerBlur:)`).
+        .scrollEdgeEffectStyle(.soft, for: .top)
         .scrollEdgeEffectHidden(true, for: .bottom)
         .scrollPosition($position)
         .defaultScrollAnchor(.top, for: .alignment)
@@ -152,7 +152,7 @@ struct ThreadView: View {
         }
         .onChange(of: edges.nearTop) { loadOlderIfNeeded() }
         .background(Color.raftCanvas.ignoresSafeArea())
-        .raftNavigationTitle(L10n.t("thread_reply_title", "Thread"), subtitle: subtitle, headerBlur: true)
+        .raftNavigationTitle(L10n.t("thread_reply_title", "Thread"), subtitle: subtitle, headerStyle: true)
         .toolbar {
             if !isPreview {
             ToolbarItem(placement: .topBarTrailing) {

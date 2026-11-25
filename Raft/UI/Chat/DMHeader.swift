@@ -19,9 +19,10 @@ import SwiftUI
 /// (矮版) is not built yet: low windows get this one too. Left and right it is
 /// centred in the corner-adapted safe area (`BarInsetsReader`), so neither the side safe area (the
 /// Duo's status column with the vertical bar) nor a rounded display corner reaches it. The block
-/// has no background of its own: the page's header blur (`headerBlur`, Colo 5653 / 5655) covers
-/// messages under it down to the block's bottom (the caption's) + 8; the list's top inset follows
-/// the block's real height.
+/// has no background or fade of its own (XIN 5497): only the system's soft scroll edge
+/// (`.scrollEdgeEffectStyle(.soft, for: .top)` on the message list) fades messages under it,
+/// and it ends at the caption's bottom, the block's bottom; the list's top inset follows the
+/// block's real height.
 struct DMHeaderBar: View {
     let peer: Persona
     /// "Ruby", or "XIN (you)" for a DM with yourself.
