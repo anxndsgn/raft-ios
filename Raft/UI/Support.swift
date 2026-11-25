@@ -231,8 +231,8 @@ private struct NavigationBarFade: UIViewControllerRepresentable {
                     Self.setAlpha(0, nav)
                 }
             }
-            coordinator.animate(alongsideTransition: nil) { [weak self] context in
-                if context.isCancelled { self?.setOnTop(false, nav: nav) }
+            coordinator.animate(alongsideTransition: nil) { [weak self] _ in
+                self?.updateOnTop(nav)
                 Self.settle(nav)
             }
         }
@@ -245,12 +245,16 @@ private struct NavigationBarFade: UIViewControllerRepresentable {
                 Self.settle(nav)
                 return
             }
-            // Another page of this kind coming in keeps the bar transparent (its own
+            // The bar is hidden while the page is on top, and UIKit shows it again at full
+            // opacity as the transition starts: start it from 0 (no animation), then fade it in.
+            // Another page of this kind coming in keeps it transparent (its own
             // `viewWillAppear` runs next).
             coordinator.animate(alongsideTransition: { _ in
-                if !Self.hidesBar(nav) { Self.setAlpha(1, nav) }
-            }) { [weak self] context in
-                if context.isCancelled { self?.setOnTop(true, nav: nav) }
+                guard !Self.hidesBar(nav) else { return }
+                UIView.performWithoutAnimation { Self.setAlpha(0, nav) }
+                Self.setAlpha(1, nav)
+            }) { [weak self] _ in
+                self?.updateOnTop(nav)
                 Self.settle(nav)
             }
         }
@@ -260,6 +264,15 @@ private struct NavigationBarFade: UIViewControllerRepresentable {
             guard let nav = navigation else { return }
             setOnTop(false, nav: nav)
             if nav.transitionCoordinator == nil { Self.settle(nav) }
+        }
+
+        /// After a transition, finished or cancelled (a cancelled swipe back also calls the
+        /// page's `viewWillAppear`, with the same cancelled transition): on top if its page is
+        /// the navigation controller's top page.
+        private func updateOnTop(_ nav: UINavigationController) {
+            var controller: UIViewController? = self
+            while let current = controller, current.parent !== nav { controller = current.parent }
+            setOnTop(controller != nil && controller === nav.topViewController, nav: nav)
         }
 
         private func setOnTop(_ value: Bool, nav: UINavigationController) {
