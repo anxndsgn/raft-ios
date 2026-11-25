@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: 06 / 07 / 08 Home
 
@@ -24,6 +25,11 @@ struct HomeView: View {
                 .animation(.easeInOut(duration: 0.2), value: list.phase)
         }
         .background(Color.raftCanvasWarm.ignoresSafeArea())
+        .background {
+            HomeRailItems(pagePushed: pagePushed)
+                .frame(width: 0, height: 0)
+                .accessibilityHidden(true)
+        }
         .navigationTitle(Text(L10n.t("tab_home", "Home")))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbar }
@@ -361,14 +367,21 @@ struct HomeView: View {
         // Gone as soon as a page is pushed over Home, in the same update that starts the push
         // (Colo 5653): the rail swaps to the page's back button instead of keeping Search and the
         // bell over the incoming page for a frame or two. Kept for Search, whose zoom starts
-        // from its button.
-        if !pagePushed {
+        // from its button. Hidden rather than removed: a pop shows them again as it starts
+        // (`HomeRailItems`).
+        if #available(iOS 26.4, *) {
+            HomeSearchToolbarItems(namespace: searchZoom, serverName: server?.displayName ?? "")
+                .hidden(pagePushed)
+            bellItem
+                .hidden(pagePushed)
+        } else if !pagePushed {
             HomeSearchToolbarItems(namespace: searchZoom, serverName: server?.displayName ?? "")
             bellItem
         }
     }
 
-    /// A page other than message search is pushed over Home.
+    /// A page other than message search is pushed over Home (Search stays: its zoom starts from
+    /// its button).
     private var pagePushed: Bool {
         guard let first = model.homePath.first else { return false }
         return first != .messageSearch
@@ -760,5 +773,70 @@ struct HomeSkeleton: View {
 private struct PressDimButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label.opacity(configuration.isPressed ? 0.6 : 1)
+    }
+}
+
+/// Search and the bell on Home's trailing bar items, hidden while a page (other than message
+/// search) is pushed over Home.
+///
+/// Hidden in the update that starts the push (Colo 5653): the rail swaps to the page's back
+/// button instead of keeping them over the incoming page for a frame or two. Shown again as soon
+/// as a pop to Home starts (back button or swipe), so they come in with the transition. Done on
+/// the bar items themselves: SwiftUI applies a toolbar change to a page coming back on screen
+/// only once the pop has finished, so items removed from `.toolbar` came back about 0.4s after
+/// the pop (Duo folded, the trailing rail).
+private struct HomeRailItems: UIViewControllerRepresentable {
+    let pagePushed: Bool
+
+    func makeUIViewController(context: Context) -> Controller { Controller() }
+    func updateUIViewController(_ controller: Controller, context: Context) { controller.update(pagePushed: pagePushed) }
+
+    final class Controller: UIViewController {
+        private var pagePushed = false
+
+        /// In the SwiftUI update that adds the page to the path, before the push starts. Only
+        /// on the change: an update during the pop (the path still holds the page) leaves the
+        /// items as the pop has set them.
+        func update(pagePushed: Bool) {
+            guard pagePushed != self.pagePushed else { return }
+            self.pagePushed = pagePushed
+            if pagePushed { setHidden(true) }
+        }
+
+        override func loadView() {
+            let view = UIView()
+            view.isUserInteractionEnabled = false
+            view.backgroundColor = .clear
+            self.view = view
+        }
+
+        override func viewWillAppear(_ animated: Bool) {
+            super.viewWillAppear(animated)
+            setHidden(false)
+        }
+
+        override func viewWillDisappear(_ animated: Bool) {
+            super.viewWillDisappear(animated)
+            // A cancelled swipe back: the page stays on top.
+            if pagePushed { setHidden(true) }
+        }
+
+        /// Home's own controller in the stack (SwiftUI's hosting controller).
+        private var page: UIViewController? {
+            var controller: UIViewController? = self
+            while let current = controller {
+                if current.parent is UINavigationController { return current }
+                controller = current.parent
+            }
+            return nil
+        }
+
+        private func setHidden(_ hidden: Bool) {
+            guard let item = page?.navigationItem else { return }
+            let items = (item.rightBarButtonItems ?? []) + item.trailingItemGroups.flatMap(\.barButtonItems)
+            for barItem in items where barItem.isHidden != hidden {
+                barItem.isHidden = hidden
+            }
+        }
     }
 }

@@ -42,6 +42,8 @@ struct ThreadView: View {
     @State private var sendTick = 0
     @State private var joinFlow = ChannelJoinFlow()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// The floating glass title's bottom + 8 (`floatingGlassHeader`): the replies start under it.
+    @State private var headerInset: CGFloat = 0
 
     private var replies: ConversationStore? { store.replies }
 
@@ -105,6 +107,18 @@ struct ThreadView: View {
 
     private var uploadChannelId: String { store.threadChannelId ?? store.parentChannelId }
 
+    private var followButton: some View {
+        let following = store.isFollowing == true
+        return Button {
+            Task { await store.setFollowing(!following) }
+        } label: {
+            Image(systemName: following ? "bell.fill" : "bell")
+        }
+        .accessibilityLabel(Text(following ? L10n.t("thread_action_unfollow_thread", "Unfollow thread") : L10n.t("thread_action_follow_thread", "Follow thread")))
+        .raftLargeContent(systemImage: following ? "bell.fill" : "bell", label: following ? L10n.t("thread_action_unfollow_thread", "Unfollow thread") : L10n.t("thread_action_follow_thread", "Follow thread"))
+        .accessibilityIdentifier("thread-follow")
+    }
+
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
@@ -115,6 +129,7 @@ struct ThreadView: View {
             .padding(.bottom, 12)
             .opacity(landing || (opening && startsAtBottom && !reachedBottom) ? 0 : 1)
         }
+        .contentMargins(.top, headerInset, for: .scrollContent)
         // A tap on the messages ends writing. On the scroll view itself, inside the bottom bar:
         // over the whole page it also saw taps in the composer (As task, +, send) and dropped the
         // keyboard on each.
@@ -122,14 +137,15 @@ struct ThreadView: View {
             if composer.mentionQuery != nil { composer.dismissedQuery = composer.mentionQuery }
             composerFocused = false
         })
-        // The composer is the scroll view's own bottom bar (it insets the replies). No scroll edge:
-        // replies run under the glass title capsule and the composer's glass.
+        // The composer is the scroll view's own bottom bar (it insets the replies). No bottom
+        // scroll edge: replies run under the composer's glass. The top edge follows the title
+        // (`raftNavigationTitle`): soft under the status bar only.
         .safeAreaBar(edge: .bottom) {
             composerBar
                 .jumpToLatest(shown: farFromEnd && !landing && store.phase == .loaded, action: scrollToLatest)
         }
         .composerPageBottom()
-        .scrollEdgeEffectHidden(true, for: .top)
+        .scrollEdgeEffectStyle(.soft, for: .top)
         .scrollEdgeEffectHidden(true, for: .bottom)
         .scrollPosition($position)
         .defaultScrollAnchor(.top, for: .alignment)
@@ -168,19 +184,13 @@ struct ThreadView: View {
         }
         .onChange(of: edges.nearTop) { loadOlderIfNeeded() }
         .background(Color.raftCanvas.ignoresSafeArea())
-        .raftNavigationTitle(L10n.t("thread_reply_title", "Thread"), subtitle: subtitle, glass: true)
+        .raftNavigationTitle(L10n.t("thread_reply_title", "Thread"), subtitle: subtitle, topInset: $headerInset) {
+            if !isPreview { followButton.buttonStyle(FloatingHeaderButtonStyle()) }
+        }
         .toolbar {
             if !isPreview {
             ToolbarItem(placement: .topBarTrailing) {
-                let following = store.isFollowing == true
-                Button {
-                    Task { await store.setFollowing(!following) }
-                } label: {
-                    Image(systemName: following ? "bell.fill" : "bell")
-                }
-                .accessibilityLabel(Text(following ? L10n.t("thread_action_unfollow_thread", "Unfollow thread") : L10n.t("thread_action_follow_thread", "Follow thread")))
-                .raftLargeContent(systemImage: following ? "bell.fill" : "bell", label: following ? L10n.t("thread_action_unfollow_thread", "Unfollow thread") : L10n.t("thread_action_follow_thread", "Follow thread"))
-                .accessibilityIdentifier("thread-follow")
+                followButton
             }
             }
         }
