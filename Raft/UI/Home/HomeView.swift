@@ -160,10 +160,10 @@ struct HomeView: View {
             SectionHeader(title: L10n.t("home_section_channels", "Channels"), count: channelRows.count)
             RaftGroupCard {
                 ForEach(Array(channelRows.enumerated()), id: \.element.id) { index, row in
-                    if index > 0 { RowDivider(inset: 53) }
+                    if index > 0 { RowDivider(inset: 58) }
                     rowButton(row) { ChannelRowView(row: row) }
                 }
-                if !channelRows.isEmpty { RowDivider(inset: 53) }
+                if !channelRows.isEmpty { RowDivider(inset: 58) }
                 NavigationLink(value: AppRoute.browseChannels) {
                     BrowseEntryRow()
                 }
@@ -178,7 +178,7 @@ struct HomeView: View {
             if !dmRows.isEmpty {
                 RaftGroupCard {
                     ForEach(Array(dmRows.enumerated()), id: \.element.id) { index, row in
-                        if index > 0 { RowDivider(inset: 61) }
+                        if index > 0 { RowDivider(inset: 58) }
                         rowButton(row) { DMRowView(row: row, persona: persona(for: row), selfNames: selfNames) }
                     }
                 }
@@ -428,7 +428,7 @@ struct ChannelRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            ChannelTile(isPrivate: row.channelType == "private", isMuted: row.isMuted)
+            ChannelTile(isPrivate: row.channelType == "private", isMuted: row.isMuted, row: true)
             HStack(spacing: 6) {
                 Text(verbatim: row.displayTitle)
                     .raftFont(row.isMuted ? .rowTitleMedium : .rowTitle)
@@ -444,7 +444,7 @@ struct ChannelRowView: View {
             trailing
         }
         .padding(.horizontal, 14)
-        .frame(minHeight: 50)
+        .frame(minHeight: 52)
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: HomeA11y.label(row)))
@@ -471,7 +471,7 @@ struct DMRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            AvatarView(persona: persona, size: .md, showsPresence: true, ringColor: .raftCard)
+            AvatarView(persona: persona, size: .row, showsPresence: true, ringColor: .raftCard)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(verbatim: row.displayTitle)
@@ -653,22 +653,22 @@ struct HomeSkeleton: View {
             SkeletonBlock(width: 80, height: 12).padding(.leading, 20).padding(.top, 26).padding(.bottom, 10)
             RaftGroupCard {
                 ForEach(Array([90, 70, 110, 84].enumerated()), id: \.offset) { index, width in
-                    if index > 0 { RowDivider(inset: 53) }
+                    if index > 0 { RowDivider(inset: 58) }
                     HStack(spacing: 12) {
-                        SkeletonBlock(width: 27, height: 27)
+                        SkeletonBlock(width: 32, height: 32)
                         SkeletonBlock(width: CGFloat(width), height: 14)
                         Spacer()
                     }
                     .padding(.horizontal, 14)
-                    .frame(height: 50)
+                    .frame(height: 52)
                 }
             }
             SkeletonBlock(width: 110, height: 12).padding(.leading, 20).padding(.top, 26).padding(.bottom, 10)
             RaftGroupCard {
                 ForEach(Array([60, 90, 70, 80].enumerated()), id: \.offset) { index, width in
-                    if index > 0 { RowDivider(inset: 61) }
+                    if index > 0 { RowDivider(inset: 58) }
                     HStack(spacing: 12) {
-                        SkeletonBlock(width: 35, height: 35)
+                        SkeletonBlock(width: 32, height: 32)
                         VStack(alignment: .leading, spacing: 8) {
                             SkeletonBlock(width: CGFloat(width), height: 14)
                             SkeletonBlock(width: CGFloat(width + 90), height: 10)

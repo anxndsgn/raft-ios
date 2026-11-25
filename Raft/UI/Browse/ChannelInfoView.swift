@@ -217,7 +217,7 @@ struct ChannelInfoView: View {
             if !list.isEmpty {
                 RaftGroupCard {
                     ForEach(Array(list.prefix(5).enumerated()), id: \.element.id) { index, member in
-                        if index > 0 { RowDivider(inset: 54) }
+                        if index > 0 { RowDivider(inset: 58) }
                         ChannelMemberRow(member: member, persona: persona(member))
                     }
                     if list.count > 5 {
@@ -300,10 +300,10 @@ struct ChannelMemberRow: View {
     let persona: Persona
 
     var body: some View {
-        // 27: avatar 28 (an agent's with its 11×11 presence light, as on Home and in New
-        // message) · name · Spacer · the Agent tag at the right edge.
+        // 27: avatar 32 (an agent's with its 10×10 presence light, as on Home and in New
+        // message) · name at x=58 · Spacer · the Agent tag at the right edge.
         HStack(spacing: 12) {
-            AvatarView(persona: persona, size: .compact, showsPresence: member.kind == .agent, ringColor: .raftCard)
+            AvatarView(persona: persona, size: .row, showsPresence: member.kind == .agent, ringColor: .raftCard)
             Text(verbatim: persona.name)
                 .raftFont(.rowTitleMedium)
                 .foregroundStyle(Color.raftTextPrimary)
@@ -330,9 +330,9 @@ struct MembersSkeleton: View {
     var body: some View {
         RaftGroupCard {
             ForEach(Array([90, 70, 110, 84, 60].enumerated()), id: \.offset) { index, width in
-                if index > 0 { RowDivider(inset: 54) }
+                if index > 0 { RowDivider(inset: 58) }
                 HStack(spacing: 12) {
-                    SkeletonBlock(width: 28, height: 28)
+                    SkeletonBlock(width: 32, height: 32)
                     SkeletonBlock(width: CGFloat(width), height: 14)
                     Spacer()
                 }
@@ -382,7 +382,7 @@ struct ChannelMembersView: View {
                     if !list.isEmpty {
                         RaftGroupCard {
                             ForEach(Array(list.enumerated()), id: \.element.id) { index, member in
-                                if index > 0 { RowDivider(inset: 54) }
+                                if index > 0 { RowDivider(inset: 58) }
                                 ChannelMemberRow(member: member, persona: workspace.directory.persona(
                                     type: member.kind == .agent ? "agent" : "user", id: member.id, name: member.visibleName, avatarURL: member.avatarUrl
                                 ))

@@ -110,7 +110,7 @@ enum AvatarSize {
     case xs, sm, md, lg
     /// 28: search results (29b).
     case compact
-    /// 32: people rows (28).
+    /// 32: list rows — Home DMs, channel members, New message (28). 10×10 presence light.
     case row
     /// 24: the image viewer's sender (31).
     case mini
@@ -203,7 +203,7 @@ struct AvatarView: View {
 
     private func presenceLight(_ presence: Presence) -> some View {
         let small = size == .xs
-        let side: CGFloat = small ? 7 : 11
+        let side: CGFloat = small ? 7 : (size == .row ? 10 : 11)
         let ring: CGFloat = small ? 1 : 1.5
         return RoundedRectangle(cornerRadius: 2, style: .continuous)
             .fill(presence.color)
@@ -323,25 +323,29 @@ struct ServerAvatar: View {
     }
 }
 
-/// A channel's square tile (§2.3).
+/// A channel's square tile (§2.3). `row`: the 32×32 list tile (corner 6) of Home's channel rows.
 struct ChannelTile: View {
     var isPrivate = false
     var isMuted = false
     var large = false
+    var row = false
     @ScaledMetric(relativeTo: .body) private var side: CGFloat = 27
+    @ScaledMetric(relativeTo: .body) private var rowSide: CGFloat = 32
 
     var body: some View {
-        let size = large ? 64 : min(side, 44)
-        RoundedRectangle(cornerRadius: 4, style: .continuous)
+        let size = large ? 64 : (row ? min(rowSide, 51) : min(side, 44))
+        let radius: CGFloat = row ? 6 : 4
+        let glyph: CGFloat = large ? (isPrivate ? 26 : 30) : row ? (isPrivate ? 15 : 16) : (isPrivate ? 13 : 14)
+        RoundedRectangle(cornerRadius: radius, style: .continuous)
             .fill(large ? Color.raftCyan : Color.raftStone)
-            .overlay(RoundedRectangle(cornerRadius: 4, style: .continuous).strokeBorder(Color.raftInk, lineWidth: 1.5))
+            .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(Color.raftInk, lineWidth: 1.5))
             .overlay {
                 Image(systemName: isPrivate ? "lock.fill" : "number")
-                    .font(.system(size: large ? (isPrivate ? 26 : 30) : (isPrivate ? 13 : 14), weight: .bold))
+                    .font(.system(size: glyph, weight: .bold))
                     .foregroundStyle(Color.raftInk)
             }
             .frame(width: size, height: size)
-            .dieCut()
+            .dieCut(radius: radius)
             .modifier(HardShadowIf(enabled: large))
             .opacity(isMuted ? 0.5 : 1)
             .accessibilityHidden(true)

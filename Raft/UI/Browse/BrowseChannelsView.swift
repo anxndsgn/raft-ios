@@ -2,23 +2,24 @@ import SwiftUI
 
 // MARK: 06c Home entry
 
-/// Home's last Channels row: opens Browse channels.
+/// Home's last Channels row: opens Browse channels. Its magnifier box matches the 32×32
+/// channel tiles above it (corner 6), so the name starts at x=58 like theirs.
 struct BrowseEntryRow: View {
-    @ScaledMetric(relativeTo: .body) private var side: CGFloat = 27
+    @ScaledMetric(relativeTo: .body) private var side: CGFloat = 32
 
     var body: some View {
         HStack(spacing: 12) {
-            let size = min(side, 44)
-            RoundedRectangle(cornerRadius: 4, style: .continuous)
+            let size = min(side, 51)
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .fill(Color.raftCard)
-                .overlay(RoundedRectangle(cornerRadius: 4, style: .continuous).strokeBorder(Color.raftInk, lineWidth: 1.5))
+                .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(Color.raftInk, lineWidth: 1.5))
                 .overlay {
                     Image(systemName: "magnifyingglass")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(Color.raftTextSecondary)
                 }
                 .frame(width: size, height: size)
-                .dieCut()
+                .dieCut(radius: 6)
                 .accessibilityHidden(true)
             Text(L10n.t("ios_browse_title", "Browse channels"))
                 .raftFont(.rowTitleMedium)
@@ -31,7 +32,7 @@ struct BrowseEntryRow: View {
                 .accessibilityHidden(true)
         }
         .padding(.horizontal, 14)
-        .frame(minHeight: 50)
+        .frame(minHeight: 52)
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(L10n.t("ios_browse_title", "Browse channels")))
