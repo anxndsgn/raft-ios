@@ -46,6 +46,7 @@ struct BrowseChannelsView: View {
     @Environment(AppModel.self) private var model
     @Environment(Workspace.self) private var workspace
     @State private var query = ""
+    @FocusState private var searchFocused: Bool
     @State private var showsSkeleton = false
     @State private var showsBanner = false
     @State private var retrying = false
@@ -64,13 +65,22 @@ struct BrowseChannelsView: View {
         .scrollDismissesKeyboard(.immediately)
         .background(Color.raftCanvasWarm.ignoresSafeArea())
         .raftNavigationTitle(L10n.t("ios_browse_title", "Browse channels"), subtitle: model.servers.selectedServer?.displayName)
-        .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: Text(L10n.t("tasks_search_channels", "Search channels")))
         .refreshable { await list.refresh() }
         .safeAreaBar(edge: .top, spacing: 0) {
-            if showsBanner {
-                StatusBanner(updatedAt: workspace.lastConnectedAt)
-                    .padding(.vertical, 4)
-                    .transition(.move(edge: .top).combined(with: .opacity))
+            VStack(spacing: 0) {
+                SearchHeader(
+                    text: $query,
+                    prompt: L10n.t("tasks_search_channels", "Search channels"),
+                    focus: $searchFocused,
+                    submit: {},
+                    close: endSearch,
+                    closeWhileFocused: true
+                )
+                if showsBanner {
+                    StatusBanner(updatedAt: workspace.lastConnectedAt)
+                        .padding(.vertical, 4)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
             }
         }
         .animation(.easeOut(duration: 0.25), value: showsBanner)
@@ -143,6 +153,11 @@ struct BrowseChannelsView: View {
                 .task(id: channel.id) { await list.loadMemberCount(channel.id) }
             }
         }
+    }
+
+    private func endSearch() {
+        query = ""
+        searchFocused = false
     }
 
     private func retry() {

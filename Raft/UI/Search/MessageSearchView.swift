@@ -608,14 +608,22 @@ extension MessageSearchResult {
     }
 }
 
-/// 29's bar: a glass search capsule (magnifier, field, clear) and the × glass circle that
-/// closes the page, 44 high, on the first row under the status bar.
+/// Every search field (§14, §2.13 通用列宽): a white glass capsule (magnifier, field, clear), 44
+/// high, and a 44 × glass circle to its right, in the page's card column (16 inside the safe
+/// area, so its edges are the cards' edges). Shown in the page's own `.safeAreaBar(edge: .top)`
+/// rather than `.searchable`, whose drawer has its own margins and moves the list when focused.
+///
+/// 29 (message search): the × closes the page and is always there. List pages (Browse, Members,
+/// New message): `closeWhileFocused`, the × shows only while typing and ends the search.
 struct SearchHeader: View {
     @Binding var text: String
     let prompt: String
     var focus: FocusState<Bool>.Binding
     let submit: () -> Void
     let close: () -> Void
+    var closeWhileFocused = false
+    var closeLabel = L10n.t("common_cancel", "Cancel")
+    var fieldIdentifier = "search-field"
 
     var body: some View {
         HStack(spacing: 10) {
@@ -635,7 +643,7 @@ struct SearchHeader: View {
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
                 .accessibilityAddTraits(.isSearchField)
-                .accessibilityIdentifier("search-field")
+                .accessibilityIdentifier(fieldIdentifier)
                 if !text.isEmpty {
                     Button {
                         text = ""
@@ -659,17 +667,21 @@ struct SearchHeader: View {
             .contentShape(Capsule())
             .onTapGesture { focus.wrappedValue = true }
             .raftGlass(Capsule(), interactive: true)
-            Button(action: close) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(Color.raftTextPrimary)
-                    .frame(width: 44, height: 44)
-                    .raftGlass(Circle(), interactive: true)
+            if !closeWhileFocused || focus.wrappedValue {
+                Button(action: close) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Color.raftTextPrimary)
+                        .frame(width: 44, height: 44)
+                        .raftGlass(Circle(), interactive: true)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text(verbatim: closeLabel))
+                .accessibilityIdentifier("search-cancel")
+                .transition(.opacity)
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text(L10n.t("common_cancel", "Cancel")))
-            .accessibilityIdentifier("search-cancel")
         }
+        .animation(.easeOut(duration: 0.2), value: focus.wrappedValue)
         .padding(.horizontal, 16)
         .padding(.top, 2)
         .padding(.bottom, 8)

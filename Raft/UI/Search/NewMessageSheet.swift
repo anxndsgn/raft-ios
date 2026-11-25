@@ -205,14 +205,20 @@ struct NewMessageSheet: View {
                         .accessibilityIdentifier("new-message-cancel")
                 }
             }
-            .searchable(
-                text: $query,
-                placement: .navigationBarDrawer(displayMode: .always),
-                prompt: Text(L10n.t("ios_new_message_search_prompt", "Search people and agents"))
-            )
-            .searchFocused($searchFocused)
-            .onSubmit(of: .search) {
-                if isFiltering, let first = matches.first { select(first) }
+            .safeAreaBar(edge: .top, spacing: 0) {
+                SearchHeader(
+                    text: $query,
+                    prompt: L10n.t("ios_new_message_search_prompt", "Search people and agents"),
+                    focus: $searchFocused,
+                    submit: {
+                        if isFiltering, let first = matches.first { select(first) }
+                    },
+                    close: {
+                        query = ""
+                        searchFocused = false
+                    },
+                    closeWhileFocused: true
+                )
             }
             .onChange(of: query) { failedId = nil }
         }

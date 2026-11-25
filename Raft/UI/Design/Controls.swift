@@ -5,11 +5,15 @@ import SwiftUI
 // MARK: Buttons
 
 /// The pink glass capsule (Sign in, Verify, Open Raft on the web). Loading keeps it pink.
+/// Measures 52 (§2.18, XIN 5467): the glass is drawn by `GlassCapsuleButtonStyle`, which adds
+/// nothing around the label (the system `.glassProminent` put ~14 above and below a 52 label).
 struct PrimaryButton: View {
     let title: String
     var systemImage: String?
     var isLoading = false
     let action: () -> Void
+
+    static let height: CGFloat = 52
 
     var body: some View {
         Button(action: action) {
@@ -22,16 +26,15 @@ struct PrimaryButton: View {
                 }
             }
             .foregroundStyle(Color.raftInk)
-            .frame(maxWidth: .infinity, minHeight: 52)
+            .padding(.horizontal, 20)
+            .frame(maxWidth: .infinity, minHeight: Self.height)
         }
-        .buttonStyle(.glassProminent)
-        .buttonBorderShape(.capsule)
-        .tint(.raftPink)
+        .buttonStyle(GlassCapsuleButtonStyle(tint: .raftPink))
         .allowsHitTesting(!isLoading)
     }
 }
 
-/// The glass capsule secondary button (52 or 44 high).
+/// The glass capsule secondary button, 52 or 44 high as measured (same style as `PrimaryButton`).
 struct SecondaryButton: View {
     let title: String
     var systemImage: String?
@@ -45,11 +48,52 @@ struct SecondaryButton: View {
                 Text(verbatim: title).raftFont(compact ? .buttonLabelSmall : .buttonLabelSecondary)
             }
             .foregroundStyle(Color.raftTextPrimary)
+            .padding(.horizontal, compact ? 18 : 20)
             .frame(maxWidth: compact ? nil : .infinity, minHeight: compact ? 44 : 52)
-            .padding(.horizontal, compact ? 18 - 12 : 0)
         }
-        .buttonStyle(.glass)
-        .buttonBorderShape(.capsule)
+        .buttonStyle(GlassCapsuleButtonStyle())
+    }
+}
+
+/// A capsule button whose outer frame is its label's frame: interactive glass, tinted when
+/// `tint` is set (the pink primary), a solid fill with Reduce Transparency.
+struct GlassCapsuleButtonStyle: ButtonStyle {
+    var tint: Color?
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .contentShape(Capsule())
+            .modifier(GlassCapsuleSurface(tint: tint))
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
+private struct GlassCapsuleSurface: ViewModifier {
+    let tint: Color?
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    func body(content: Content) -> some View {
+        if let tint {
+            if reduceTransparency {
+                content.background(tint, in: Capsule())
+            } else {
+                content.glassEffect(.regular.tint(tint).interactive(), in: .capsule)
+            }
+        } else {
+            content.raftGlass(Capsule(), interactive: true)
+        }
+    }
+}
+
+/// A solid pink capsule that shrinks to 0.96 while pressed (Join channel, §26).
+struct PinkPillButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(Color.raftPink, in: Capsule())
+            .contentShape(Capsule())
+            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 

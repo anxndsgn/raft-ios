@@ -203,7 +203,7 @@ struct ChannelInfoView: View {
     // MARK: Members
 
     @ViewBuilder private var membersSection: some View {
-        SectionHeader(title: L10n.t("channel_settings_members", "Members"), count: memberCount, top: 18, bottom: 7)
+        SectionHeader(title: L10n.t("channel_settings_members", "Members"), count: memberCount, top: 18)
         switch members.phase {
         case .idle, .loading:
             if showsMembersSkeleton { MembersSkeleton() }
@@ -353,6 +353,7 @@ struct ChannelMembersView: View {
     @Environment(Workspace.self) private var workspace
     @State private var members = ChannelMembersModel()
     @State private var query = ""
+    @FocusState private var searchFocused: Bool
     @State private var showsSkeleton = false
 
     private var filtered: [ChannelMember] {
@@ -378,7 +379,7 @@ struct ChannelMembersView: View {
                     .padding(.top, 16)
                 case .loaded:
                     let list = filtered
-                    SectionHeader(title: L10n.t("channel_settings_members", "Members"), count: list.count, top: 18, bottom: 7)
+                    SectionHeader(title: L10n.t("channel_settings_members", "Members"), count: list.count, top: 18)
                     if !list.isEmpty {
                         RaftGroupCard {
                             ForEach(Array(list.enumerated()), id: \.element.id) { index, member in
@@ -396,7 +397,19 @@ struct ChannelMembersView: View {
         .scrollDismissesKeyboard(.immediately)
         .background(Color.raftCanvasWarm.ignoresSafeArea())
         .raftNavigationTitle(L10n.t("channel_settings_members", "Members"), subtitle: workspace.channelList.channel(id: channelId).map { "#\($0.name)" })
-        .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: Text(L10n.t("ios_members_search", "Search members")))
+        .safeAreaBar(edge: .top, spacing: 0) {
+            SearchHeader(
+                text: $query,
+                prompt: L10n.t("ios_members_search", "Search members"),
+                focus: $searchFocused,
+                submit: {},
+                close: {
+                    query = ""
+                    searchFocused = false
+                },
+                closeWhileFocused: true
+            )
+        }
         .task { await members.load(channelId, workspace: workspace) }
         .task(id: members.phase == .loading) {
             showsSkeleton = false

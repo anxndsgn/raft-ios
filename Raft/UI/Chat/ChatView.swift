@@ -228,6 +228,14 @@ struct ChatView: View {
         return workspace.directory.persona(type: dm.peerType == "agent" ? "agent" : "user", id: dm.peerId, name: dm.peerDisplayName ?? dm.peerName, avatarURL: dm.peerAvatarUrl)
     }
 
+    /// The peer the DM header (33a) shows; `nil` in channels and tasks, and in a DM whose row has
+    /// not loaded yet (the system title shows the name until then).
+    private var dmHeaderPeer: Persona? { isDirectMessage ? peer : nil }
+
+    /// Opens the DM info page from ⓘ and the header. `nil`: there is no such page yet, and
+    /// §10-2 hides entries without a target, so neither is shown as a button.
+    private var dmInfo: (() -> Void)? { nil }
+
     /// The DM's name in the title: "XIN (you)" for a DM with yourself.
     private var peerTitle: String? {
         guard let peer else { return nil }
@@ -246,13 +254,35 @@ struct ChatView: View {
             .navigationTitle(Text(verbatim: peerTitle ?? store.title))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .principal) { title }
+                if dmHeaderPeer == nil {
+                    ToolbarItem(placement: .principal) { title }
+                } else {
+                    // A DM shows its peer under the bar (33a); the bar keeps only back and ⓘ
+                    // (vertical on Duo folded / unfolded landscape), and the title stays for
+                    // VoiceOver and the back menu.
+                    ToolbarItem(placement: .principal) {
+                        Color.clear.frame(width: 1, height: 1).accessibilityHidden(true)
+                    }
+                    if let dmInfo {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button(action: dmInfo) {
+                                Label(L10n.t("ios_dm_info", "Conversation info"), systemImage: "info.circle")
+                            }
+                            .accessibilityIdentifier("dm-info")
+                        }
+                    }
+                }
             }
             .safeAreaBar(edge: .top, spacing: 0) {
-                if showsBanner {
-                    StatusBanner(updatedAt: workspace.lastConnectedAt)
-                        .padding(.vertical, 4)
-                        .transition(.move(edge: .top).combined(with: .opacity))
+                VStack(spacing: 0) {
+                    if let peer = dmHeaderPeer {
+                        DMHeaderBar(peer: peer, name: peerTitle ?? peer.name, subtitle: dmSubtitle(peer), info: dmInfo)
+                    }
+                    if showsBanner {
+                        StatusBanner(updatedAt: workspace.lastConnectedAt)
+                            .padding(.vertical, 4)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                    }
                 }
             }
             .safeAreaBar(edge: .bottom) { composerBar }
@@ -364,33 +394,8 @@ struct ChatView: View {
     // MARK: Title (§2.12, 10)
 
     @ViewBuilder private var title: some View {
-        if isDirectMessage, let peer {
-            VStack(spacing: 0) {
-                HStack(spacing: 8) {
-                    AvatarView(persona: peer, size: .sm)
-                    Text(verbatim: peerTitle ?? peer.name)
-                        .raftFont(.navTitle)
-                        .foregroundStyle(Color.raftTextPrimary)
-                        .lineLimit(1)
-                }
-                if let subtitle = dmSubtitle(peer) {
-                    HStack(spacing: 5) {
-                        if let presence = peer.presence {
-                            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                                .fill(presence.color)
-                                .overlay(RoundedRectangle(cornerRadius: 2, style: .continuous).strokeBorder(Color.raftInk, lineWidth: 1))
-                                .frame(width: 8, height: 8)
-                        }
-                        Text(verbatim: subtitle)
-                            .raftFont(.caption)
-                            .foregroundStyle(Color.raftTextTertiary)
-                            .lineLimit(1)
-                    }
-                }
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityAddTraits(.isHeader)
-        } else if isTask || isDirectMessage {
+        // A DM with its peer loaded shows it under the bar (`DMHeaderBar`).
+        if isTask || isDirectMessage {
             NavTitle(title: store.title, hashPrefix: !isDirectMessage, subtitle: isDirectMessage ? nil : (ref.subtitle ?? topic))
         } else {
             // A channel: the title opens Channel info (§11 27).

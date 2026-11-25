@@ -237,7 +237,6 @@ struct MessageRowView: View {
                 .foregroundStyle(Color.raftTextPrimary)
                 .lineLimit(1)
                 .layoutPriority(1)
-            if row.isMine { YouSticker() }
             if row.persona.kind == .agent, let runtime = row.persona.runtime {
                 Text(verbatim: runtime)
                     .raftFont(.caption)

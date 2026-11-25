@@ -400,8 +400,9 @@ private struct GroupTitle: View {
             .foregroundStyle(Color.raftTextTertiary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, 18)
-            .padding(.horizontal, 20)
-            .padding(.bottom, 7)
+            // Aligned with the icons inside the card (card 16 + row 14, §2.13 通用列宽).
+            .padding(.horizontal, 30)
+            .padding(.bottom, 8)
             .accessibilityAddTraits(.isHeader)
     }
 }

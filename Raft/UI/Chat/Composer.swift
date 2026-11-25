@@ -197,6 +197,7 @@ struct ComposerPanel: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     /// Expanded while focused, or while a draft (text or files) is waiting.
     /// While a picker opened from the expanded panel is up, stay expanded (focus returns after it).
@@ -276,41 +277,81 @@ struct ComposerPanel: View {
                 ))
             }
         }
-        .padding(join != nil ? EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12) : EdgeInsets())
+        .padding(joinPadding)
         .frame(minHeight: 48)
-        .contentShape(ComposerGlass.shape(focused: focus.wrappedValue))
-        .modifier(ComposerGlass(focused: focus.wrappedValue, namespace: glass, reduceTransparency: reduceTransparency, dark: scheme == .dark))
+        .contentShape(ComposerGlass.shape(focused: focus.wrappedValue || tallJoin))
+        .modifier(ComposerGlass(focused: focus.wrappedValue || tallJoin, namespace: glass, reduceTransparency: reduceTransparency, dark: scheme == .dark))
     }
 
-    /// 26: "You're previewing #name" (or the failure line) over Join channel.
-    private func joinContent(_ join: ComposerJoin) -> some View {
-        VStack(spacing: 10) {
-            Group {
-                if join.failed {
-                    HStack(spacing: 6) {
-                        Image(systemName: "exclamationmark.circle")
-                            .font(.system(size: 13))
-                            .accessibilityHidden(true)
-                        Text(L10n.t("ios_join_failed", "Couldn’t join. Try again."))
-                            .font(.custom(RaftFont.semibold, size: 13, relativeTo: .footnote))
-                    }
-                    .foregroundStyle(Color.raftDanger)
-                } else {
-                    Text(L10n.f("ios_join_previewing", "You’re previewing %1$@", join.channelName))
-                        .raftFont(.footnote)
-                        .foregroundStyle(Color.raftTextSecondary)
-                }
+    /// Accessibility sizes: the Join bar takes two rows (text over a full-width button), r26.
+    private var tallJoin: Bool { join != nil && typeSize.isAccessibilitySize }
+
+    private var joinPadding: EdgeInsets {
+        guard join != nil else { return EdgeInsets() }
+        return tallJoin
+            ? EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12)
+            : EdgeInsets(top: 0, leading: 18, bottom: 0, trailing: 6)
+    }
+
+    /// 26 (XIN 5464): one row the size of the collapsed composer: "You're previewing #name" (or
+    /// the failure line) and the 36pt pink Join channel. Accessibility sizes: two rows.
+    @ViewBuilder private func joinContent(_ join: ComposerJoin) -> some View {
+        if tallJoin {
+            VStack(spacing: 10) {
+                joinMessage(join)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 2)
+                joinButton(join, height: 44, fullWidth: true)
             }
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity)
-            .padding(.top, 2)
-            PrimaryButton(title: L10n.t("thread_action_join_channel", "Join channel"), isLoading: join.isJoining, action: join.join)
-                .disabled(join.isJoining)
-                .accessibilityLabel(Text(L10n.t("thread_action_join_channel", "Join channel")))
-                .accessibilityHint(Text(L10n.f("ios_join_hint", "Join %1$@ to send messages", join.channelName)))
-                .accessibilityValue(join.isJoining ? Text(L10n.t("ios_join_loading", "Joining")) : Text(verbatim: ""))
-                .accessibilityIdentifier("join-channel")
+        } else {
+            HStack(spacing: 10) {
+                joinMessage(join)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer(minLength: 8)
+                joinButton(join, height: 36, fullWidth: false)
+            }
+            .frame(minHeight: 48)
         }
+    }
+
+    @ViewBuilder private func joinMessage(_ join: ComposerJoin) -> some View {
+        if join.failed {
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.circle")
+                    .font(.system(size: 13))
+                    .accessibilityHidden(true)
+                Text(L10n.t("ios_join_failed", "Couldn’t join. Try again."))
+                    .font(.custom(RaftFont.semibold, size: 13, relativeTo: .footnote))
+            }
+            .foregroundStyle(Color.raftDanger)
+        } else {
+            Text(L10n.f("ios_join_previewing", "You’re previewing %1$@", join.channelName))
+                .raftFont(.footnote)
+                .foregroundStyle(Color.raftTextSecondary)
+        }
+    }
+
+    /// The pink capsule: measures `height` (no system glass padding); loading swaps the label for
+    /// a spinner and keeps the width.
+    private func joinButton(_ join: ComposerJoin, height: CGFloat, fullWidth: Bool) -> some View {
+        Button(action: join.join) {
+            Text(L10n.t("thread_action_join_channel", "Join channel"))
+                .font(.custom(RaftFont.semibold, size: 15, relativeTo: .subheadline))
+                .foregroundStyle(Color.raftInk)
+                .fixedSize()
+                .opacity(join.isJoining ? 0 : 1)
+                .overlay { if join.isJoining { ProgressView().tint(.raftInk) } }
+                .padding(.horizontal, 16)
+                .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: height)
+        }
+        .buttonStyle(PinkPillButtonStyle())
+        .allowsHitTesting(!join.isJoining)
+        .accessibilityLabel(Text(L10n.t("thread_action_join_channel", "Join channel")))
+        .accessibilityHint(Text(L10n.f("ios_join_hint", "Join %1$@ to send messages", join.channelName)))
+        .accessibilityValue(join.isJoining ? Text(L10n.t("ios_join_loading", "Joining")) : Text(verbatim: ""))
+        .accessibilityIdentifier("join-channel")
     }
 
     private var field: some View {

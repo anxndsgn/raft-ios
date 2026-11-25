@@ -114,6 +114,8 @@ enum AvatarSize {
     case row
     /// 24: the image viewer's sender (31).
     case mini
+    /// 56: the DM header (33a), corner 8, not scaled with Dynamic Type (the bar is laid out on it).
+    case header
 
     var side: CGFloat {
         switch self {
@@ -124,6 +126,7 @@ enum AvatarSize {
         case .compact: 28
         case .row: 32
         case .mini: 24
+        case .header: 56
         }
     }
 
@@ -136,8 +139,11 @@ enum AvatarSize {
         case .compact: 11
         case .row: 12
         case .mini: 10
+        case .header: 20
         }
     }
+
+    var cornerRadius: CGFloat { self == .header ? 8 : 4 }
 }
 
 /// A square sticker avatar (§2.2): initials or photo for people, a pixel face for agents, and
@@ -150,13 +156,13 @@ struct AvatarView: View {
     @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
 
     var body: some View {
-        let side = size.side * min(scale, 1.6)
-        let shape = RoundedRectangle(cornerRadius: 4, style: .continuous)
+        let side = size.side * (size == .header ? 1 : min(scale, 1.6))
+        let shape = RoundedRectangle(cornerRadius: size.cornerRadius, style: .continuous)
         content(side: side)
             .frame(width: side, height: side)
             .clipShape(shape)
             .overlay(shape.strokeBorder(Color.raftInk, lineWidth: 1.5))
-            .dieCut()
+            .dieCut(radius: size.cornerRadius)
             .overlay(alignment: .bottomTrailing) {
                 if showsPresence, persona.kind == .agent, let presence = persona.presence {
                     presenceLight(presence)
@@ -189,7 +195,7 @@ struct AvatarView: View {
             ZStack {
                 Color.raftLavender
                 Text(verbatim: persona.initials)
-                    .font(.custom(RaftFont.bold, size: size.initialsSize * min(scale, 1.6)))
+                    .font(.custom(RaftFont.bold, size: size.initialsSize * (size == .header ? 1 : min(scale, 1.6))))
                     .tracking(-0.02 * size.initialsSize)
                     .foregroundStyle(Color.raftInk)
                 if let url = persona.imageURL {
@@ -399,22 +405,6 @@ struct RaftSticker: View {
     static func clamp(_ value: Int) -> String { value > 99 ? "99+" : String(value) }
 }
 
-/// "You" after the author of one's own messages (§2.4).
-struct YouSticker: View {
-    var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 4, style: .continuous)
-        Text(L10n.t("activity_list_self_sender", "You"))
-            .raftFont(.monoYou)
-            .foregroundStyle(Color.raftInk)
-            .padding(EdgeInsets(top: 2, leading: 4, bottom: 1, trailing: 4))
-            .background(Color.raftYellow, in: shape)
-            .overlay(shape.strokeBorder(Color.raftInk, lineWidth: 1.5))
-            .dieCut()
-            .fixedSize()
-            .accessibilityHidden(true)
-    }
-}
-
 /// A gray count for muted conversations (no sticker).
 struct MutedCount: View {
     let value: Int
@@ -492,7 +482,8 @@ struct SectionHeader<Trailing: View>: View {
             Spacer(minLength: 8)
             trailing()
         }
-        .padding(.horizontal, 20)
+        // Aligned with the tiles inside the cards under it: card 16 + row 14 (§2.13 通用列宽).
+        .padding(.horizontal, 30)
         .padding(.top, top)
         .padding(.bottom, bottom)
     }
