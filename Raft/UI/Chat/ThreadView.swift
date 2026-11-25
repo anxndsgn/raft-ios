@@ -320,6 +320,7 @@ struct ThreadView: View {
                 send: send,
                 pickPhotos: { pickingPhotos = true },
                 pickFiles: { importingFiles = true },
+                isPickingAttachment: pickingPhotos || importingFiles,
                 retryUpload: { id in
                     composer.retryUpload(id, channelId: uploadChannelId, api: workspace.api, readOnly: model.preferences.readOnly)
                 },

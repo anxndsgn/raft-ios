@@ -603,6 +603,7 @@ struct ChatView: View {
                 pickPhotos: { pickingPhotos = true },
                 takePhoto: { takingPhoto = true },
                 pickFiles: { importingFiles = true },
+                isPickingAttachment: pickingPhotos || takingPhoto || importingFiles,
                 retryUpload: { id in
                     composer.retryUpload(id, channelId: store.channelId, api: workspace.api, readOnly: model.preferences.readOnly)
                 },

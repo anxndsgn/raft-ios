@@ -174,6 +174,8 @@ struct ComposerPanel: View {
     var pickPhotos: () -> Void = {}
     var takePhoto: () -> Void = {}
     var pickFiles: () -> Void = {}
+    /// True while the photo picker, camera or file importer opened from + is on screen.
+    var isPickingAttachment = false
     var retryUpload: (UUID) -> Void = { _ in }
     /// Set while the channel is previewed: the panel is the Join bar.
     var join: ComposerJoin?
@@ -186,16 +188,21 @@ struct ComposerPanel: View {
         }
     }
 
-    /// Collapsed: a 48pt glass capsule holding only the placeholder (§2.8, XIN 5210).
+    /// Collapsed: a 48pt glass capsule with +, the placeholder and a 32pt send (§2.8, XIN 5393).
     /// Expanded: the panel with tray, field and tool row (concentric with the keyboard down, r26 up).
     @State private var expanded = false
+    /// An attachment was picked from + while writing: focus comes back once the picker closes.
+    @State private var refocusAfterPick = false
     @Namespace private var glass
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorScheme) private var scheme
 
     /// Expanded while focused, or while a draft (text or files) is waiting.
-    private var wantsExpanded: Bool { focus.wrappedValue || model.hasDraft }
+    /// While a picker opened from the expanded panel is up, stay expanded (focus returns after it).
+    private var wantsExpanded: Bool {
+        focus.wrappedValue || model.hasDraft || (isPickingAttachment && refocusAfterPick)
+    }
 
     var body: some View {
         GlassEffectContainer {
@@ -209,6 +216,15 @@ struct ComposerPanel: View {
             #endif
         }
         .onChange(of: wantsExpanded) { _, target in setExpanded(target) }
+        .onChange(of: isPickingAttachment) { _, picking in
+            guard !picking, refocusAfterPick else { return }
+            refocusAfterPick = false
+            // Let the picker finish sliding away before the keyboard comes back.
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(350))
+                focus.wrappedValue = true
+            }
+        }
         .animation(.smooth(duration: 0.25), value: model.attachments.count)
     }
 
@@ -244,6 +260,8 @@ struct ComposerPanel: View {
                         .transition(.opacity)
                 }
                 field
+                    // Collapsed: room for + (left) and send (right), 32 each plus 8 spacing.
+                    .padding(.horizontal, expanded ? 0 : 40)
                     // After a join the placeholder fades in as the bar settles into the capsule.
                     .transition(.asymmetric(
                         insertion: .opacity.animation(.easeOut(duration: 0.2).delay(reduceMotion ? 0 : 0.12)),
@@ -260,11 +278,15 @@ struct ComposerPanel: View {
         }
         .padding(join != nil
             ? EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12)
-            : (expanded ? EdgeInsets(top: 10, leading: 16, bottom: 8, trailing: 10) : EdgeInsets(top: 0, leading: 18, bottom: 0, trailing: 18)))
+            : (expanded ? EdgeInsets(top: 10, leading: 16, bottom: 8, trailing: 10) : EdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 8)))
         .frame(minHeight: 48)
+        .overlay {
+            if join == nil, !expanded {
+                collapsedControls
+                    .transition(.opacity.animation(.easeOut(duration: 0.1)))
+            }
+        }
         .contentShape(ComposerGlass.shape(focused: focus.wrappedValue))
-        // The whole capsule is the tap target (buttons inside keep their own taps).
-        .simultaneousGesture(TapGesture().onEnded { if join == nil { expandFromTap() } })
         .modifier(ComposerGlass(focused: focus.wrappedValue, namespace: glass, reduceTransparency: reduceTransparency, dark: scheme == .dark))
     }
 
@@ -299,6 +321,17 @@ struct ComposerPanel: View {
         }
     }
 
+    /// Collapsed capsule: + 8pt from the left, send 8pt from the right (32pt circles, r16 = 24 − 8,
+    /// concentric with the capsule). The placeholder between them is the field itself.
+    private var collapsedControls: some View {
+        HStack(spacing: 0) {
+            attachMenu
+            Spacer(minLength: 0)
+            sendButton(size: 32)
+        }
+        .padding(.horizontal, 8)
+    }
+
     private var field: some View {
         TextField(text: $model.text, axis: .vertical) {
             Text(verbatim: placeholder).foregroundStyle(Color.raftTextTertiary)
@@ -309,6 +342,10 @@ struct ComposerPanel: View {
         .focused(focus)
         .padding(.top, expanded ? 2 : 0)
         .padding(.bottom, expanded ? 6 : 0)
+        // Collapsed: the whole placeholder area (full capsule height) focuses and expands.
+        .frame(minHeight: expanded ? nil : 48)
+        .contentShape(Rectangle())
+        .simultaneousGesture(TapGesture().onEnded { if join == nil { expandFromTap() } })
         .onKeyPress(.upArrow) { moveHighlight(-1) }
         .onKeyPress(.downArrow) { moveHighlight(1) }
         .onKeyPress(.return) {
@@ -328,12 +365,9 @@ struct ComposerPanel: View {
 
     private var toolRow: some View {
         HStack(spacing: 0) {
-            toolButton("photo", label: L10n.t("ios_attach_photo", "Photo library"), action: pickPhotos)
-            if mode != .thread {
-                toolButton("camera", label: L10n.t("ios_attach_camera", "Camera"), action: takePhoto)
-                    .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
-            }
-            toolButton("paperclip", label: L10n.t("ios_attach_file", "Attach file"), action: pickFiles)
+            // 10pt from the panel's left edge (the panel's leading inset is 16).
+            attachMenu
+                .padding(.leading, -6)
             Spacer(minLength: 8)
             if case .channel = mode {
                 Button {
@@ -353,43 +387,67 @@ struct ComposerPanel: View {
                 .accessibilityAddTraits(model.asTask ? [.isButton, .isSelected] : .isButton)
                 .accessibilityIdentifier("as-task")
             }
-            sendButton
+            sendButton(size: 36)
         }
         .frame(height: 36)
     }
 
-    private func toolButton(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Group {
-                if symbol == "photo" {
-                    // SF `photo` fills its hills; the row wants three matching outlines.
-                    OutlinePhotoGlyph()
-                        .stroke(Color.raftTextSecondary, style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round))
-                        .frame(width: 22, height: 18)
-                } else {
-                    Image(systemName: symbol)
-                        .font(.system(size: 22, weight: .regular))
-                        .symbolVariant(.none)
-                        .foregroundStyle(Color.raftTextSecondary)
-                }
+    /// + (XIN 5390): one system menu for Photo library / Camera / File. Opening it keeps the
+    /// keyboard; once the picker closes, focus returns to the field if it was being written in.
+    private var attachMenu: some View {
+        Menu {
+            Button {
+                startPick(pickPhotos)
+            } label: {
+                Label(L10n.t("ios_attach_photo", "Photo library"), systemImage: "photo")
             }
+            if mode != .thread {
+                Button {
+                    startPick(takePhoto)
+                } label: {
+                    Label(L10n.t("ios_attach_camera", "Camera"), systemImage: "camera")
+                }
+                .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
+            }
+            Button {
+                startPick(pickFiles)
+            } label: {
+                Label(L10n.t("ios_attach_menu_file", "File"), systemImage: "paperclip")
+            }
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(Color.raftTextPrimary)
                 .frame(width: 32, height: 32)
+                .background(Color.raftTextPrimary.opacity(0.06), in: Circle())
+                // 44×44 hit area around the 32pt circle.
                 .contentShape(Rectangle().inset(by: -6))
         }
+        .menuStyle(.button)
         .buttonStyle(.plain)
-        .padding(.trailing, symbol == "paperclip" ? 0 : -1)
-        .frame(width: 31, alignment: .leading)
-        .padding(.leading, symbol == "photo" ? -4 : 0)
-        .accessibilityLabel(Text(verbatim: label))
+        .menuOrder(.fixed)
+        .menuIndicator(.hidden)
+        .accessibilityLabel(Text(L10n.t("ios_attach_menu", "Add attachment")))
+        .accessibilityHint(Text(L10n.t("ios_attach_menu_hint", "Opens attachment options")))
+        .accessibilityIdentifier("composer-attach")
     }
 
-    @ViewBuilder private var sendButton: some View {
+    private func startPick(_ open: () -> Void) {
+        // From the collapsed capsule the keyboard stays down; the new attachment expands the panel.
+        refocusAfterPick = focus.wrappedValue
+        open()
+    }
+
+    /// 36pt in the tool row, 32pt in the collapsed capsule (same styles).
+    @ViewBuilder private func sendButton(size: CGFloat) -> some View {
+        let glyph: CGFloat = size >= 36 ? 17 : 15
+        let label = size - 12
         if model.canSend {
             Button(action: send) {
                 Image(systemName: "arrow.up")
-                    .font(.system(size: 17, weight: .bold))
+                    .font(.system(size: glyph, weight: .bold))
                     .foregroundStyle(Color.raftInk)
-                    .frame(width: 24, height: 24)
+                    .frame(width: label, height: label)
             }
             .buttonStyle(.glassProminent)
             .buttonBorderShape(.circle)
@@ -400,9 +458,9 @@ struct ComposerPanel: View {
         } else {
             Button {} label: {
                 Image(systemName: "arrow.up")
-                    .font(.system(size: 17, weight: .bold))
+                    .font(.system(size: glyph, weight: .bold))
                     .foregroundStyle(Color.raftTextDisabled)
-                    .frame(width: 24, height: 24)
+                    .frame(width: label, height: label)
             }
             .buttonStyle(.glass)
             .buttonBorderShape(.circle)
@@ -803,22 +861,5 @@ struct EmojiPickerField: UIViewRepresentable {
         func textFieldDidEndEditing(_ textField: UITextField) {
             if parent.isActive { parent.isActive = false }
         }
-    }
-}
-
-/// An outline "photo": a rounded frame, a sun and two hills, stroked like SF regular at 22pt.
-struct OutlinePhotoGlyph: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let r = rect.insetBy(dx: 0.8, dy: 0.8)
-        path.addRoundedRect(in: r, cornerSize: CGSize(width: 3, height: 3), style: .continuous)
-        let sun = CGPoint(x: r.minX + r.width * 0.3, y: r.minY + r.height * 0.32)
-        path.addEllipse(in: CGRect(x: sun.x - 1.8, y: sun.y - 1.8, width: 3.6, height: 3.6))
-        path.move(to: CGPoint(x: r.minX, y: r.maxY - r.height * 0.18))
-        path.addLine(to: CGPoint(x: r.minX + r.width * 0.36, y: r.minY + r.height * 0.55))
-        path.addLine(to: CGPoint(x: r.minX + r.width * 0.56, y: r.minY + r.height * 0.74))
-        path.addLine(to: CGPoint(x: r.minX + r.width * 0.72, y: r.minY + r.height * 0.6))
-        path.addLine(to: CGPoint(x: r.maxX, y: r.maxY - r.height * 0.12))
-        return path
     }
 }
