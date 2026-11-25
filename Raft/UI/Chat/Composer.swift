@@ -616,14 +616,30 @@ extension View {
     /// device's bottom safe area), so the concentric glass shares the display's corner centre.
     /// Keyboard up: 10pt sides, 8pt above the keyboard. Driven by focus, which flips in the
     /// keyboard's own transaction, so the width change rides the keyboard animation.
+    ///
+    /// The page holding the bar ignores the container's bottom safe area
+    /// (`composerPageBottom()`), so the bar is measured from the screen's bottom edge, or from the
+    /// keyboard's top while it is up.
     func composerBarInsets(focused: Bool) -> some View {
         modifier(ComposerBarInsets(focused: focused))
+    }
+
+    /// For the scroll view carrying the composer as its bottom bar: lays it out against the
+    /// screen's bottom edge (and the keyboard), not the container's bottom safe area. That safe
+    /// area still holds the tab bar for the first frames of a push from a tab's root (the pushed
+    /// page hides the bar only once it is in), so a bottom-anchored list placed in that first
+    /// layout landed 49pt too high and jumped down when the bar went. The home indicator is
+    /// added back by `composerBarInsets`, from the window, which never changes in a push.
+    func composerPageBottom() -> some View {
+        ignoresSafeArea(.container, edges: .bottom)
     }
 }
 
 private struct ComposerBarInsets: ViewModifier {
     let focused: Bool
     static let screenInset: CGFloat = 38
+    /// A software keyboard is on screen (its own safe area then carries the bar).
+    @State private var keyboardUp = false
 
     /// The window's bottom safe area (home indicator), without the keyboard.
     private var bottomSafeArea: CGFloat {
@@ -631,11 +647,26 @@ private struct ComposerBarInsets: ViewModifier {
         return scene?.keyWindow?.safeAreaInsets.bottom ?? 0
     }
 
+    /// From the screen's bottom edge (keyboard down) or the keyboard's top.
+    private var bottom: CGFloat {
+        guard focused else { return Self.screenInset }
+        // Focused with a hardware keyboard: 8 above the home indicator.
+        return keyboardUp ? 8 : 8 + bottomSafeArea
+    }
+
     func body(content: Content) -> some View {
         content
             .padding(.horizontal, focused ? 10 : Self.screenInset)
-            // The bar sits on the bottom safe area; reach down to 38pt from the physical edge.
-            .padding(.bottom, focused ? 8 : Self.screenInset - bottomSafeArea)
+            .padding(.bottom, bottom)
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { note in
+                guard let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
+                      let screen = (note.object as? UIScreen) ?? UIApplication.shared.connectedScenes.compactMap({ ($0 as? UIWindowScene)?.screen }).first
+                else { return }
+                keyboardUp = frame.height > 0 && frame.minY < screen.bounds.maxY
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                keyboardUp = false
+            }
     }
 }
 

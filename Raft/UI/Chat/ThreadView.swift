@@ -16,6 +16,17 @@ struct ThreadView: View {
     @State private var edges = StreamEdges(nearTop: true, atBottom: false)
     @State private var holdingForOlder = false
     @State private var didScroll = false
+    /// The list is held on its last reply (`holdBottom`): when it opens on the newest replies;
+    /// after a scroll, when it comes to rest at the bottom.
+    @State private var holdsBottom = false
+    /// Until `scrollToStart()` has run: the insets and the rows' real heights arrive over the first
+    /// layout passes.
+    @State private var opening = true
+    /// Opening on the newest replies: the list is hidden until its first layout at the bottom (or
+    /// the end of `scrollToStart()`). Its first layout with the replies is at the top (the
+    /// alignment), and the move down came two frames later.
+    @State private var reachedBottom = false
+    @State private var scrollIdle = true
     /// Opening at a reply: the stream is hidden until it has landed there (29c).
     @State private var landing = false
     @State private var geometry = StreamGeometry()
@@ -84,12 +95,21 @@ struct ThreadView: View {
             .scrollTargetLayout()
             .coordinateSpace(name: AnchoredLanding.space)
             .padding(.bottom, 12)
-            .opacity(landing ? 0 : 1)
+            .opacity(landing || (opening && startsAtBottom && !reachedBottom) ? 0 : 1)
         }
-        // The composer is the scroll view's own bottom bar: the soft scroll-edge effect fades
-        // replies passing under it.
+        // A tap on the messages ends writing. On the scroll view itself, inside the bottom bar:
+        // over the whole page it also saw taps in the composer (As task, +, send) and dropped the
+        // keyboard on each.
+        .simultaneousGesture(TapGesture().onEnded {
+            if composer.mentionQuery != nil { composer.dismissedQuery = composer.mentionQuery }
+            composerFocused = false
+        })
+        // The composer is the scroll view's own bottom bar (it insets the replies). Soft fade at the
+        // top only: replies pass under the composer's glass unblurred.
         .safeAreaBar(edge: .bottom) { composerBar }
-        .scrollEdgeEffectStyle(.soft, for: [.top, .bottom])
+        .composerPageBottom()
+        .scrollEdgeEffectStyle(.soft, for: .top)
+        .scrollEdgeEffectHidden(true, for: .bottom)
         .scrollPosition($position)
         .defaultScrollAnchor(.top, for: .alignment)
         // Short content sits at the top (alignment): kept there as it grows. Pinning its bottom
@@ -105,14 +125,26 @@ struct ThreadView: View {
         } action: { _, value in
             edges = value
         }
-        .onScrollGeometryChange(for: StreamGeometry.self) { StreamGeometry($0) } action: { _, value in
+        .onScrollGeometryChange(for: StreamGeometry.self) { StreamGeometry($0) } action: { old, value in
             geometry = value
+            if opening, startsAtBottom { holdsBottom = true }
+            holdBottom(old: old, new: value)
+            if opening, holdsBottom, !reachedBottom, store.phase == .loaded, value.visible > 0,
+               value.contentHeight > value.visible, abs(value.top - value.maxTop) < 0.5 {
+                reachedBottom = true
+            }
+        }
+        .onScrollPhaseChange { old, phase in
+            scrollIdle = phase == .idle
+            if phase == .interacting {
+                holdsBottom = false
+                opening = false
+            } else if phase == .idle, old == .interacting || old == .decelerating {
+                // The user's scroll came to rest: held again when it rests at the bottom.
+                holdsBottom = edges.atBottom && edges.overflows && !landing
+            }
         }
         .onChange(of: edges.nearTop) { loadOlderIfNeeded() }
-        .simultaneousGesture(TapGesture().onEnded {
-            if composer.mentionQuery != nil { composer.dismissedQuery = composer.mentionQuery }
-            composerFocused = false
-        })
         .background(Color.raftCanvas.ignoresSafeArea())
         .raftNavigationTitle(L10n.t("thread_reply_title", "Thread"), subtitle: subtitle)
         .toolbar {
@@ -177,9 +209,37 @@ struct ThreadView: View {
         }
     }
 
+    /// Opens on the newest replies (`scrollToStart()`): many replies, none focused, no unread
+    /// reply after the first. Known as soon as the replies are, so the list is held at the bottom
+    /// from the first layout that has them instead of being moved there afterwards.
+    private var startsAtBottom: Bool {
+        guard let replies, replies.focusMessageId == nil, replies.messages.count > 4 else { return false }
+        if let marker = replies.unreadMarkerSeq, let first = replies.messages.first(where: { ($0.seq ?? 0) > marker }), first.id != replies.messages.first?.id {
+            return false
+        }
+        return true
+    }
+
+    /// Keeps the last reply at the bottom while the list is held there: while it opens and
+    /// whenever the content's height changes under it. By offset, not by the bottom edge (an
+    /// edge position is resolved again on later layout passes and overshoots the end by the
+    /// bottom bar's height).
+    private func holdBottom(old: StreamGeometry, new: StreamGeometry) {
+        // Older messages loading above keep the bottom too (the size-change anchor is the bottom then).
+        guard holdsBottom, scrollIdle, !landing, store.phase == .loaded,
+              new.visible > 0, new.contentHeight > new.visible else { return }
+        // Once open, a change of the visible height alone (the keyboard, the composer growing) is
+        // left to the animated re-pin on focus.
+        guard opening || new.contentHeight != old.contentHeight || new.visible == old.visible else { return }
+        let target = new.maxTop
+        guard abs(new.top - target) >= 0.5 else { return }
+        position.scrollTo(y: target)
+    }
+
     /// Many replies: the newest, or the focused / first unread one (§3-16).
     private func scrollToStart() async {
         guard !didScroll, let replies, !replies.messages.isEmpty else { return }
+        defer { opening = false }
         didScroll = true
         if let focus = replies.focusMessageId {
             // 29c: hidden until it has landed, then shown with the highlight on (as ChatView).
@@ -205,7 +265,8 @@ struct ThreadView: View {
         if let marker = replies.unreadMarkerSeq, let first = replies.messages.first(where: { ($0.seq ?? 0) > marker }), first.id != replies.messages.first?.id {
             position.scrollTo(id: "m:\(first.id)", anchor: .top)
         } else if replies.messages.count > 4 {
-            position.scrollTo(edge: .bottom)
+            holdsBottom = true
+            if geometry.contentHeight > geometry.visible { position.scrollTo(y: geometry.maxTop) }
         }
     }
 

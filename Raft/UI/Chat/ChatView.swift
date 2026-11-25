@@ -163,6 +163,13 @@ struct ChatView: View {
     @State private var interactions = MessageInteractions()
     @FocusState private var composerFocused: Bool
     @State private var position = ScrollPosition(edge: .bottom)
+    /// The list is held on its last message (`holdBottom`): from the start, unless it opens at a
+    /// message; after a scroll, when it comes to rest at the bottom.
+    @State private var holdsBottom: Bool
+    /// Until the first settle in `start()`: the bars' insets and the rows' real heights arrive
+    /// over the first layout passes, and the list is kept on its last message through all of them.
+    @State private var opening = true
+    @State private var scrollIdle = true
     @State private var edges = StreamEdges(nearTop: false, atBottom: true)
     @State private var holdingForOlder = false
     @State private var showsBanner = false
@@ -188,6 +195,7 @@ struct ChatView: View {
         self.store = store
         self.ref = ref
         _landing = State(initialValue: ref.focusMessageId != nil)
+        _holdsBottom = State(initialValue: ref.focusMessageId == nil)
     }
 
     private var isDirectMessage: Bool { store.kind == .directMessage }
@@ -383,7 +391,10 @@ struct ChatView: View {
             if !didFocus {
                 didFocus = true
                 try? await Task.sleep(for: .milliseconds(150))
-                position.scrollTo(edge: .bottom)
+                if holdsBottom, geometry.contentHeight > geometry.visible, abs(geometry.top - geometry.maxTop) >= 0.5 {
+                    position.scrollTo(y: geometry.maxTop)
+                }
+                opening = false
             }
             return
         }
@@ -458,16 +469,26 @@ struct ChatView: View {
             .padding(.bottom, 12)
             .opacity(landing && store.phase == .loaded ? 0 : 1)
         }
-        // The composer (and the join bar) is the scroll view's own bottom bar, so the system's
-        // soft scroll-edge effect fades whatever passes under it, down to the screen's edge.
+        // A tap on the messages ends writing. On the scroll view itself, inside the bottom bar:
+        // over the whole page it also saw taps in the composer (As task, +, send) and dropped the
+        // keyboard on each.
+        .simultaneousGesture(TapGesture().onEnded {
+            if composer.mentionQuery != nil { composer.dismissedQuery = composer.mentionQuery }
+            composerFocused = false
+        })
+        // The composer (and the join bar) is the scroll view's own bottom bar (it insets the
+        // content); its edge effect is hidden below.
         .safeAreaBar(edge: .bottom) { composerBar }
+        .composerPageBottom()
         .scrollPosition($position)
         .defaultScrollAnchor(.bottom, for: .initialOffset)
         .defaultScrollAnchor((isEmpty || store.isLoadingOlder || store.phase != .loaded) ? .top : .bottom, for: .alignment)
         .defaultScrollAnchor((edges.atBottom || holdingForOlder) ? .bottom : .top, for: .sizeChanges)
         .scrollDismissesKeyboard(.interactively)
-        // System soft fade under the nav bar (§2.12); no custom bar background or divider.
-        .scrollEdgeEffectStyle(.soft, for: [.top, .bottom])
+        // System soft fade under the nav bar (§2.12); no custom bar background or divider. None
+        // at the bottom: messages pass under the composer's glass unblurred.
+        .scrollEdgeEffectStyle(.soft, for: .top)
+        .scrollEdgeEffectHidden(true, for: .bottom)
         .onScrollGeometryChange(for: StreamEdges.self) { geometry in
             StreamEdges(
                 nearTop: geometry.visibleRect.minY < 600,
@@ -476,16 +497,41 @@ struct ChatView: View {
         } action: { _, value in
             edges = value
         }
-        .onScrollGeometryChange(for: StreamGeometry.self) { StreamGeometry($0) } action: { _, value in
+        .onScrollGeometryChange(for: StreamGeometry.self) { StreamGeometry($0) } action: { old, value in
             geometry = value
+            holdBottom(old: old, new: value)
+        }
+        .onScrollPhaseChange { old, phase in
+            scrollIdle = phase == .idle
+            if phase == .interacting {
+                holdsBottom = false
+                opening = false
+            } else if phase == .idle, old == .interacting || old == .decelerating {
+                // The user's scroll came to rest: held again when it rests at the bottom.
+                holdsBottom = edges.atBottom && !landing
+            }
         }
         .onChange(of: edges.nearTop) { loadOlderIfNeeded() }
         .onChange(of: store.isLoadingOlder) { loadOlderIfNeeded() }
         .onChange(of: store.phase) { loadOlderIfNeeded() }
-        .simultaneousGesture(TapGesture().onEnded {
-            if composer.mentionQuery != nil { composer.dismissedQuery = composer.mentionQuery }
-            composerFocused = false
-        })
+    }
+
+    /// Keeps the last message at the bottom while the list is held there: while it opens and
+    /// whenever the content's height changes under it (an image loads, a message arrives). By
+    /// offset, not by the bottom edge: an edge position (the initial one, `scrollTo(edge:)`, the
+    /// bottom size-change anchor) is resolved again on later layout passes and lands the bottom
+    /// bar's height (86pt) past the end, with the top inset still missing in the first pass; the
+    /// list then jumped down when the settle in `start()` corrected it.
+    private func holdBottom(old: StreamGeometry, new: StreamGeometry) {
+        // Older messages loading above keep the bottom too (the size-change anchor is the bottom then).
+        guard holdsBottom, scrollIdle, !landing, store.phase == .loaded,
+              new.visible > 0, new.contentHeight > new.visible else { return }
+        // Once open, a change of the visible height alone (the keyboard, the composer growing) is
+        // left to the animated re-pin on focus.
+        guard opening || new.contentHeight != old.contentHeight || new.visible == old.visible else { return }
+        let target = new.maxTop
+        guard abs(new.top - target) >= 0.5 else { return }
+        position.scrollTo(y: target)
     }
 
     private func loadOlderIfNeeded() {
