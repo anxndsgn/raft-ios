@@ -114,7 +114,7 @@ enum AvatarSize {
     case row
     /// 24: the image viewer's sender (31).
     case mini
-    /// 56: the DM header (33a), corner 8, not scaled with Dynamic Type (the bar is laid out on it).
+    /// 44: the DM header (33a), corner 6, not scaled with Dynamic Type (the bar is laid out on it).
     case header
 
     var side: CGFloat {
@@ -126,7 +126,7 @@ enum AvatarSize {
         case .compact: 28
         case .row: 32
         case .mini: 24
-        case .header: 56
+        case .header: 44
         }
     }
 
@@ -139,11 +139,11 @@ enum AvatarSize {
         case .compact: 11
         case .row: 12
         case .mini: 10
-        case .header: 20
+        case .header: 18
         }
     }
 
-    var cornerRadius: CGFloat { self == .header ? 8 : 4 }
+    var cornerRadius: CGFloat { self == .header ? 6 : 4 }
 
     /// The largest Dynamic Type scale of the side. List tiles (row, compact) stop at 44
     /// (大字号补充 B.1); the rest at 1.6×; the header does not scale.

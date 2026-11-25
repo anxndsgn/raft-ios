@@ -2,18 +2,19 @@ import SwiftUI
 
 // MARK: 33a / 33b DM header: big avatar + name capsule
 
-/// The top of a DM's content (33a): the peer's 56pt avatar with a glass name capsule pressed
+/// The top of a DM's content (33a): the peer's 44pt avatar with a glass name capsule pressed
 /// into its bottom edge, and the "Claude Code · Online" line under it. Back and ⓘ stay in the
 /// system navigation bar (which on Duo folded / unfolded landscape turns into the trailing
 /// vertical bar); this block is shown in `.safeAreaBar(edge: .top)` under that bar, so messages
 /// scroll under it.
 ///
-/// Layout, from the block's top: avatar 0–56; capsule 46–72 (its centre 3 below the avatar's
-/// bottom edge, so it covers the avatar's last 10pt); caption 76–92.
+/// Layout, from the block's top: avatar 6–50 (its centre at 28, level with the centres of the
+/// bar's round buttons); capsule 40–66 (its centre 3 below the avatar's bottom edge, so it
+/// covers the avatar's last 10pt); caption 70–86.
 ///
 /// With a horizontal navigation bar (iPhone, Duo unfolded portrait) the block moves up into the
-/// bar's row, avatar top at the safe-area top, only as wide as the capsule, so the system's back
-/// and ⓘ stay clear. With the vertical bar (Duo folded and unfolded landscape: no top inset) it is
+/// bar's row, its top at the safe-area top (avatar centre at safe-area top + 28, level with back
+/// and ⓘ), only as wide as the capsule, so the system's back and ⓘ stay clear. With the vertical bar (Duo folded and unfolded landscape: no top inset) it is
 /// at least 8 below the screen's top (`minimumTop`). The short one-line version for low windows
 /// (矮版) is not built yet: low windows get this one too. Left and right it is
 /// centred in the corner-adapted safe area (`BarInsetsReader`), so neither the side safe area (the
@@ -32,7 +33,9 @@ struct DMHeaderBar: View {
     /// entries without a target are hidden): then the avatar and capsule are not a button.
     var info: (() -> Void)?
 
-    static let height: CGFloat = 92
+    static let height: CGFloat = 86
+    /// The avatar's top in the block: its centre 28 below the block's top, as the bar buttons'.
+    static let avatarTop: CGFloat = 6
     /// The least space between the window's safe-area top and the bar.
     static let minimumTop: CGFloat = 8
 
@@ -45,7 +48,7 @@ struct DMHeaderBar: View {
     private func top(verticalBar: Bool) -> CGFloat {
         let wanted: CGFloat
         if !verticalBar, let barTop = insets.navigationBarTop {
-            // Horizontal bar: the avatar's top in the bar's row, level with back and ⓘ.
+            // Horizontal bar: the block's top in the bar's row, the avatar level with back and ⓘ.
             wanted = barTop
         } else {
             wanted = insets.windowTop < Self.minimumTop ? Self.minimumTop : insets.windowTop
@@ -71,6 +74,7 @@ struct DMHeaderBar: View {
             }
             // Capsule and caption grow with Dynamic Type up to XXXL (大字号补充 A.5).
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+            .padding(.top, Self.avatarTop)
             // Centred in the safe area.
             .padding(.leading, 16 + insets.leading)
             .padding(.trailing, 16 + insets.trailing)
@@ -80,7 +84,7 @@ struct DMHeaderBar: View {
         .background(alignment: .top) {
             // The block's origin and its avatar band, full width: where the insets are measured.
             BarInsetsReader { insets = $0 }
-                .frame(height: max(56 + top, 1))
+                .frame(height: max(Self.avatarTop + 44 + top, 1))
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
         }
