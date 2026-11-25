@@ -5,6 +5,7 @@ struct RaftApp: App {
     @State private var model: AppModel
 
     init() {
+        AirCrashReports.start(apiKey: FeedbackConfig.appKey, endpoint: "https://apps.air.build/v1/ingest/crashes", teamID: FeedbackConfig.teamID)
         RaftFonts.applyAppearance()
         #if DEBUG
         if let screen = ProcessInfo.processInfo.environment["RAFT_PREVIEW"], !screen.isEmpty {

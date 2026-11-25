@@ -459,6 +459,10 @@ struct InboxItem: Sendable, Hashable, Decodable, Identifiable {
     var senderType: String?
     var senderId: String?
     var isFollowing: Bool?
+    /// Task rows: the task's number ("#1"), title and status.
+    var taskNumber: Int?
+    var taskTitle: String?
+    var taskStatus: String?
 
     private enum CodingKeys: String, CodingKey {
         case kind, channelId, channelName, channelType, threadChannelId, parentMessageId, parentChannelId
@@ -467,6 +471,7 @@ struct InboxItem: Sendable, Hashable, Decodable, Identifiable {
         case lastMessageSenderType, latestActivitySenderType, lastMessageSenderId, latestActivitySenderId, isFollowing
         case lastMessageId, latestActivityMessageId, lastMessageAt, lastActivityAt, latestActivityAt, lastReplyAt, updatedAt, latestActivitySeq
         case firstUnreadMessageId, firstMentionMessageId, unreadCount, hasMention, replyCount, readStateVersion
+        case taskNumber, taskTitle, taskStatus
         case id
     }
 
@@ -497,6 +502,9 @@ struct InboxItem: Sendable, Hashable, Decodable, Identifiable {
         senderType = c.lenient(.lastMessageSenderType) ?? c.lenient(.latestActivitySenderType)
         senderId = c.lenient(.lastMessageSenderId) ?? c.lenient(.latestActivitySenderId)
         isFollowing = c.lenient(.isFollowing)
+        taskNumber = c.flexibleInt(.taskNumber)
+        taskTitle = c.lenient(.taskTitle)
+        taskStatus = c.lenient(.taskStatus)
         objectId = c.lenient(.id)
         guard scopeChannelId != nil || objectId != nil else {
             throw DecodingError.keyNotFound(CodingKeys.channelId, .init(codingPath: c.codingPath, debugDescription: "row without an id"))

@@ -16,6 +16,9 @@ struct URLSessionWebSocketConnector: WebSocketConnector {
     var session: URLSession = .shared
 
     func connect(url: URL, headers: [String: String]) -> any WebSocketConnection {
+        #if DEBUG
+        if SimulatedOutage.isActive { return OfflineWebSocketConnection() }
+        #endif
         var request = URLRequest(url: url, timeoutInterval: 30)
         for (name, value) in headers { request.setValue(value, forHTTPHeaderField: name) }
         return URLSessionWebSocketConnection(task: session.webSocketTask(with: request))

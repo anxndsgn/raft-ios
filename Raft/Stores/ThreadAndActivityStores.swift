@@ -409,8 +409,32 @@ final class ActivityStore {
                 title: item.parentChannelName ?? "",
                 focusMessageId: focus
             ))
+        case "task":
+            // The task's own conversation, where its status notices are posted.
+            guard let conversationId = item.threadChannelId else { return nil }
+            return .conversation(ConversationRef(
+                channelId: conversationId,
+                title: item.parentChannelName ?? "",
+                kind: .task,
+                focusMessageId: focus,
+                subtitle: item.taskSubtitle
+            ))
         default:
             return nil
+        }
+    }
+}
+
+extension InboxItem {
+    /// "#1 Fix the login" for a task row.
+    var taskSubtitle: String? {
+        guard kind == "task" else { return nil }
+        let title = PlainText.preview(taskTitle)
+        switch (taskNumber, title.isEmpty) {
+        case (let number?, false): return "#\(number) \(title)"
+        case (let number?, true): return "#\(number)"
+        case (nil, false): return title
+        case (nil, true): return nil
         }
     }
 }

@@ -73,6 +73,8 @@ struct ChatView: View {
     @State private var sendTick = 0
 
     private var isDirectMessage: Bool { store.kind == .directMessage }
+    /// A task's conversation, opened from Activity: read-only, no threads or links.
+    private var isTask: Bool { store.kind == .task }
 
     private var context: ChatContext {
         ChatContext(
@@ -247,7 +249,7 @@ struct ChatView: View {
             .accessibilityElement(children: .combine)
             .accessibilityAddTraits(.isHeader)
         } else {
-            NavTitle(title: store.title, hashPrefix: !isDirectMessage, subtitle: isDirectMessage ? nil : topic)
+            NavTitle(title: store.title, hashPrefix: !isDirectMessage, subtitle: isDirectMessage ? nil : (ref.subtitle ?? topic))
         }
     }
 
@@ -404,6 +406,7 @@ struct ChatView: View {
                 }
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
+            if !isTask {
             ComposerPanel(
                 mode: isDirectMessage ? .directMessage(peer?.name ?? store.title) : .channel(store.title),
                 model: composer,
@@ -417,6 +420,7 @@ struct ChatView: View {
                     composer.retryUpload(id, channelId: store.channelId, api: workspace.api, readOnly: model.preferences.readOnly)
                 }
             )
+            }
         }
         .padding(.horizontal, 10)
         .padding(.bottom, composerFocused ? 8 : -8)
@@ -463,11 +467,13 @@ struct ChatView: View {
         if let message = row.message {
             actions.toggleReaction = { emoji in react(message.id, emoji) }
             actions.addReaction = { interactions.pickEmoji(for: message.id) }
-            actions.openThread = { openThread(message) }
-            actions.replyInThread = { openThread(message) }
+            if !isTask {
+                actions.openThread = { openThread(message) }
+                actions.replyInThread = { openThread(message) }
+                actions.copyLink = { copyLink(message) }
+            }
             actions.openAttachment = { open($0) }
             actions.copyText = { copy(row.plainText) }
-            actions.copyLink = { copyLink(message) }
             actions.longPress = { frame in lift(row, message: message, frame: frame) }
         } else if let pending = row.pending {
             actions.retry = { Task { await store.retry(pending.randomId) } }
@@ -479,12 +485,13 @@ struct ChatView: View {
 
     private func lift(_ row: MessageRowModel, message: Message, frame: CGRect) {
         composerFocused = false
-        let items = [
+        var items = [
             MessageMenuItem(id: "reply", title: L10n.t("thread_action_reply_in_thread", "Reply in thread"), systemImage: "text.bubble") { openThread(message) },
             MessageMenuItem(id: "copy", title: L10n.t("file_preview_action_copy_text", "Copy text"), systemImage: "doc.on.doc") { copy(row.plainText) },
             MessageMenuItem(id: "react", title: L10n.t("thread_action_add_reaction", "Add reaction"), systemImage: "face.smiling") { interactions.pickEmoji(for: message.id) },
             MessageMenuItem(id: "link", title: L10n.t("thread_action_copy_link", "Copy link"), systemImage: "link") { copyLink(message) },
         ]
+        if isTask { items.removeAll { $0.id == "reply" || $0.id == "link" } }
         interactions.present(MessageActionTarget(
             row: row,
             frame: frame,

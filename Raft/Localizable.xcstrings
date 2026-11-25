@@ -1,8 +1,170 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Add Screenshots" : {
+      "comment" : "Feedback form (Raft/Feedback/AppFeedback.swift)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Screenshots"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加截图"
+          }
+        }
+      }
+    },
+    "Cancel" : {
+      "comment" : "Feedback form (Raft/Feedback/AppFeedback.swift)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
+          }
+        }
+      }
+    },
+    "Done" : {
+      "comment" : "Feedback form (Raft/Feedback/AppFeedback.swift)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成"
+          }
+        }
+      }
+    },
     "Made with AirBuild" : {
       "comment" : "Credit at the bottom of Settings. Keep the name AirBuild as is."
+    },
+    "Send" : {
+      "comment" : "Feedback form (Raft/Feedback/AppFeedback.swift)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送"
+          }
+        }
+      }
+    },
+    "Send Feedback" : {
+      "comment" : "Feedback form (Raft/Feedback/AppFeedback.swift)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send Feedback"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送反馈"
+          }
+        }
+      }
+    },
+    "Thank you" : {
+      "comment" : "Feedback form (Raft/Feedback/AppFeedback.swift)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thank you"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "谢谢"
+          }
+        }
+      }
+    },
+    "Up to %lld images. The app version and device model are sent along." : {
+      "comment" : "Feedback form (Raft/Feedback/AppFeedback.swift)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Up to %lld images. The app version and device model are sent along."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最多 %lld 张图片。会一并发送 App 版本和设备型号。"
+          }
+        }
+      }
+    },
+    "What happened, or what would you like to see?" : {
+      "comment" : "Feedback form (Raft/Feedback/AppFeedback.swift)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What happened, or what would you like to see?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "遇到了什么问题，或者希望增加什么？"
+          }
+        }
+      }
+    },
+    "Your feedback was sent." : {
+      "comment" : "Feedback form (Raft/Feedback/AppFeedback.swift)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your feedback was sent."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "反馈已发送。"
+          }
+        }
+      }
     },
     "activity_action_mute_activity" : {
       "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:194",
@@ -841,6 +1003,12 @@
             "state" : "translated",
             "value" : "You’re all caught up"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "都处理完了"
+          }
         }
       }
     },
@@ -852,6 +1020,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ posted a message"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 发了一条消息"
           }
         }
       }
@@ -865,6 +1039,12 @@
             "state" : "translated",
             "value" : "%1$@ replied to a thread"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 回复了消息列"
+          }
         }
       }
     },
@@ -877,6 +1057,12 @@
             "state" : "translated",
             "value" : "%1$@ sent you a message"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 给你发了一条消息"
+          }
         }
       }
     },
@@ -888,6 +1074,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Someone"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有人"
           }
         }
       }
@@ -973,6 +1165,12 @@
             "state" : "translated",
             "value" : "You"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你"
+          }
         }
       }
     },
@@ -984,6 +1182,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ sent a message"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 发了一条消息"
           }
         }
       }
@@ -997,6 +1201,12 @@
             "state" : "translated",
             "value" : "Camera"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相机"
+          }
         }
       }
     },
@@ -1008,6 +1218,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Attach file"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加文件"
           }
         }
       }
@@ -1021,6 +1237,12 @@
             "state" : "translated",
             "value" : "Photo library"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片图库"
+          }
         }
       }
     },
@@ -1032,6 +1254,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1 attachment"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 个附件"
           }
         }
       }
@@ -1045,6 +1273,12 @@
             "state" : "translated",
             "value" : "%1$d attachments"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d 个附件"
+          }
         }
       }
     },
@@ -1056,6 +1290,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enter one of the backup codes you saved when you turned on two-step verification."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入开启两步验证时保存的任一备用码。"
           }
         }
       }
@@ -1069,6 +1309,12 @@
             "state" : "translated",
             "value" : "A backup code works once. Format: %1$@"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每个备用码只能用一次。格式：%1$@"
+          }
         }
       }
     },
@@ -1080,6 +1326,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Opens app.raft.build in a secure browser sheet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在安全的浏览器窗口中打开 app.raft.build"
           }
         }
       }
@@ -1093,6 +1345,12 @@
             "state" : "translated",
             "value" : "Share updates, files and questions with people and agents here."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在这里和成员、agent 分享进展、文件和问题。"
+          }
         }
       }
     },
@@ -1104,6 +1362,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This is the start of #%1$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这是 #%1$@ 的开始"
           }
         }
       }
@@ -1117,6 +1381,12 @@
             "state" : "translated",
             "value" : "Could not load messages"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法加载消息"
+          }
         }
       }
     },
@@ -1128,6 +1398,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Double-tap to write a message"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "轻点两下以输入消息"
           }
         }
       }
@@ -1141,6 +1417,12 @@
             "state" : "translated",
             "value" : "This is the start of your conversation with %1$@"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这是你和 %1$@ 对话的开始"
+          }
         }
       }
     },
@@ -1152,6 +1434,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You're offline. Check your connection and try again."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你已离线。请检查网络后再试。"
           }
         }
       }
@@ -1165,6 +1453,12 @@
             "state" : "translated",
             "value" : "This account signs in with a passkey. Use Continue in browser."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此账户使用通行密钥登录。请点按“在浏览器中继续”。"
+          }
         }
       }
     },
@@ -1176,6 +1470,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Forgot password?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "忘记密码？"
           }
         }
       }
@@ -1189,6 +1489,12 @@
             "state" : "translated",
             "value" : "Image"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图片"
+          }
         }
       }
     },
@@ -1200,6 +1506,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Jump to latest"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跳到最新"
           }
         }
       }
@@ -1213,6 +1525,12 @@
             "state" : "translated",
             "value" : "Loading"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在加载"
+          }
         }
       }
     },
@@ -1224,6 +1542,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Where humans and AI agents build together."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "人与 AI agent 一起协作的地方。"
           }
         }
       }
@@ -1237,6 +1561,12 @@
             "state" : "translated",
             "value" : "Mark as read"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标为已读"
+          }
         }
       }
     },
@@ -1248,6 +1578,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Members"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "成员"
           }
         }
       }
@@ -1261,6 +1597,12 @@
             "state" : "translated",
             "value" : "Members matching “%1$@”"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匹配“%1$@”的成员"
+          }
         }
       }
     },
@@ -1272,6 +1614,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$d suggestions"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d 个建议"
           }
         }
       }
@@ -1285,6 +1633,12 @@
             "state" : "translated",
             "value" : "you"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你"
+          }
         }
       }
     },
@@ -1297,6 +1651,12 @@
             "state" : "translated",
             "value" : "mentions you"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提到了你"
+          }
         }
       }
     },
@@ -1308,6 +1668,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This message was deleted."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此消息已删除。"
           }
         }
       }
@@ -1339,6 +1705,12 @@
             "state" : "translated",
             "value" : "Not sent"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未发送"
+          }
         }
       }
     },
@@ -1350,6 +1722,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Not sent · Tap to retry"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未发送 · 轻点重试"
           }
         }
       }
@@ -1363,6 +1741,12 @@
             "state" : "translated",
             "value" : "Open Raft on the web"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开 Raft 网页版"
+          }
         }
       }
     },
@@ -1374,6 +1758,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Password"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "密码"
           }
         }
       }
@@ -1387,6 +1777,12 @@
             "state" : "translated",
             "value" : "1 hour"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 小时"
+          }
         }
       }
     },
@@ -1398,6 +1794,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Until tomorrow"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直到明天"
           }
         }
       }
@@ -1411,6 +1813,12 @@
             "state" : "translated",
             "value" : "Until %1$@"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直到 %1$@"
+          }
         }
       }
     },
@@ -1422,6 +1830,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Working"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工作中"
           }
         }
       }
@@ -1435,6 +1849,12 @@
             "state" : "translated",
             "value" : "including you"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "包括你"
+          }
         }
       }
     },
@@ -1446,6 +1866,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reconnecting…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在重新连接…"
           }
         }
       }
@@ -1459,6 +1885,12 @@
             "state" : "translated",
             "value" : "Remove %1$@"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除 %1$@"
+          }
         }
       }
     },
@@ -1470,6 +1902,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Double-tap to retry"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "轻点两下以重试"
           }
         }
       }
@@ -1483,6 +1921,12 @@
             "state" : "translated",
             "value" : "Could not load saved messages"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法加载已保存的消息"
+          }
         }
       }
     },
@@ -1494,6 +1938,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Send"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送"
           }
         }
       }
@@ -1507,6 +1957,12 @@
             "state" : "translated",
             "value" : "Ask a teammate for an invite link, or create a server on the web. Servers hold your channels, agents and activity."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请队友发一个邀请链接，或在网页版创建服务器。服务器里有你的频道、agent 和动态。"
+          }
         }
       }
     },
@@ -1518,6 +1974,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You’re not in any server yet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你还没有加入任何服务器"
           }
         }
       }
@@ -1531,6 +1993,30 @@
             "state" : "translated",
             "value" : "Notifications on this device"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在此设备上接收通知"
+          }
+        }
+      }
+    },
+    "ios_settings_send_feedback" : {
+      "comment" : "Settings › About row that opens the AirFeedback form",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send feedback"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送反馈"
+          }
         }
       }
     },
@@ -1542,6 +2028,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You’ll need to sign in again to see your servers on this iPhone. Drafts that haven’t been sent will be lost."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "之后需要重新登录才能在这台 iPhone 上看到你的服务器。未发送的草稿会丢失。"
           }
         }
       }
@@ -1555,6 +2047,12 @@
             "state" : "translated",
             "value" : "Sign out of Raft?"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要退出 Raft 吗？"
+          }
         }
       }
     },
@@ -1566,6 +2064,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@, switch server"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@，切换服务器"
           }
         }
       }
@@ -1579,6 +2083,12 @@
             "state" : "translated",
             "value" : "Could not load this thread"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法加载此消息列"
+          }
         }
       }
     },
@@ -1590,6 +2100,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@, latest from %2$@: %3$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@，%2$@ 的最新回复：%3$@"
           }
         }
       }
@@ -1603,6 +2119,12 @@
             "state" : "translated",
             "value" : "%1$@ replied in “%2$@”"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 回复了“%2$@”"
+          }
         }
       }
     },
@@ -1614,6 +2136,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$d thread replies"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d 条消息列回复"
           }
         }
       }
@@ -1627,6 +2155,12 @@
             "state" : "translated",
             "value" : "Enter the 6-digit code from your authenticator app for %1$@."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入验证器 App 中 %1$@ 的 6 位验证码。"
+          }
         }
       }
     },
@@ -1638,6 +2172,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enter the 6-digit code from your authenticator app."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入验证器 App 中的 6 位验证码。"
           }
         }
       }
@@ -1651,6 +2191,12 @@
             "state" : "translated",
             "value" : "%1$d of 6 digits entered"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已输入 %1$d 位，共 6 位"
+          }
         }
       }
     },
@@ -1663,6 +2209,12 @@
             "state" : "translated",
             "value" : "%1$d unread"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d 条未读"
+          }
         }
       }
     },
@@ -1674,6 +2226,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Updated %1$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新于 %1$@"
           }
         }
       }

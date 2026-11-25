@@ -4,6 +4,9 @@ enum ConversationKind: String, Hashable, Sendable {
     case channel
     case directMessage
     case thread
+    /// A task's own conversation (`channels.type = "task"`): a flat stream under its channel,
+    /// opened from Activity read-only (tasks are not part of this app yet).
+    case task
 }
 
 /// Opens a channel or DM conversation.
@@ -15,6 +18,8 @@ struct ConversationRef: Hashable, Sendable {
     var focusMessageId: String?
     /// Read point known when opening (the list's `maxReadSeq`): the "new" divider starts after it.
     var lastReadSeq: Int64?
+    /// Under the title (a task conversation: "#1 Fix the login").
+    var subtitle: String?
 }
 
 /// Opens a thread: the parent message's replies (a thread is its own channel).

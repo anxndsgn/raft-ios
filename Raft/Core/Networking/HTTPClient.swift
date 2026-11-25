@@ -109,6 +109,9 @@ struct HTTPTransport: Sendable {
         let data: Data
         let response: URLResponse
         do {
+            #if DEBUG
+            if SimulatedOutage.isActive { throw SimulatedOutage.offlineError }
+            #endif
             (data, response) = try await fetch(urlRequest)
         } catch let error as URLError where error.code == .cancelled {
             throw CancellationError()

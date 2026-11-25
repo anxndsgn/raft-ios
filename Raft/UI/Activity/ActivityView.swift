@@ -167,12 +167,18 @@ struct ActivityView: View {
 
     private func row(_ item: InboxItem) -> some View {
         let unread = item.unreadCount > 0
-        return Button {
-            if let route = store.route(for: item) { model.push(route) }
-        } label: {
-            ActivityRow(item: item, persona: persona(for: item), currentUserId: workspace.currentUserId, channelNames: channelNames, selfDMTitle: selfDMTitle(for: item))
+        let route = store.route(for: item)
+        let label = ActivityRow(item: item, persona: persona(for: item), currentUserId: workspace.currentUserId, channelNames: channelNames, selfDMTitle: selfDMTitle(for: item), tappable: route != nil)
+        // A row with nowhere to go (an app object, a notice without a conversation) is not a
+        // button: no press highlight, nothing that looks tappable.
+        return Group {
+            if let route {
+                Button { model.push(route) } label: { label }
+                    .buttonStyle(RowButtonStyle())
+            } else {
+                label
+            }
         }
-        .buttonStyle(RowButtonStyle())
         .listRowInsets(EdgeInsets())
         .plainRow(insets: false)
         .swipeActions(edge: .leading, allowsFullSwipe: true) {
@@ -362,6 +368,8 @@ struct ActivityRow: View {
     /// Set for a DM with yourself ("XIN (you)"): "You sent a message" alone does not say
     /// where, so the location names it instead of "Direct message".
     var selfDMTitle: String?
+    /// Opens a conversation when tapped (VoiceOver reads it as a button).
+    var tappable = true
 
     private var unread: Bool { item.unreadCount > 0 }
 
@@ -409,12 +417,14 @@ struct ActivityRow: View {
         return L10n.t("ios_activity_someone", "Someone")
     }
 
+    /// Where it happened: the channel or DM, and for a thread or task its root, unless the
+    /// preview line already says the same (a task notice's preview is the task's title).
     private var location: String {
         let dm = selfDMTitle ?? L10n.t("thread_direct_message_title", "Direct message")
         if item.isSubConversation {
             let parent = item.parentChannelType == "dm" ? dm : "#\(item.parentChannelName ?? "")"
-            let root = PlainText.preview(item.parentMessagePreview)
-            return root.isEmpty ? parent : "\(parent) · \(root)"
+            let root = PlainText.preview(item.parentMessagePreview ?? item.taskTitle)
+            return root.isEmpty || Self.repeats(root, previewText) ? parent : "\(parent) · \(root)"
         }
         if item.kind == "dm" { return dm }
         return "#\(item.channelName ?? "")"
@@ -422,12 +432,38 @@ struct ActivityRow: View {
 
     private var date: Date? { RaftDate.parse(item.activityAt) }
 
+    /// Two lines say the same thing: equal once whitespace is folded, or one is the other cut
+    /// short by the server (ends in "…" or "...").
+    static func repeats(_ a: String, _ b: String) -> Bool {
+        func fold(_ text: String) -> (text: String, cut: Bool) {
+            var value = text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+            var cut = false
+            for marker in ["…", "..."] where value.hasSuffix(marker) {
+                value.removeLast(marker.count)
+                cut = true
+            }
+            return (value.trimmingCharacters(in: .whitespaces), cut)
+        }
+        let x = fold(a), y = fold(b)
+        guard !x.text.isEmpty, !y.text.isEmpty else { return false }
+        if x.text == y.text { return true }
+        return (x.cut && y.text.hasPrefix(x.text)) || (y.cut && x.text.hasPrefix(y.text))
+    }
+
     /// Set for a server notice: its own title and preview, read from the notice text.
     private var notice: SystemNotice? {
         Self.isSystemSender(item) ? SystemNotice.parse(item.preview) : nil
     }
 
-    private var previewText: String { notice?.preview ?? PlainText.preview(item.preview) }
+    /// A task notice's preview is the task's title: the row's own field when the server sent it
+    /// (never cut short), else the title read from the notice.
+    private var previewText: String {
+        if let notice {
+            if case .taskStatus = notice, let title = item.taskTitle.map({ PlainText.preview($0) }), !title.isEmpty { return title }
+            return notice.preview
+        }
+        return PlainText.preview(item.preview)
+    }
 
     private var strongFont: String { unread ? RaftFont.bold : RaftFont.semibold }
     private var strongColor: Color { unread ? .raftTextPrimary : .raftTextSecondary }
@@ -471,7 +507,7 @@ struct ActivityRow: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: a11yLabel))
-        .accessibilityAddTraits(.isButton)
+        .accessibilityAddTraits(tappable ? .isButton : [])
     }
 
     private var a11yLabel: String {

@@ -122,7 +122,15 @@ final class Workspace {
         await realtime?.stop(reason: "workspace closed")
     }
 
-    /// The app came back to the foreground: skip a reconnect wait and refresh counts.
+    #if DEBUG
+    /// `SimulatedOutage` began: drop the live socket, as a lost network would.
+    func dropConnection() async {
+        await realtime?.reconnectNow()
+    }
+    #endif
+
+    /// The app came back to the foreground, or the network came back: skip a reconnect wait
+    /// and refresh counts.
     func resumeForeground() async {
         if case .reconnecting = connection { await realtime?.reconnectNow() }
         channelList.scheduleUnreadRefresh()

@@ -14,6 +14,7 @@ struct SettingsView: View {
     @State private var webPage: URL?
     @State private var showsSwitcher = false
     @State private var confirmingSignOut = false
+    @State private var sendingFeedback = false
     @State private var copyTick = 0
     #if DEBUG
     @State private var showsDiagnostics = false
@@ -332,8 +333,21 @@ struct SettingsView: View {
                 .accessibilityHint(Text(L10n.t("settings_about_version_copy_hint", "Long press to copy")))
                 .accessibilityAction(named: Text(L10n.t("common_copy", "Copy"))) { copyVersion() }
                 .accessibilityIdentifier("settings-version")
+                RowDivider(inset: 50)
+                // AirFeedback: what people write (and screenshots) goes to the app's feedback inbox.
+                Button {
+                    sendingFeedback = true
+                } label: {
+                    SettingsRowLabel(
+                        systemImage: "envelope",
+                        title: L10n.t("ios_settings_send_feedback", "Send feedback")
+                    )
+                }
+                .buttonStyle(RowButtonStyle())
+                .accessibilityIdentifier("settings-feedback")
             }
         }
+        .sheet(isPresented: $sendingFeedback) { FeedbackView() }
     }
 
     private func copyVersion() {
@@ -372,6 +386,16 @@ struct SettingsView: View {
                 }
                 .buttonStyle(RowButtonStyle())
                 .accessibilityIdentifier("settings-self-dm")
+                RowDivider(inset: 50)
+                // The receive test's outage: no network for 10 s, then the network-back path.
+                Button {
+                    model.simulateOutage(seconds: 10)
+                    model.showToast("Offline for 10 s")
+                } label: {
+                    SettingsRowLabel(systemImage: "wifi.slash", title: "Simulate 10 s offline", chevron: false)
+                }
+                .buttonStyle(RowButtonStyle())
+                .accessibilityIdentifier("settings-simulate-outage")
             }
         }
     }

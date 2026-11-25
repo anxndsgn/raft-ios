@@ -507,6 +507,29 @@ struct ThreadAndActivityStoreTests {
         #expect(ActivityRow.senderName(unnamed) == L10n.t("ios_activity_someone", "Someone"))
     }
 
+    @Test func taskRowsOpenTheirConversation() async throws {
+        // The live shape of a task status row (xin's team, 2026-11-20).
+        let json = #"{"items":[{"kind":"task","threadChannelId":"tc1","parentMessageId":null,"parentChannelId":"c1","parentChannelName":"raft-customized","parentChannelType":"channel","parentMessagePreview":"Fix the login","latestActivityPreview":"🚫 XIN moved #1 \"Fix the login\" to Closed","latestActivitySenderType":"user","latestActivitySenderId":"system","latestActivitySenderName":null,"latestActivityMessageId":"n1","latestActivitySeq":"22656055","unreadCount":0,"hasMention":false,"taskId":"k1","taskNumber":1,"taskTitle":"Fix the login","taskStatus":"closed"},{"kind":"task","parentChannelId":"c1","id":"k2","unreadCount":0}],"hasMore":false}"#
+        let core = TestCore(session: sampleSession())
+        core.server.on("GET channels/inbox", .json(200, json))
+        let store = ActivityStore(api: core.api, currentUserId: "u-1")
+        await store.load()
+        let task = try #require(store.items.first)
+        #expect(task.taskNumber == 1 && task.taskTitle == "Fix the login" && task.taskStatus == "closed")
+        #expect(store.route(for: task) == .conversation(ConversationRef(channelId: "tc1", title: "raft-customized", kind: .task, focusMessageId: "n1", subtitle: "#1 Fix the login")))
+        // No conversation to open: not tappable.
+        #expect(store.route(for: store.items[1]) == nil)
+    }
+
+    @Test func activityLinesDoNotRepeat() {
+        #expect(ActivityRow.repeats("Fix the login", "Fix  the\nlogin"))
+        #expect(ActivityRow.repeats("@Betty 你看一下 raft 源…", "@Betty 你看一下 raft 源码，支持吗？"))
+        #expect(ActivityRow.repeats("a long question", "a long..."))
+        #expect(!ActivityRow.repeats("hi", "hi there"))
+        #expect(!ActivityRow.repeats("Fix the login", "Done, merged"))
+        #expect(!ActivityRow.repeats("", ""))
+    }
+
     @Test func inboxRowsDecodeAndRoute() async throws {
         let json = #"{"items":[{"kind":"channel","channelId":"c1","channelName":"general","channelType":"channel","lastMessageId":"m5","unreadCount":2,"hasMention":true,"firstMentionMessageId":"m3","readStateVersion":2},{"kind":"thread","threadChannelId":"t1","parentMessageId":"p1","parentChannelId":"c1","parentChannelName":"general","latestActivityPreview":"reply","latestActivityMessageId":"r9","unreadCount":1,"hasMention":false},{"kind":"app","id":"obj-1","unreadCount":0}],"hasMore":false,"totalUnreadCount":3}"#
         let core = TestCore(session: sampleSession())
@@ -573,6 +596,20 @@ struct WorkspaceRoutingTests {
         #expect(!workspace.isDegraded)
         workspace.channelList.unreadRefresh.cancel()
         workspace.channelList.dmRefresh.cancel()
+    }
+
+    @Test func networkMonitorFiresOnlyWhenTheNetworkComesBack() {
+        let monitor = NetworkMonitor()
+        var restores = 0
+        monitor.onRestore = { restores += 1 }
+        monitor.update(satisfied: true)
+        #expect(restores == 0)
+        monitor.update(satisfied: false)
+        monitor.update(satisfied: false)
+        #expect(restores == 0)
+        monitor.update(satisfied: true)
+        monitor.update(satisfied: true)
+        #expect(restores == 1)
     }
 
     @Test func membershipEventsForThisUserReloadServers() async {

@@ -35,6 +35,7 @@ final class AppModel {
     /// Built once per signed-in person and server; keyed so a change rebuilds it.
     @ObservationIgnored private var workspaceKey: String?
     @ObservationIgnored let webAuthenticator = WebAuthenticator()
+    @ObservationIgnored private let network = NetworkMonitor()
     @ObservationIgnored private var toastTask: Task<Void, Never>?
     /// Preview gallery: no network, no socket.
     @ObservationIgnored let isPreview: Bool
@@ -58,9 +59,44 @@ final class AppModel {
 
     func start() async {
         guard !isPreview else { return }
+        network.onRestore = { [weak self] in
+            Task { await self?.foreground() }
+        }
+        network.start()
+        #if DEBUG
+        scheduleOutageFromEnvironment()
+        #endif
         await session.start()
         syncWorkspace()
     }
+
+    #if DEBUG
+    /// Developer menu: no network for `seconds`, then the network-restored path.
+    func simulateOutage(seconds: Double) {
+        SimulatedOutage.begin(seconds: seconds)
+        Task {
+            await workspace?.dropConnection()
+            try? await Task.sleep(for: .seconds(seconds))
+            network.update(satisfied: false)
+            network.update(satisfied: true)
+        }
+    }
+
+    /// `RAFT_SIMULATE_OUTAGE=<unix time>,<seconds>`: the outage starts at that time with no tap,
+    /// so a recording can stay on the conversation.
+    private func scheduleOutageFromEnvironment() {
+        guard let raw = ProcessInfo.processInfo.environment["RAFT_SIMULATE_OUTAGE"] else { return }
+        let parts = raw.split(separator: ",").compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
+        guard parts.count == 2 else { return }
+        let start = Date(timeIntervalSince1970: parts[0])
+        let seconds = parts[1]
+        Task { [weak self] in
+            let wait = start.timeIntervalSinceNow
+            if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
+            self?.simulateOutage(seconds: seconds)
+        }
+    }
+    #endif
 
     /// Builds, keeps or closes the workspace to match the session's person and server.
     func syncWorkspace() {
