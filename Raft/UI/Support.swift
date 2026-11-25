@@ -1,5 +1,6 @@
 import SafariServices
 import SwiftUI
+import UIKit
 
 /// `SFSafariViewController` in a sheet (terms, password reset, web settings).
 struct SafariView: UIViewControllerRepresentable {
@@ -33,15 +34,24 @@ extension View {
     /// `glass`: a page whose content scrolls under the title (thread) shows it in the glass
     /// capsule (`GlassTitle`, XIN 5662 / Colo 5665) and its content has no top scroll edge.
     func raftNavigationTitle(_ title: String, hashPrefix: Bool = false, subtitle: String? = nil, glass: Bool = false) -> some View {
-        modifier(RaftNavigationTitle(title: title, hashPrefix: hashPrefix, subtitle: subtitle, glass: glass))
+        modifier(RaftNavigationTitle(title: title, hashPrefix: hashPrefix, subtitle: subtitle, glass: glass, topInset: .constant(0), trailing: { EmptyView() }))
+    }
+
+    /// The glass title with a trailing button (thread: Follow). With horizontal bars the button
+    /// floats beside the capsule (`floatingGlassHeader`, which sets `topInset` for the page's
+    /// scroll view); with the vertical bar the page keeps it in its own `.toolbar`.
+    func raftNavigationTitle<Trailing: View>(_ title: String, subtitle: String? = nil, topInset: Binding<CGFloat>, @ViewBuilder glassTrailing: @escaping () -> Trailing) -> some View {
+        modifier(RaftNavigationTitle(title: title, hashPrefix: false, subtitle: subtitle, glass: true, topInset: topInset, trailing: glassTrailing))
     }
 }
 
-private struct RaftNavigationTitle: ViewModifier {
+private struct RaftNavigationTitle<Trailing: View>: ViewModifier {
     let title: String
     let hashPrefix: Bool
     let subtitle: String?
     let glass: Bool
+    @Binding var topInset: CGFloat
+    let trailing: () -> Trailing
     @Environment(\.dynamicTypeSize) private var typeSize
 
     @ViewBuilder private var navTitle: some View {
@@ -71,7 +81,208 @@ private struct RaftNavigationTitle: ViewModifier {
                         TopTitleBlock { navTitle }
                     }
                 }
+                .topTitleOverlay(vertical) { navTitle }
+                // The glass title: content runs to the top under it with the vertical bar (no
+                // scroll edge); with horizontal bars it floats over the content (Colo 5725) and
+                // the soft edge fades content under the status bar.
+                .scrollEdgeEffectHidden(glass && vertical, for: .top)
+                .floatingGlassHeader(glass && !vertical, topInset: $topInset, title: { navTitle }, trailing: trailing, accessory: { EmptyView() })
         }
+    }
+}
+
+extension View {
+    /// Colo 5725: with horizontal bars (iPhone, Duo unfolded portrait) a page whose content runs
+    /// under its glass title hides the navigation bar and floats the back button, the capsule
+    /// and `trailing` over the content instead. The top safe area is then the status bar's only,
+    /// so the system's soft scroll edge fades content under the time and stops there, not at
+    /// the capsule's bottom (no grey band under the capsule). The content starts 8 below the
+    /// capsule: apply `topInset` as the page's scroll view's `.contentMargins(.top, …,
+    /// for: .scrollContent)`, on the scroll view itself (here it would reach every scroll view in
+    /// the page, the composer's attachment strip too). `accessory` (the offline banner) sits
+    /// under the row.
+    /// With the vertical bar (`enabled` false) nothing changes: the system bar keeps back and
+    /// the page's items, the title is a `TopTitleBlock`.
+    func floatingGlassHeader<Title: View, Trailing: View, Accessory: View>(
+        _ enabled: Bool,
+        topInset: Binding<CGFloat>,
+        @ViewBuilder title: @escaping () -> Title,
+        @ViewBuilder trailing: @escaping () -> Trailing,
+        @ViewBuilder accessory: @escaping () -> Accessory
+    ) -> some View {
+        modifier(FloatingGlassHeader(enabled: enabled, topInset: topInset, title: title, trailing: trailing, accessory: accessory))
+    }
+}
+
+private struct FloatingGlassHeader<Title: View, Trailing: View, Accessory: View>: ViewModifier {
+    let enabled: Bool
+    @Binding var topInset: CGFloat
+    let title: () -> Title
+    let trailing: () -> Trailing
+    let accessory: () -> Accessory
+    @Environment(\.dismiss) private var dismiss
+    /// The row's height below the safe-area top: the capsule's bottom (and the accessory's).
+    @State private var height: CGFloat = 0
+
+    /// 44pt buttons centred in the 54pt row a navigation bar would have.
+    static var rowTop: CGFloat { 5 }
+
+    func body(content: Content) -> some View {
+        // Never branch on `enabled` around `content`: a fold would rebuild the page.
+        content
+            .toolbar(enabled ? .hidden : .automatic, for: .navigationBar)
+            .onChange(of: enabled ? height + 8 : 0, initial: true) { _, inset in topInset = inset }
+            .overlay(alignment: .top) {
+                if enabled { header }
+            }
+    }
+
+    private var header: some View {
+        VStack(spacing: 0) {
+            ZStack {
+                title()
+                    .padding(.horizontal, TopTitleBlock<EmptyView>.sideReserve)
+                HStack(spacing: 0) {
+                    backButton
+                    Spacer(minLength: 0)
+                    trailing()
+                }
+                .padding(.horizontal, 16)
+            }
+            .padding(.top, Self.rowTop)
+            accessory()
+        }
+        .frame(maxWidth: .infinity)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
+        .background {
+            SwipeBackWithoutBar()
+                .frame(width: 0, height: 0)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilitySortPriority(1)
+    }
+
+    private var backButton: some View {
+        Button { dismiss() } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Color.raftTextPrimary)
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
+        }
+        .buttonStyle(HeaderTitleButtonStyle())
+        .background(.ultraThinMaterial, in: Circle())
+        .raftGlass(Circle(), interactive: true)
+        .accessibilityLabel(Text(L10n.t("ios_back", "Back")))
+        .raftLargeContent(systemImage: "chevron.left", label: L10n.t("ios_back", "Back"))
+        .accessibilityIdentifier("header-back")
+    }
+}
+
+/// The swipe back on a page that hides the navigation bar (`floatingGlassHeader`). UIKit's own
+/// back swipes, from the edge and from the content, never start while the bar is hidden (they
+/// don't even ask their delegate), so while such a page is on screen the navigation controller
+/// gets one more pan, driving the same interactive pop as the system's: a rightward swipe from
+/// anywhere on the page, whenever there is a page to go back to and no transition is running.
+private struct SwipeBackWithoutBar: UIViewRepresentable {
+    func makeUIView(context: Context) -> Marker {
+        let view = Marker()
+        view.isUserInteractionEnabled = false
+        view.backgroundColor = .clear
+        return view
+    }
+
+    func updateUIView(_ view: Marker, context: Context) {}
+
+    @MainActor
+    final class Marker: UIView {
+        private weak var navigation: UINavigationController?
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            if window != nil {
+                guard navigation == nil, let nav = navigationController() else { return }
+                navigation = nav
+                SwipeBack.hold(nav)
+            } else if let nav = navigation {
+                navigation = nil
+                SwipeBack.release(nav)
+            }
+        }
+
+        private func navigationController() -> UINavigationController? {
+            var responder: UIResponder? = self
+            while let current = responder {
+                if let controller = current as? UIViewController, let nav = controller.navigationController {
+                    return nav
+                }
+                responder = current.next
+            }
+            return nil
+        }
+    }
+}
+
+@MainActor
+private final class SwipeBack: NSObject, UIGestureRecognizerDelegate {
+    private static var installed: [ObjectIdentifier: SwipeBack] = [:]
+
+    private weak var navigation: UINavigationController?
+    private var pan: UIPanGestureRecognizer?
+    private var holds = 0
+
+    static func hold(_ nav: UINavigationController) {
+        let key = ObjectIdentifier(nav)
+        if let existing = installed[key] {
+            existing.holds += 1
+            return
+        }
+        // The system's back swipes send this action to their target, the interactive transition.
+        let action = NSSelectorFromString("handleNavigationTransition:")
+        guard let system = nav.interactivePopGestureRecognizer?.delegate as? NSObject,
+              system.responds(to: action) else { return }
+        let swipe = SwipeBack()
+        swipe.navigation = nav
+        swipe.holds = 1
+        let pan = UIPanGestureRecognizer(target: system, action: action)
+        pan.delegate = swipe
+        pan.maximumNumberOfTouches = 1
+        nav.view.addGestureRecognizer(pan)
+        swipe.pan = pan
+        installed[key] = swipe
+    }
+
+    static func release(_ nav: UINavigationController) {
+        let key = ObjectIdentifier(nav)
+        guard let swipe = installed[key] else { return }
+        swipe.holds -= 1
+        guard swipe.holds <= 0 else { return }
+        if let pan = swipe.pan { pan.view?.removeGestureRecognizer(pan) }
+        installed[key] = nil
+    }
+
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard let nav = navigation, nav.viewControllers.count > 1, nav.transitionCoordinator == nil,
+              let pan = gestureRecognizer as? UIPanGestureRecognizer else { return false }
+        let velocity = pan.velocity(in: pan.view)
+        return velocity.x > 0 && velocity.x > abs(velocity.y)
+    }
+}
+
+/// A 44pt glass circle for a button floating in `floatingGlassHeader`, like the back button.
+struct FloatingHeaderButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 17, weight: .semibold))
+            .foregroundStyle(Color.raftTextPrimary)
+            .frame(width: 44, height: 44)
+            .contentShape(Circle())
+            .background(.ultraThinMaterial, in: Circle())
+            .raftGlass(Circle(), interactive: true)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(.smooth(duration: 0.15), value: configuration.isPressed)
     }
 }
 
@@ -189,8 +400,12 @@ struct TopTitleBlock<Title: View>: View {
     /// padding: no feedback.
     private var lift: CGFloat { min(max(insets.windowTop - insets.originY, -height), 0) }
 
+    /// Set by the page's `topTitleOverlay`: the title is drawn there, over the page, and this
+    /// block only holds its place.
+    @Environment(TopTitleSlot.self) private var slot: TopTitleSlot?
+
     var body: some View {
-        title()
+        placedTitle
             .padding(.horizontal, Self.sideReserve)
             .padding(.top, 8)
             .padding(.bottom, 6)
@@ -204,6 +419,132 @@ struct TopTitleBlock<Title: View>: View {
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
             }
+            .background {
+                NavigationBarPassThrough()
+                    .frame(width: 0, height: 0)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+    }
+
+    @ViewBuilder private var placedTitle: some View {
+        if let slot {
+            title()
+                .hidden()
+                .accessibilityHidden(true)
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { slot.frame = $0 }
+        } else {
+            title()
+        }
+    }
+}
+
+/// Where `TopTitleBlock` holds the title's place, in the window.
+@MainActor @Observable
+final class TopTitleSlot {
+    var frame: CGRect?
+}
+
+extension View {
+    /// Draws a `TopTitleBlock`'s title over the page, where the block holds its place. The block
+    /// sits in the page's top `.safeAreaBar` and moves up out of it into the navigation bar's
+    /// empty row (Duo folded); the bar's view only takes touches within its own frame, so a
+    /// tap on the channel's capsule there went to the message under it. Apply outside the
+    /// `.safeAreaBar` that holds the block.
+    func topTitleOverlay<Title: View>(_ shown: Bool, @ViewBuilder title: @escaping () -> Title) -> some View {
+        modifier(TopTitleOverlay(shown: shown, title: title))
+    }
+}
+
+private struct TopTitleOverlay<Title: View>: ViewModifier {
+    let shown: Bool
+    let title: () -> Title
+    @State private var slot = TopTitleSlot()
+
+    func body(content: Content) -> some View {
+        content
+            .environment(slot)
+            .overlay(alignment: .topLeading) {
+                if shown, let frame = slot.frame {
+                    GeometryReader { proxy in
+                        let origin = proxy.frame(in: .global).origin
+                        title()
+                            .frame(width: frame.width, height: frame.height)
+                            .offset(x: frame.minX - origin.x, y: frame.minY - origin.y)
+                    }
+                    .ignoresSafeArea()
+                    .accessibilitySortPriority(1)
+                }
+            }
+    }
+}
+
+/// With the vertical bar the navigation bar's buttons are drawn in the trailing column, but the
+/// `UINavigationBar` itself stays as an empty 58pt band across the top of the page (Duo folded:
+/// y 24–82) and took every touch there: the title block sits in that band, and a tap on the
+/// channel's capsule never reached it. While a page shows a `TopTitleBlock` the band lets
+/// touches through to the page. Counted per bar: the page pushed over another one with a block
+/// comes before the other's goes. The navigation controller turns the bar's interaction off for
+/// each transition and back on at its end, so it is set again once a transition has finished.
+private struct NavigationBarPassThrough: UIViewRepresentable {
+    func makeUIView(context: Context) -> Marker {
+        let view = Marker()
+        view.isUserInteractionEnabled = false
+        view.backgroundColor = .clear
+        return view
+    }
+
+    func updateUIView(_ view: Marker, context: Context) {}
+
+    @MainActor
+    final class Marker: UIView {
+        private static var holds: [ObjectIdentifier: Int] = [:]
+        private weak var navigation: UINavigationController?
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            if window != nil {
+                guard navigation == nil, let nav = navigationController() else { return }
+                navigation = nav
+                Self.holds[ObjectIdentifier(nav.navigationBar), default: 0] += 1
+                Self.apply(nav)
+            } else if let nav = navigation {
+                navigation = nil
+                let key = ObjectIdentifier(nav.navigationBar)
+                let count = (Self.holds[key] ?? 1) - 1
+                Self.holds[key] = count > 0 ? count : nil
+                Self.apply(nav)
+            }
+        }
+
+        /// The bar's interaction for its holds now, and again once a running transition ends.
+        private static func apply(_ nav: UINavigationController) {
+            let bar = nav.navigationBar
+            let held = (holds[ObjectIdentifier(bar)] ?? 0) > 0
+            if let coordinator = nav.transitionCoordinator {
+                coordinator.animate(alongsideTransition: nil) { _ in
+                    DispatchQueue.main.async {
+                        let held = (holds[ObjectIdentifier(bar)] ?? 0) > 0
+                        if held { bar.isUserInteractionEnabled = false }
+                    }
+                }
+                // UIKit restores the bar's interaction itself at the end of the transition.
+                if held { bar.isUserInteractionEnabled = false }
+            } else {
+                bar.isUserInteractionEnabled = !held
+            }
+        }
+
+        private func navigationController() -> UINavigationController? {
+            var responder: UIResponder? = self
+            while let current = responder {
+                if let controller = current as? UIViewController, let nav = controller.navigationController {
+                    return nav
+                }
+                responder = current.next
+            }
+            return nil
+        }
     }
 }
 

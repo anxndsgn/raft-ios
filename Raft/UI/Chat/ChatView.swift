@@ -253,6 +253,8 @@ struct ChatView: View {
     @State private var importingFiles = false
     @State private var sendTick = 0
     @State private var joinFlow = ChannelJoinFlow()
+    /// The floating glass title's bottom + 8 (`floatingGlassHeader`): the messages start under it.
+    @State private var headerInset: CGFloat = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var typeSize
 
@@ -377,13 +379,15 @@ struct ChatView: View {
                     } else if verticalBar {
                         TopTitleBlock { title }
                     }
-                    if showsBanner {
-                        StatusBanner(updatedAt: workspace.lastConnectedAt)
-                            .padding(.vertical, 4)
-                            .transition(.move(edge: .top).combined(with: .opacity))
-                    }
+                    if !floatsHeader(verticalBar: verticalBar) { banner }
                 }
             }
+            // A channel's glass title: content runs to the top under it with the vertical bar (no
+            // scroll edge); with horizontal bars it floats with back over the content (Colo 5725)
+            // and the soft edge fades content under the status bar only.
+            .scrollEdgeEffectHidden(dmHeaderPeer == nil && verticalBar, for: .top)
+            .topTitleOverlay(verticalBar && dmHeaderPeer == nil) { title }
+            .floatingGlassHeader(floatsHeader(verticalBar: verticalBar), topInset: $headerInset, title: { title }, trailing: { EmptyView() }, accessory: { banner })
             .messageInteractions(interactions) { messageId, emoji in react(messageId, emoji) }
             .photosPicker(isPresented: $pickingPhotos, selection: $photoItems, maxSelectionCount: 10, matching: .images)
             .onChange(of: photoItems) { _, items in
@@ -508,6 +512,18 @@ struct ChatView: View {
 
     // MARK: Title (§2.12, 10)
 
+    /// The glass title floats over the messages (`floatingGlassHeader`): horizontal bars, not a
+    /// DM with its header.
+    private func floatsHeader(verticalBar: Bool) -> Bool { dmHeaderPeer == nil && !verticalBar }
+
+    @ViewBuilder private var banner: some View {
+        if showsBanner {
+            StatusBanner(updatedAt: workspace.lastConnectedAt)
+                .padding(.vertical, 4)
+                .transition(.move(edge: .top).combined(with: .opacity))
+        }
+    }
+
     @ViewBuilder private var title: some View {
         // A DM with its peer loaded shows it under the bar (`DMHeaderBar`).
         if isTask || isDirectMessage {
@@ -524,7 +540,7 @@ struct ChatView: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text(verbatim: "# \(store.title), " + L10n.t("ios_channel_info_title", "Channel info")))
             .accessibilityHint(Text(L10n.t("ios_channel_info_hint", "Shows channel details")))
-            .accessibilityAddTraits(.isHeader)
+            .accessibilityAddTraits([.isButton, .isHeader])
             .accessibilityIdentifier("chat-title")
         }
     }
@@ -569,6 +585,7 @@ struct ChatView: View {
             .padding(.bottom, 12)
             .opacity(isHidden ? 0 : 1)
         }
+        .contentMargins(.top, headerInset, for: .scrollContent)
         // A tap on the messages ends writing. On the scroll view itself, inside the bottom bar:
         // over the whole page it also saw taps in the composer (As task, +, send) and dropped the
         // keyboard on each.
@@ -589,11 +606,9 @@ struct ChatView: View {
         .defaultScrollAnchor((isEmpty || store.isLoadingOlder || store.phase != .loaded) ? .top : .bottom, for: .alignment)
         .defaultScrollAnchor((edges.atBottom || holdingForOlder) ? .bottom : .top, for: .sizeChanges)
         .scrollDismissesKeyboard(.interactively)
-        // No top scroll edge under the glass title capsule (XIN 5662 / Colo 5665): messages run to
-        // the screen's top. A DM keeps the system's soft edge under its header (its caption has
-        // no glass). None at the bottom: messages pass under the composer's glass.
+        // The top scroll edge is soft; whether it shows follows the header (`page`). None at the
+        // bottom: messages pass under the composer's glass.
         .scrollEdgeEffectStyle(.soft, for: .top)
-        .scrollEdgeEffectHidden(dmHeaderPeer == nil, for: .top)
         .scrollEdgeEffectHidden(true, for: .bottom)
         .onScrollGeometryChange(for: StreamEdges.self) { geometry in
             StreamEdges(
