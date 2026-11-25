@@ -1,6 +1,7 @@
 import CoreGraphics
 import Foundation
 import Testing
+import UIKit
 @testable import Raft
 
 // MARK: Fixtures
@@ -416,6 +417,50 @@ struct ImageViewerDismissTests {
         #expect(rect == CGRect(x: 0, y: 250, width: 400, height: 300))
         let tall = ImageViewerDismiss.fitted(CGSize(width: 100, height: 400), in: CGRect(x: 0, y: 0, width: 400, height: 800))
         #expect(tall == CGRect(x: 100, y: 0, width: 200, height: 800))
+    }
+}
+
+struct ImageViewerFitTests {
+    /// iPhone Duo folded (measured): the system's column (status, Close at x 399–437, Share) is the
+    /// window's 84pt right safe area; the info capsule's top is at 584.
+    @Test func keepsOutOfTheSystemColumnAndAboveTheCapsule() {
+        let layout = ImageViewerFit.Layout(
+            size: CGSize(width: 466, height: 678),
+            windowSafe: UIEdgeInsets(top: 0, left: 0, bottom: 34, right: 84),
+            pageSafe: UIEdgeInsets(top: 24, left: 0, bottom: 34, right: 84),
+            verticalBar: true,
+            capsule: CGRect(x: 16, y: 584, width: 350, height: 60)
+        )
+        let insets = ImageViewerFit.insets(layout)
+        #expect(insets == UIEdgeInsets(top: 0, left: 0, bottom: CGFloat(106), right: CGFloat(84)))
+        let region = CGRect(origin: .zero, size: layout.size).inset(by: insets)
+        let image = ImageViewerDismiss.fitted(CGSize(width: 1600, height: 1000), in: region)
+        let buttons = CGRect(x: 399, y: 179, width: 38, height: 98)
+        #expect(!image.intersects(buttons))
+        #expect(!image.intersects(layout.capsule!))
+        #expect(image.maxY <= CGFloat(572))
+    }
+
+    /// A horizontal bar: the page's safe area holds it; the page counter pushes the top down.
+    @Test func keepsBelowAHorizontalBarAndTheCounter() {
+        let layout = ImageViewerFit.Layout(
+            size: CGSize(width: 402, height: 874),
+            windowSafe: UIEdgeInsets(top: 62, left: 0, bottom: 34, right: 0),
+            pageSafe: UIEdgeInsets(top: 116, left: 0, bottom: 34, right: 0),
+            capsule: CGRect(x: 16, y: 780, width: 370, height: 60),
+            counter: CGRect(x: 170, y: 122, width: 60, height: 32)
+        )
+        let insets = ImageViewerFit.insets(layout)
+        #expect(insets == UIEdgeInsets(top: CGFloat(166), left: 0, bottom: CGFloat(106), right: 0))
+    }
+
+    @Test func centresInTheRegionAndScrollsToItsEdgesWhenLarger() {
+        let fit = UIEdgeInsets(top: 0, left: 0, bottom: 110, right: 98)
+        let bounds = CGSize(width: 466, height: 678)
+        let small = ImageViewerFit.centering(content: CGSize(width: 368, height: 230), bounds: bounds, fit: fit)
+        #expect(small == UIEdgeInsets(top: CGFloat(169), left: 0, bottom: CGFloat(279), right: CGFloat(98)))
+        let zoomed = ImageViewerFit.centering(content: CGSize(width: 920, height: 575), bounds: bounds, fit: fit)
+        #expect(zoomed == fit)
     }
 }
 
