@@ -191,10 +191,8 @@ struct RouteView: View {
         switch route {
         case .conversation(let ref):
             ChatView(store: workspace.conversation(for: ref), ref: ref)
-                .toolbar(.hidden, for: .tabBar)
         case .thread(let ref):
             ThreadView(store: workspace.thread(for: ref))
-                .toolbar(.hidden, for: .tabBar)
         case .servers:
             ServerPickerView(showsBack: true)
         case .saved:
@@ -203,10 +201,8 @@ struct RouteView: View {
             BrowseChannelsView()
         case .channelInfo(let channelId):
             ChannelInfoView(channelId: channelId)
-                .toolbar(.hidden, for: .tabBar)
         case .channelMembers(let channelId):
             ChannelMembersView(channelId: channelId)
-                .toolbar(.hidden, for: .tabBar)
         case .messageSearch:
             MessageSearchDestination()
         }
