@@ -297,22 +297,27 @@ struct HomeView: View {
             Color.clear.frame(width: 1, height: 1).accessibilityHidden(true)
         }
         ToolbarItem(placement: .topBarLeading) {
+            // XIN 5310 / Colo 5311: no glass capsule — avatar, name and chevron sit on the bar.
             Button {
                 showsSwitcher = true
             } label: {
-                HStack(spacing: 8) {
-                    ServerAvatar(name: server?.name ?? "R", side: 28)
+                HStack(spacing: 0) {
+                    ServerAvatar(name: server?.name ?? "R", side: 28, cornerRadius: 7)
                     Text(verbatim: server?.name ?? "")
-                        .raftFont(.navTitle)
+                        .font(.custom(RaftFont.bold, size: 19, relativeTo: .headline))
                         .foregroundStyle(Color.raftTextPrimary)
                         .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .padding(.leading, 10)
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(Color.raftTextSecondary)
+                        .padding(.leading, 6)
                 }
-                .padding(.leading, 0)
-                .padding(.trailing, 6)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(PressDimButtonStyle())
             .accessibilityLabel(Text(L10n.f("ios_switch_server_a11y", "%1$@, switch server", server?.name ?? "")))
             .accessibilityIdentifier("server-switcher")
             #if DEBUG
@@ -327,6 +332,7 @@ struct HomeView: View {
                     .presentationCompactAdaptation(.popover)
             }
         }
+        .sharedBackgroundVisibility(.hidden)
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 Picker(selection: Binding(
@@ -662,5 +668,12 @@ struct HomeSkeleton: View {
         .accessibilityLabel(Text(L10n.t("ios_loading", "Loading")))
         .accessibilityAddTraits(.updatesFrequently)
         .accessibilityIdentifier("home-skeleton")
+    }
+}
+
+/// The bare server switcher dims as a whole while pressed (Colo 5311).
+private struct PressDimButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.opacity(configuration.isPressed ? 0.6 : 1)
     }
 }

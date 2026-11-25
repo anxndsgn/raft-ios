@@ -267,11 +267,12 @@ final class AvatarImageCache {
 struct ServerAvatar: View {
     let name: String
     var side: CGFloat = 35
+    var cornerRadius: CGFloat = 4
     @Environment(\.colorScheme) private var scheme
     @Environment(\.displayScale) private var displayScale
 
     var body: some View {
-        Image(uiImage: Self.image(initial: initial, side: side, dark: scheme == .dark, scale: displayScale))
+        Image(uiImage: Self.image(initial: initial, side: side, radius: cornerRadius, dark: scheme == .dark, scale: displayScale))
             .renderingMode(.original)
             .resizable()
             .frame(width: side, height: side)
@@ -284,18 +285,18 @@ struct ServerAvatar: View {
 
     @MainActor private static var cache: [String: UIImage] = [:]
 
-    @MainActor static func image(initial: String, side: CGFloat, dark: Bool, scale: CGFloat) -> UIImage {
-        let key = "\(initial)|\(side)|\(dark)|\(scale)"
+    @MainActor static func image(initial: String, side: CGFloat, radius: CGFloat = 4, dark: Bool, scale: CGFloat) -> UIImage {
+        let key = "\(initial)|\(side)|\(radius)|\(dark)|\(scale)"
         if let hit = cache[key] { return hit }
         let format = UIGraphicsImageRendererFormat()
         format.scale = max(scale, 1)
         let rect = CGRect(x: 0, y: 0, width: side, height: side)
         let image = UIGraphicsImageRenderer(size: rect.size, format: format).image { _ in
-            let path = UIBezierPath(roundedRect: rect, cornerRadius: 4)
+            let path = UIBezierPath(roundedRect: rect, cornerRadius: radius)
             UIColor(red: 0x14 / 255, green: 0x14 / 255, blue: 0x12 / 255, alpha: 1).setFill()
             path.fill()
             if dark {
-                let ring = UIBezierPath(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), cornerRadius: 3.5)
+                let ring = UIBezierPath(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), cornerRadius: radius - 0.5)
                 ring.lineWidth = 1
                 UIColor(white: 1, alpha: 0.12).setStroke()
                 ring.stroke()

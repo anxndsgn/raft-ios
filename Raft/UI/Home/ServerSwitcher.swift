@@ -85,7 +85,14 @@ struct ServerSwitcher: View {
                 }
             }
             Spacer(minLength: 8)
-            if selected { SelectionMark() }
+            if selected {
+                // Colo 5309: a plain system-menu checkmark, 16pt from the row's right edge.
+                Image(systemName: "checkmark")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(Color.raftTextPrimary)
+                    .padding(.trailing, 6)
+                    .accessibilityHidden(true)
+            }
         }
         .padding(.horizontal, 10)
         .frame(minHeight: 56)
