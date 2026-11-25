@@ -91,11 +91,31 @@ struct MessageImageGroup: View {
     var fallbackOpen: (MessageAttachment) -> Void = { _ in }
     var interactive = true
 
+    /// Pixel size of the first image once loaded, for attachments that arrive without width/height
+    /// (all of them, live): the 4:3 placeholder then takes the real ratio. The stream's scroll
+    /// position is tracked by message id, so the visible message stays put while this row grows.
+    @State private var loadedFirstSize: CGSize?
+
+    private func firstSize(_ first: MessageAttachment) -> CGSize {
+        if let w = first.width, let h = first.height, w > 0, h > 0 {
+            return MessageImageLayout.first(width: w, height: h, column: MessageImageLayout.maxWidth)
+        }
+        let known = loadedFirstSize
+            ?? MessageImageLayout.thumbnailURL(first).flatMap { RaftImageCache.shared.image(for: $0)?.size }
+        return MessageImageLayout.first(
+            width: known.map { Int($0.width.rounded()) },
+            height: known.map { Int($0.height.rounded()) },
+            column: MessageImageLayout.maxWidth
+        )
+    }
+
     var body: some View {
         let shown = MessageImageLayout.shown(images)
         VStack(alignment: .leading, spacing: MessageImageLayout.spacing) {
             if let first = shown.first {
-                tile(first, index: 0, size: MessageImageLayout.first(width: first.width, height: first.height, column: MessageImageLayout.maxWidth))
+                tile(first, index: 0, size: firstSize(first)) { image in
+                    if loadedFirstSize == nil, first.width == nil || first.height == nil { loadedFirstSize = image.size }
+                }
             }
             let rest = Array(shown.dropFirst())
             if !rest.isEmpty {
@@ -114,7 +134,7 @@ struct MessageImageGroup: View {
         }
     }
 
-    private func tile(_ attachment: MessageAttachment, index: Int, size: CGSize, overflow: Int = 0) -> some View {
+    private func tile(_ attachment: MessageAttachment, index: Int, size: CGSize, overflow: Int = 0, onImage: @escaping (UIImage) -> Void = { _ in }) -> some View {
         MessageImageTile(
             attachment: attachment,
             index: index,
@@ -122,7 +142,8 @@ struct MessageImageGroup: View {
             size: size,
             overflow: overflow,
             store: store,
-            interactive: interactive
+            interactive: interactive,
+            onImage: onImage
         ) { viewer in
             if let viewer {
                 viewer.open(images: images, at: index, sender: sender, date: date, attachments: store)
@@ -141,6 +162,7 @@ struct MessageImageTile: View {
     var overflow = 0
     let store: AttachmentStore
     var interactive = true
+    var onImage: (UIImage) -> Void = { _ in }
     let open: (ImageViewerModel?) -> Void
 
     @Environment(ImageViewerModel.self) private var viewer: ImageViewerModel?
@@ -214,6 +236,7 @@ struct MessageImageTile: View {
         var url = MessageImageLayout.thumbnailURL(attachment)
         if let cached = url.flatMap({ RaftImageCache.shared.image(for: $0) }) {
             image = cached
+            onImage(cached)
             viewer?.noteThumbnail(cached, for: attachment.id)
             return
         }
@@ -223,6 +246,7 @@ struct MessageImageTile: View {
             return
         }
         image = loaded
+        onImage(loaded)
         viewer?.noteThumbnail(loaded, for: attachment.id)
     }
 }

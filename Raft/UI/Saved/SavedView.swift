@@ -301,12 +301,14 @@ struct SavedRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.top, 2)
             }
+            // Saved entries carry no attachments (checked live), so the row runs full width (Colo 5332).
             if let thumbnail {
                 SavedThumbnail(attachment: thumbnail)
                     .padding(.top, 2)
             }
         }
-        .padding(.horizontal, 20)
+        .padding(.leading, 20)
+        .padding(.trailing, 16)
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
@@ -402,14 +404,9 @@ struct SavedSkeleton: View {
                         line(Self.firstLines[index])
                         line(Self.secondLines[index])
                     }
-                    if index == 0 || index == 3 {
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(Color.raftSkeleton)
-                            .frame(width: 44, height: 44)
-                            .padding(.top, 2)
-                    }
                 }
-                .padding(.horizontal, 20)
+                .padding(.leading, 20)
+                .padding(.trailing, 16)
                 .padding(.vertical, 12)
                 .frame(height: 86, alignment: .top)
                 .overlay(alignment: .bottom) {
