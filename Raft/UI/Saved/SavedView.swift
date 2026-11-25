@@ -49,6 +49,11 @@ struct SavedView: View {
                 showsEmpty = true
             }
         }
+        .onChange(of: saved.entries.isEmpty, initial: true) { _, isEmpty in
+            // The task above only reruns when its id flips, which loading a non-empty first
+            // page never does, so record "there were rows" here.
+            if !isEmpty { hadEntries = true }
+        }
         .refreshable { await saved.refresh() }
         .task { await saved.refresh() }
         .task(id: saved.phase == .loading) {
