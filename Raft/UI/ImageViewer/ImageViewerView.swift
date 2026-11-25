@@ -59,6 +59,14 @@ struct ImageViewerView: View {
     @State private var closeFrom: CGRect?
     @State private var closeBackdrop: Double = 1
     @State private var closeProgress: Double = 0
+    /// What the image's resting region is worked out from (`ImageViewerFit`), each in the
+    /// window's space as measured, and the insets it gives in the viewer's space.
+    @State private var window = WindowMetrics()
+    @State private var safeFrame: CGRect = .zero
+    @State private var verticalBar = false
+    @State private var capsuleFrame: CGRect?
+    @State private var counterFrame: CGRect?
+    @State private var restInsets: UIEdgeInsets = .zero
 
     private var index: Int { min(max(page ?? session.start, 0), session.images.count - 1) }
     private var current: MessageAttachment { session.images[index] }
@@ -75,6 +83,7 @@ struct ImageViewerView: View {
         // iPhone, in the vertical bar (with the status bar) on iPhone Duo.
         NavigationStack {
             ZStack {
+                measurements
                 GeometryReader { proxy in
                     images(size: proxy.size)
                         .onAppear { screen = proxy.frame(in: .global) }
@@ -114,10 +123,72 @@ struct ImageViewerView: View {
             }
         }
         .onAppear(perform: present)
+        .onChange(of: fitLayout, initial: true) { _, layout in updateRestInsets(layout) }
+        .onChange(of: chromeVisible) { updateRestInsets(fitLayout) }
         .onChange(of: page) { _, value in
             if let value { viewer.current = value }
         }
         .task { await loadOriginals() }
+    }
+
+    // MARK: Resting region (Colo 5653)
+
+    /// The safe area (as the frame of a layer that keeps to it), the window's safe area and
+    /// whether the bars are vertical; the capsule and the page counter report their own frames.
+    private var measurements: some View {
+        Color.clear
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { safeFrame = $0 }
+            .background {
+                WindowSafeAreaReader { window = $0 }
+                    .allowsHitTesting(false)
+            }
+            .overlay {
+                VerticalBarReader { vertical in
+                    Color.clear.onChange(of: vertical, initial: true) { _, value in verticalBar = value }
+                }
+            }
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+
+    private func local(_ frame: CGRect?) -> CGRect? {
+        guard let frame, frame.width > 0, frame.height > 0 else { return nil }
+        return frame.offsetBy(dx: -screen.minX, dy: -screen.minY)
+    }
+
+    /// Close and Share are system toolbar items: the system places them in its own column (the
+    /// vertical bar) or in the navigation bar, both inside the safe area, so the safe area alone
+    /// keeps the image clear of them. (Their own frames, read from inside the toolbar, are in
+    /// the item's space, not the window's.)
+    private var fitLayout: ImageViewerFit.Layout {
+        // Before the full-screen layer reports its frame it fills the window.
+        let size = screen.size == .zero ? window.size : screen.size
+        var page = UIEdgeInsets.zero
+        if let safe = local(safeFrame) {
+            page = UIEdgeInsets(top: safe.minY, left: safe.minX, bottom: size.height - safe.maxY, right: size.width - safe.maxX)
+        }
+        // The capsule sits on the safe area's bottom; until it reports its frame, there.
+        let bottom = max(page.bottom, window.safeArea.bottom)
+        let capsule = local(capsuleFrame)
+            ?? CGRect(x: 0, y: size.height - bottom - Self.infoBarHeight, width: size.width, height: Self.infoBarHeight)
+        return ImageViewerFit.Layout(
+            size: size,
+            windowSafe: window.safeArea,
+            pageSafe: page,
+            verticalBar: verticalBar,
+            capsule: capsule,
+            counter: count >= 2 ? local(counterFrame) : nil
+        )
+    }
+
+    /// Follows the controls while they show; with them hidden (a tap) the image stays put.
+    private func updateRestInsets(_ layout: ImageViewerFit.Layout) {
+        // Only the viewer's full-screen layer, once it fills the window.
+        guard layout.size.width > 0, layout.size.height > 0,
+              abs(layout.size.width - window.size.width) < 1, abs(layout.size.height - window.size.height) < 1 else { return }
+        let insets = ImageViewerFit.insets(layout)
+        guard chromeVisible || stage == .opening, insets != restInsets else { return }
+        restInsets = insets
     }
 
     // MARK: Images
@@ -158,6 +229,7 @@ struct ImageViewerView: View {
         ZoomableImageView(
             image: image(for: attachment),
             isCurrent: offset == index,
+            fitInsets: restInsets,
             reduceMotion: reduceMotion,
             onZoomChange: { zoomed = $0 },
             onSingleTap: toggleChrome,
@@ -218,8 +290,9 @@ struct ImageViewerView: View {
         originals[attachment.id] ?? viewer.thumbnail(for: attachment)
     }
 
+    /// The image at rest: fitted into the region the controls leave.
     private func fitted(_ image: UIImage, in local: CGRect) -> CGRect {
-        ImageViewerDismiss.fitted(image.size, in: local)
+        ImageViewerDismiss.fitted(image.size, in: local.inset(by: restInsets))
     }
 
     /// The page's frame as the swipe-down moves and shrinks it.
@@ -246,6 +319,12 @@ struct ImageViewerView: View {
 
     private func present() {
         page = session.start
+        // The resting region before the flight starts, so it lands where the image will rest: the
+        // window's metrics now (the reader's come a moment later), the rest as far as laid out.
+        if window.size == .zero, let key = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first?.keyWindow {
+            window = WindowMetrics(size: key.bounds.size, safeArea: key.safeAreaInsets)
+        }
+        updateRestInsets(fitLayout)
         #if DEBUG
         if PreviewGallery.screen == "31c" { postToast(.saved) }
         if PreviewGallery.screen == "31d" { showsDeniedAlert = true }
@@ -379,10 +458,12 @@ struct ImageViewerView: View {
                     .raftGlass(Capsule())
                     .contentTransition(.numericText())
                     .accessibilityLabel(Text(verbatim: L10n.f("image_lightbox_counter", "%1$d of %2$d", index + 1, count)))
+                    .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { counterFrame = $0 }
                     .padding(.top, 6)
             }
             Spacer(minLength: 0)
             infoBar
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { capsuleFrame = $0 }
                 .padding(.horizontal, 16)
         }
     }
@@ -402,6 +483,8 @@ struct ImageViewerView: View {
             .accessibilityValue(unavailable.contains(current.id) ? Text(L10n.t("thread_image_preview_unavailable", "Image unavailable")) : Text(L10n.t("ios_loading", "Loading")))
         }
     }
+
+    private static let infoBarHeight: CGFloat = 60
 
     private var infoBar: some View {
         HStack(spacing: 10) {
@@ -424,7 +507,7 @@ struct ImageViewerView: View {
         }
         .padding(.leading, 14)
         .padding(.trailing, 8)
-        .frame(height: 60)
+        .frame(height: Self.infoBarHeight)
         .raftGlass(Capsule())
     }
 
@@ -623,5 +706,55 @@ struct DarkAlertPresenter: UIViewControllerRepresentable {
 
     static func dismantleUIViewController(_ controller: UIViewController, coordinator: Coordinator) {
         coordinator.alert?.dismiss(animated: false)
+    }
+}
+
+private struct WindowMetrics: Equatable {
+    var size: CGSize = .zero
+    var safeArea: UIEdgeInsets = .zero
+}
+
+/// The window's size and safe area (Duo folded: the system's status column on the trailing
+/// edge, where Close and Share go too), which a SwiftUI view that ignores the safe area cannot read.
+private struct WindowSafeAreaReader: UIViewRepresentable {
+    let report: (WindowMetrics) -> Void
+
+    func makeUIView(context: Context) -> ReaderView {
+        let view = ReaderView()
+        view.isUserInteractionEnabled = false
+        view.report = report
+        return view
+    }
+
+    func updateUIView(_ view: ReaderView, context: Context) {
+        view.report = report
+    }
+
+    final class ReaderView: UIView {
+        var report: ((WindowMetrics) -> Void)?
+        private var last: WindowMetrics?
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            measure()
+        }
+
+        override func safeAreaInsetsDidChange() {
+            super.safeAreaInsetsDidChange()
+            measure()
+        }
+
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            measure()
+        }
+
+        private func measure() {
+            guard let window else { return }
+            let metrics = WindowMetrics(size: window.bounds.size, safeArea: window.safeAreaInsets)
+            guard metrics != last else { return }
+            last = metrics
+            DispatchQueue.main.async { [weak self] in self?.report?(metrics) }
+        }
     }
 }

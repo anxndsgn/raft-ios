@@ -113,3 +113,67 @@ enum ImageViewerFormat {
         return L10n.f("ios_image_viewer_time", "%1$@ %2$@", day, RaftFormat.clock(date))
     }
 }
+
+/// Where the image rests (31, Colo 5653): at 1× it is aspect-fitted and centred in the region
+/// the controls leave free, so it never sits under Close, Share, the page counter or the info
+/// capsule. Pinching in may take it under them. All rects are in the viewer's own (full-screen)
+/// space; the result is physical insets from its edges.
+enum ImageViewerFit {
+    /// Between the region's bottom and the info capsule's top.
+    static let capsuleGap: CGFloat = 12
+    /// Between the page counter's bottom and the region's top.
+    static let counterGap: CGFloat = 12
+
+    struct Layout: Equatable {
+        var size: CGSize
+        /// The window's safe area (Duo folded: the system's status column on the trailing edge).
+        var windowSafe: UIEdgeInsets = .zero
+        /// The page's safe area under a horizontal navigation bar (top includes the bar).
+        var pageSafe: UIEdgeInsets = .zero
+        /// The system stacks the bars in a vertical column (Duo folded, unfolded landscape): Close
+        /// and Share are in its column, which is the window's side safe area.
+        var verticalBar = false
+        var capsule: CGRect?
+        var counter: CGRect?
+    }
+
+    static func insets(_ layout: Layout) -> UIEdgeInsets {
+        let width = layout.size.width
+        let height = layout.size.height
+        let window = layout.windowSafe
+        var insets = UIEdgeInsets(
+            top: window.top,
+            left: max(window.left, layout.pageSafe.left),
+            bottom: window.bottom,
+            right: max(window.right, layout.pageSafe.right)
+        )
+        if !layout.verticalBar {
+            // The navigation bar (Close, Share) is in the page's top safe area.
+            insets.top = max(insets.top, layout.pageSafe.top)
+        }
+        if let counter = layout.counter, counter.height > 0 {
+            insets.top = max(insets.top, counter.maxY + counterGap)
+        }
+        if let capsule = layout.capsule, capsule.height > 0 {
+            insets.bottom = max(insets.bottom, height - (capsule.minY - capsuleGap))
+        }
+        // Never less than a sliver of region.
+        insets.top = min(max(insets.top, 0), max(height - insets.bottom - 1, 0))
+        insets.left = min(max(insets.left, 0), max(width - insets.right - 1, 0))
+        return insets
+    }
+
+    /// The scroll view's content insets that centre `content` in `bounds` inset by `fit`; content
+    /// larger than that region (zoomed in) can be scrolled until its edges reach the region's.
+    static func centering(content: CGSize, bounds: CGSize, fit: UIEdgeInsets) -> UIEdgeInsets {
+        func axis(_ content: CGFloat, _ length: CGFloat, _ lead: CGFloat, _ trail: CGFloat) -> (CGFloat, CGFloat) {
+            let region = length - lead - trail
+            guard content < region else { return (lead, trail) }
+            let start = lead + (region - content) / 2
+            return (start, length - start - content)
+        }
+        let h = axis(content.width, bounds.width, fit.left, fit.right)
+        let v = axis(content.height, bounds.height, fit.top, fit.bottom)
+        return UIEdgeInsets(top: v.0, left: h.0, bottom: v.1, right: h.1)
+    }
+}
