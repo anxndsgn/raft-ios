@@ -130,6 +130,8 @@ final class AppModel {
             async let directory: Void = next.directory.load()
             async let extras: Void = next.homeExtras.load()
             _ = await (started, directory, extras)
+            // The first push of the session then shows messages from its first frame.
+            await next.prefetchConversations()
         }
     }
 
