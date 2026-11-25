@@ -80,6 +80,48 @@ struct StreamEnd: Equatable {
     var screen: CGFloat
 }
 
+/// Jump to latest (5595): a glass circle centred 12pt above the bottom bar, shown while the list
+/// is more than a screen from its end. An overlay of the bar: it moves with the bar (the keyboard,
+/// the composer growing) and never changes the bar's height, so the list does not move.
+struct JumpToLatestButton: View {
+    let isShown: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "arrow.down")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(.primary)
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
+                .glassEffect(.regular.interactive(), in: .circle)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(L10n.t("ios_jump_to_latest", "Jump to latest")))
+        .accessibilityHint(Text(L10n.t("ios_jump_to_latest_hint", "Scrolls to the newest message")))
+        .scaleEffect(isShown ? 1 : 0.8)
+        .opacity(isShown ? 1 : 0)
+        .allowsHitTesting(isShown)
+        .accessibilityHidden(!isShown)
+        .animation(.spring(response: 0.3, dampingFraction: 0.85), value: isShown)
+    }
+}
+
+extension View {
+    /// The jump-to-latest button over this bottom bar, its bottom 12pt above the bar's top.
+    func jumpToLatest(shown: Bool, action: @escaping () -> Void) -> some View {
+        overlay(alignment: .top) {
+            JumpToLatestButton(isShown: shown, action: action)
+                .alignmentGuide(.top) { $0[.bottom] + 12 }
+        }
+    }
+}
+
+/// Whether the visible area's bottom is more than a screen (the visible height) above the end.
+func isFarFromEnd(_ geometry: ScrollGeometry) -> Bool {
+    geometry.contentSize.height - geometry.visibleRect.maxY > geometry.containerSize.height
+}
+
 /// Opening at a message (29c). The stream stays hidden until the row is where it will stay, so it
 /// lands once: centred when it can be, else as near the centre as the content allows (at the
 /// top or the bottom). The last step is an offset, not "this id at the centre": an id-based
@@ -191,6 +233,8 @@ struct ChatView: View {
     /// the laid-out last row agree it is there. The first passes placed it the bottom bar's height
     /// (86pt) past its end, then corrected it, which flashed.
     @State private var endSettled = false
+    /// More than a screen from the end: the jump-to-latest button shows.
+    @State private var farFromEnd = false
     @State private var landingTarget: String?
     @State private var targetFrame: CGRect?
     /// VoiceOver lands on the message the conversation opened at (29c).
@@ -505,6 +549,7 @@ struct ChatView: View {
         .safeAreaBar(edge: .bottom) {
             composerBar
                 .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { barTop = $0 }
+                .jumpToLatest(shown: (farFromEnd || store.isDetached) && !landing && store.phase == .loaded, action: scrollToLatest)
         }
         .composerPageBottom()
         .scrollPosition($position)
@@ -529,6 +574,7 @@ struct ChatView: View {
             holdBottom(old: old, new: value)
             checkEndSettled()
         }
+        .onScrollGeometryChange(for: Bool.self, of: isFarFromEnd) { _, far in farFromEnd = far }
         .onScrollPhaseChange { old, phase in
             scrollIdle = phase == .idle
             if phase == .interacting {
@@ -695,23 +741,6 @@ struct ChatView: View {
 
     private var composerBar: some View {
         VStack(spacing: 8) {
-            if store.isDetached {
-                Button {
-                    Task {
-                        await store.jumpToLatest()
-                        position.scrollTo(edge: .bottom)
-                    }
-                } label: {
-                    Label(L10n.t("ios_jump_to_latest", "Jump to latest"), systemImage: "arrow.down")
-                        .raftFont(.footnoteStrong)
-                        .foregroundStyle(Color.raftTextPrimary)
-                        .padding(.horizontal, 14)
-                        .frame(height: 36)
-                        .raftGlass(Capsule(), interactive: true)
-                }
-                .buttonStyle(.plain)
-                .frame(maxWidth: .infinity)
-            }
             if let query = composer.mentionQuery, !mentionCandidates.isEmpty {
                 MentionPicker(query: query, candidates: mentionCandidates, highlighted: min(composer.highlightedMention, mentionCandidates.count - 1)) { candidate in
                     composer.pick(candidate)
@@ -738,6 +767,22 @@ struct ChatView: View {
         }
         .composerBarInsets(focused: composerFocused)
         .animation(.smooth(duration: 0.2), value: mentionCandidates.isEmpty)
+    }
+
+    /// Scrolls to the newest message, animated, and holds the list there. Detached (opened at
+    /// an older message), the newest page is loaded first.
+    private func scrollToLatest() {
+        Task {
+            if store.isDetached { await store.jumpToLatest() }
+            holdsBottom = true
+            withAnimation(.smooth(duration: 0.35)) {
+                position.scrollTo(edge: .bottom)
+            } completion: {
+                // The animation ends where the lazy rows' estimates put the end: settled on the
+                // last row's laid-out end.
+                settleOnEnd(force: true)
+            }
+        }
     }
 
     private func addFiles(_ files: [UploadFile]) {

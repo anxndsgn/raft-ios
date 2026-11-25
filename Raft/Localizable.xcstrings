@@ -2180,7 +2180,7 @@
       }
     },
     "ios_jump_to_latest" : {
-      "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:585",
+      "comment" : "Jump-to-latest button label (Raft/UI/Chat/ChatView.swift), zh-Hans by copywriting",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2192,7 +2192,25 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "跳到最新"
+            "value" : "回到最新消息"
+          }
+        }
+      }
+    },
+    "ios_jump_to_latest_hint" : {
+      "comment" : "Jump-to-latest button hint (Raft/UI/Chat/ChatView.swift), zh-Hans by copywriting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scrolls to the newest message"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "滚动到最新一条消息"
           }
         }
       }

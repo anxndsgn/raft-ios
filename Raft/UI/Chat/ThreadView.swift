@@ -30,6 +30,8 @@ struct ThreadView: View {
     /// Opening at a reply: the stream is hidden until it has landed there (29c).
     @State private var landing = false
     @State private var geometry = StreamGeometry()
+    /// More than a screen from the end: the jump-to-latest button shows.
+    @State private var farFromEnd = false
     @State private var landingTarget: String?
     @State private var targetFrame: CGRect?
     /// VoiceOver lands on the reply the thread opened at (29c).
@@ -106,7 +108,10 @@ struct ThreadView: View {
         })
         // The composer is the scroll view's own bottom bar (it insets the replies). Soft fade at the
         // top only: replies pass under the composer's glass unblurred.
-        .safeAreaBar(edge: .bottom) { composerBar }
+        .safeAreaBar(edge: .bottom) {
+            composerBar
+                .jumpToLatest(shown: farFromEnd && !landing && store.phase == .loaded, action: scrollToLatest)
+        }
         .composerPageBottom()
         .scrollEdgeEffectStyle(.soft, for: .top)
         .scrollEdgeEffectHidden(true, for: .bottom)
@@ -134,6 +139,7 @@ struct ThreadView: View {
                 reachedBottom = true
             }
         }
+        .onScrollGeometryChange(for: Bool.self, of: isFarFromEnd) { _, far in farFromEnd = far }
         .onScrollPhaseChange { old, phase in
             scrollIdle = phase == .idle
             if phase == .interacting {
@@ -425,6 +431,21 @@ struct ThreadView: View {
             await store.deliverReply(randomId, attachmentIds: draft.uploadedIds)
             replies?.isVisible = scenePhase == .active
             await revealLatest()
+        }
+    }
+
+    /// Scrolls to the newest reply, animated, and holds the list there.
+    private func scrollToLatest() {
+        // By id: `scrollTo(edge:)` is a no-op here once the position has read as "bottom".
+        guard let last = replies.flatMap({ replyEntries(messages: $0.messages, pending: $0.pending).last?.id }) else { return }
+        holdsBottom = true
+        withAnimation(.smooth(duration: 0.35)) {
+            position.scrollTo(id: last, anchor: .bottom)
+        } completion: {
+            // The animation ends where the lazy rows' estimates put the end.
+            if geometry.contentHeight > geometry.visible, abs(geometry.top - geometry.maxTop) >= 0.5 {
+                position.scrollTo(y: geometry.maxTop)
+            }
         }
     }
 
