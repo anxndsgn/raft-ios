@@ -655,7 +655,6 @@ struct TypingRow: View {
                 .replacingOccurrences(of: "{first}", with: first)
                 .replacingOccurrences(of: "{second}", with: personas[1].name)
                 .replacingOccurrences(of: "{others}", with: others)
-                .replacingOccurrences(of: "{count}", with: String(personas.count))
         }
     }
 

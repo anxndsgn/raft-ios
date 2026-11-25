@@ -153,7 +153,7 @@ struct MessageSearchView: View {
                     SearchEmptyBlock(
                         title: L10n.f("ios_search_no_match", "No messages match “%1$@”", store.query),
                         detail: store.isRelaxedSkipped
-                            ? L10n.t("search_too_broad_hint", "No message contains all of these words, and too many contain one of them to check each one. Try more specific words, or narrow the search to a channel or sender.")
+                            ? L10n.t("search_too_broad_hint", "No message contains all of these words, and too many contain one of them to check each one. Try more specific words.")
                             : L10n.t("ios_search_try_fewer", "Try fewer words."),
                         top: 150
                     )
@@ -211,7 +211,7 @@ struct MessageSearchView: View {
 
     @ViewBuilder private var results: some View {
         if store.isRelevanceFallback {
-            Text(L10n.t("search_relevance_fallback_note", "Too many matches to rank by relevance, so these are sorted newest first. Try more specific words, or narrow the search to a channel or sender."))
+            Text(L10n.t("search_relevance_fallback_note", "Too many matches to rank by relevance, so these are sorted newest first. Try more specific words."))
                 .raftFont(.footnote)
                 .foregroundStyle(Color.raftTextTertiary)
                 .frame(maxWidth: .infinity, alignment: .leading)

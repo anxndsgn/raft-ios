@@ -63,8 +63,8 @@ struct LoginView: View {
     private var generalError: String? {
         switch session.failure {
         case .passkeyOnly: L10n.t("ios_error_passkey_only", "This account signs in with a passkey. Use Continue in browser.")
-        case .offline: L10n.t("ios_error_offline", "You're offline. Check your connection and try again.")
-        case .secondFactor(let result): result == .codeInvalid ? L10n.t("settings_step_up_code_invalid", "That code didn't work. Check the time on your phone is set automatically, then try the newest code.") : result.displayMessage
+        case .offline: L10n.t("ios_error_offline", "You’re offline. Check your connection and try again.")
+        case .secondFactor(let result): result == .codeInvalid ? L10n.t("settings_step_up_code_invalid", "That code didn’t work. Check the time on your phone is set automatically, then try the newest code.") : result.displayMessage
         case .other(let text): text
         case .incorrectCredentials, nil: nil
         }
@@ -293,9 +293,9 @@ struct TwoFactorView: View {
     private var errorText: String? {
         guard showsError, let failure = session.failure else { return nil }
         switch failure {
-        case .secondFactor(.codeInvalid): return L10n.t("settings_step_up_code_invalid", "That code didn't work. Check the time on your phone is set automatically, then try the newest code.")
+        case .secondFactor(.codeInvalid): return L10n.t("settings_step_up_code_invalid", "That code didn’t work. Check the time on your phone is set automatically, then try the newest code.")
         case .secondFactor(let result): return result.displayMessage
-        case .offline: return L10n.t("ios_error_offline", "You're offline. Check your connection and try again.")
+        case .offline: return L10n.t("ios_error_offline", "You’re offline. Check your connection and try again.")
         case .other(let text): return text
         default: return nil
         }
@@ -453,9 +453,9 @@ struct BackupCodeView: View {
     private var errorText: String? {
         guard showsError, let failure = session.failure else { return nil }
         switch failure {
-        case .secondFactor(.codeInvalid): return L10n.t("settings_step_up_backup_code_invalid", "That backup code didn't work. Check it and try again.")
+        case .secondFactor(.codeInvalid): return L10n.t("settings_step_up_backup_code_invalid", "That backup code didn’t work. Check it and try again.")
         case .secondFactor(let result): return result.displayMessage
-        case .offline: return L10n.t("ios_error_offline", "You're offline. Check your connection and try again.")
+        case .offline: return L10n.t("ios_error_offline", "You’re offline. Check your connection and try again.")
         case .other(let text): return text
         default: return nil
         }

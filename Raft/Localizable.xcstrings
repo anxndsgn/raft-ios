@@ -1619,7 +1619,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在这里和成员、agent 分享进展、文件和问题。"
+            "value" : "在这里和成员、Agent 分享进展、文件和问题。"
           }
         }
       }
@@ -1847,7 +1847,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You're offline. Check your connection and try again."
+            "value" : "You’re offline. Check your connection and try again."
           }
         },
         "zh-Hans" : {
@@ -1871,7 +1871,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此账户使用通行密钥登录。请点按“在浏览器中继续”。"
+            "value" : "此账户使用通行密钥登录。请轻点“在浏览器中继续”。"
           }
         }
       }
@@ -2231,7 +2231,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "人与 AI agent 一起协作的地方。"
+            "value" : "人与 AI Agent 一起协作的地方。"
           }
         }
       }
@@ -2861,7 +2861,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "长按消息并轻点“收藏”，即可保存在这里。"
+            "value" : "长按消息并轻点“收藏”，它就会出现在这里。"
           }
         }
       }
@@ -3077,7 +3077,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在 %1$@ · 话题"
+            "value" : "在 %1$@ · 消息列"
           }
         }
       }
@@ -3275,7 +3275,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请队友发一个邀请链接，或在网页版创建服务器。服务器里有你的频道、agent 和动态。"
+            "value" : "请队友发一个邀请链接，或在网页版创建服务器。服务器里有你的频道、Agent 和动态。"
           }
         }
       }
@@ -3881,13 +3881,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Too many matches to rank by relevance, so these are sorted newest first. Try more specific words, or narrow the search to a channel or sender."
+            "value" : "Too many matches to rank by relevance, so these are sorted newest first. Try more specific words."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "匹配的消息太多，无法按相关度排序，已按时间从新到旧排列。试试更具体的词，或限定频道、发送者。"
+            "value" : "匹配的消息太多，无法按相关度排序，已按时间从新到旧排列。试试更具体的词。"
           }
         }
       }
@@ -3899,13 +3899,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No message contains all of these words, and too many contain one of them to check each one. Try more specific words, or narrow the search to a channel or sender."
+            "value" : "No message contains all of these words, and too many contain one of them to check each one. Try more specific words."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "没有消息同时包含这些词；包含其中某个词的消息太多，未逐条匹配。试试更具体的词，或限定频道、发送者。"
+            "value" : "没有消息同时包含这些词；包含其中某个词的消息太多，未逐条匹配。试试更具体的词。"
           }
         }
       }
@@ -4103,7 +4103,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "仅 DM、@我 和关注的线程"
+            "value" : "仅私信、@我 和已关注的消息列"
           }
         }
       }
@@ -4223,7 +4223,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "That backup code didn't work. Check it and try again."
+            "value" : "That backup code didn’t work. Check it and try again."
           }
         },
         "zh-Hans" : {
@@ -4259,7 +4259,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "That code didn't work. Check the time on your phone is set automatically, then try the newest code."
+            "value" : "That code didn’t work. Check the time on your phone is set automatically, then try the newest code."
           }
         },
         "zh-Hans" : {
@@ -4463,7 +4463,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "主页"
+            "value" : "首页"
           }
         }
       }
@@ -4787,7 +4787,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "{first}、{second} 等 {count} 个 agent 正在输入…"
+            "value" : "{first}、{second} 和另外 {others} 个 Agent 正在输入…"
           }
         }
       }
@@ -4877,7 +4877,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "发送消息到 #%1$@"
+            "value" : "给 #%1$@ 发消息"
           }
         }
       }
@@ -5279,7 +5279,7 @@
       }
     },
     "thread_state_loading_older" : {
-      "comment" : "gen-strings: Raft/UI/Chat/MessageRow.swift:686",
+      "comment" : "gen-strings: Raft/UI/Chat/MessageRow.swift:685",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
