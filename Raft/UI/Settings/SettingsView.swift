@@ -26,6 +26,7 @@ struct SettingsView: View {
                     profileCard
                         .padding(.top, 6)
                     notificationsGroup
+                    appearanceGroup
                     accountGroup
                     aboutGroup
                     RaftGroupCard {
@@ -200,6 +201,17 @@ struct SettingsView: View {
         guard !model.isPreview else { return }
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         systemDenied = settings.authorizationStatus == .denied
+    }
+
+    // MARK: Appearance (设置 · 消息字号)
+
+    private var appearanceGroup: some View {
+        VStack(spacing: 0) {
+            GroupTitle(text: L10n.t("ios_settings_appearance", "Appearance"))
+            RaftGroupCard {
+                MessageTextSizeCard()
+            }
+        }
     }
 
     // MARK: Account
@@ -388,6 +400,98 @@ struct SettingsView: View {
         }
     }
     #endif
+}
+
+/// Message text size: title row, Small / Medium / Large, a live message preview and the footer.
+private struct MessageTextSizeCard: View {
+    @AppStorage(MessageTextSize.storageKey) private var level: MessageTextSize = defaultMessageTextSize
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: typeSize.isAccessibilitySize ? .top : .center, spacing: 12) {
+                SettingsRowIcon(systemImage: "textformat.size")
+                Text(L10n.t("ios_settings_text_size", "Message text size"))
+                    .raftFont(.rowTitleMedium)
+                    .foregroundStyle(Color.raftTextPrimary)
+                    .padding(.vertical, 4)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 14)
+            .frame(minHeight: 50)
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isHeader)
+
+            Picker(selection: $level) {
+                ForEach(MessageTextSize.allCases) { size in
+                    Text(verbatim: size.title).tag(size)
+                }
+            } label: {
+                Text(L10n.t("ios_settings_text_size", "Message text size"))
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 14)
+            .accessibilityIdentifier("settings-text-size")
+
+            MessageTextSizePreview()
+                .padding(.top, 10)
+                .padding(.bottom, 4)
+                .padding(.horizontal, 14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .overlay(alignment: .top) {
+                    Rectangle().fill(Color.raftHairline).frame(height: 0.5)
+                }
+                .padding(.top, 12)
+                .animation(.smooth(duration: 0.2), value: level)
+
+            Text(L10n.t("ios_text_size_footer", "Changes the text in messages. It adds to your iPhone’s Text Size setting."))
+                .raftFont(.footnote)
+                .foregroundStyle(Color.raftTextTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 10)
+                .padding(.horizontal, 14)
+                .padding(.bottom, 14)
+        }
+    }
+}
+
+/// A made-up message drawn by the real `MessageRowView`: a mention, a channel chip and inline
+/// code, at the chosen level. Not tappable, not long-pressable; VoiceOver reads "Preview" + text.
+private struct MessageTextSizePreview: View {
+    @State private var directory = DirectoryStore(api: nil, serverId: "text-size-preview")
+    @State private var attachments = AttachmentStore(api: nil)
+
+    private static let text = L10n.t("ios_text_size_preview", "@Joy #proj-uiux The new design looks great — trying it locally with `git pull`.")
+
+    private var row: MessageRowModel {
+        let date = Calendar.current.date(bySettingHour: 9, minute: 14, second: 0, of: .now)
+        return MessageRowModel(
+            id: "text-size-preview",
+            persona: .human(id: "text-size-preview-joy", name: "Joy Lin"),
+            isMine: false,
+            date: date,
+            text: Self.text,
+            mentions: [MessageMention(type: "user", id: "text-size-preview-joy", name: "Joy")]
+        )
+    }
+
+    var body: some View {
+        MessageRowView(
+            row: row,
+            context: ChatContext(
+                currentUserId: "text-size-preview-me",
+                channelNames: ["proj-uiux"],
+                directory: directory,
+                attachments: attachments
+            ),
+            showsAddReaction: false,
+            interactive: false,
+            horizontalPadding: 0
+        )
+        .allowsHitTesting(false)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(verbatim: L10n.t("ios_channel_preview_label", "Preview") + ", " + PlainText.from(Self.text)))
+    }
 }
 
 /// A settings group's title above its card (§3-19).
