@@ -90,12 +90,112 @@ struct PinkPillButtonStyle: ButtonStyle {
     }
 }
 
-/// Pressed rows tint `raftTextPrimary@6%` (no List selection style).
-struct RowButtonStyle: ButtonStyle {
+/// The row press highlight (§2.13): `raftTextPrimary@6%`, a square fill over the whole row —
+/// only the group card's clip rounds it, so a first row has rounded top corners, a last row
+/// rounded bottom ones and a middle row none. Never the system List / menu selection platter.
+///
+/// Like the system list it stays on after the tap while the row's destination is pushed and
+/// fades out when the row comes back on screen (the pop). A tap that pushes nothing (a toggle,
+/// a dialog, a sheet) lets it go after a moment.
+///
+/// A `PrimitiveButtonStyle` (it must see the tap), drawing an ordinary `Button`: VoiceOver
+/// still reads a button, `.disabled` and roles pass through, and a scroll still cancels the press.
+struct RowButtonStyle: PrimitiveButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        RowButtonBody(configuration: configuration)
+    }
+}
+
+private struct RowButtonBody: View {
+    let configuration: PrimitiveButtonStyleConfiguration
+    /// Kept on after the tap until the pushed screen is popped (or nothing was pushed).
+    @State private var latched = false
+    /// The row left the screen while latched: its destination was pushed.
+    @State private var pushed = false
+    @State private var release: Task<Void, Never>?
+
+    var body: some View {
+        Button(role: configuration.role) {
+            latch()
+            configuration.trigger()
+        } label: {
+            configuration.label
+        }
+        .buttonStyle(RowPressStyle(latched: latched))
+        .onDisappear {
+            if latched { pushed = true; release?.cancel() }
+        }
+        .onAppear {
+            guard latched, pushed else { return }
+            pushed = false
+            withAnimation(.easeOut(duration: 0.35)) { latched = false }
+        }
+    }
+
+    private func latch() {
+        latched = true
+        pushed = false
+        release?.cancel()
+        release = Task { @MainActor in
+            // Longer than a push takes to cover the row; a push that started clears `release`.
+            try? await Task.sleep(for: .milliseconds(900))
+            guard !Task.isCancelled, !pushed else { return }
+            withAnimation(.easeOut(duration: 0.25)) { latched = false }
+        }
+    }
+}
+
+private struct RowPressStyle: ButtonStyle {
+    let latched: Bool
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .contentShape(Rectangle())
-            .background(configuration.isPressed ? Color.raftTextPrimary.opacity(0.06) : Color.clear)
+            .background(configuration.isPressed || latched ? Color.raftRowPressed : Color.clear)
+    }
+}
+
+extension Color {
+    /// The pressed / selected row fill (§2.13): `raftTextPrimary@6%`, light and dark.
+    static var raftRowPressed: Color { .raftTextPrimary.opacity(0.06) }
+}
+
+/// Where a row sits in its group card: which of the card's outer corners it carries.
+struct RaftCardRowEdges: Equatable {
+    var top = false
+    var bottom = false
+
+    /// The row's outline: square, except the card's own corners (radius 16, continuous).
+    var shape: UnevenRoundedRectangle {
+        let r: CGFloat = top || bottom ? RaftGroupCard<EmptyView>.radius : 0
+        return UnevenRoundedRectangle(
+            topLeadingRadius: top ? r : 0,
+            bottomLeadingRadius: bottom ? r : 0,
+            bottomTrailingRadius: bottom ? r : 0,
+            topTrailingRadius: top ? r : 0,
+            style: .continuous
+        )
+    }
+}
+
+extension EnvironmentValues {
+    /// Set by `RaftGroupCard` on each of its rows; outside a card a row is square.
+    @Entry var raftCardRowEdges = RaftCardRowEdges()
+}
+
+extension View {
+    /// A row's long-press menu, its lifted preview shaped like the row (square, with the card's
+    /// outer corners on a first / last row) — not the system's own rounded platter (§2.13).
+    func raftRowContextMenu<MenuItems: View>(@ViewBuilder menuItems: () -> MenuItems) -> some View {
+        modifier(RaftRowMenuShape()).contextMenu(menuItems: menuItems)
+    }
+}
+
+private struct RaftRowMenuShape: ViewModifier {
+    @Environment(\.raftCardRowEdges) private var edges
+
+    func body(content: Content) -> some View {
+        content.contentShape(.contextMenuPreview, edges.shape)
     }
 }
 
@@ -111,15 +211,25 @@ struct CardButtonStyle: ButtonStyle {
 // MARK: Cards
 
 /// A solid group card holding rows separated by inset hairlines (§2.13).
+/// Each row learns whether it is the card's first or last (`raftCardRowEdges`), for the shapes
+/// the card's clip does not reach (a long-press menu preview).
 struct RaftGroupCard<Content: View>: View {
+    static var radius: CGFloat { 16 }
+
     @ViewBuilder var content: () -> Content
 
     var body: some View {
-        VStack(spacing: 0, content: content)
-            .frame(maxWidth: .infinity)
-            .clipShape(.rect(cornerRadius: 16, style: .continuous))
-            .raftCardSurface()
-            .padding(.horizontal, 16)
+        VStack(spacing: 0) {
+            Group(subviews: content()) { rows in
+                ForEach(rows) { row in
+                    row.environment(\.raftCardRowEdges, RaftCardRowEdges(top: row.id == rows.first?.id, bottom: row.id == rows.last?.id))
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .clipShape(.rect(cornerRadius: Self.radius, style: .continuous))
+        .raftCardSurface()
+        .padding(.horizontal, 16)
     }
 }
 

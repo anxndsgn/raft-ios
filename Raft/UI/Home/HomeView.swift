@@ -192,7 +192,7 @@ struct HomeView: View {
             label()
         }
         .buttonStyle(RowButtonStyle())
-        .contextMenu { rowMenu(row) }
+        .raftRowContextMenu { rowMenu(row) }
         .accessibilityIdentifier("home-row-\(row.title)")
     }
 

@@ -130,7 +130,7 @@ struct SavedView: View {
             }
             .tint(Color(hex: 0xC23A2B))
         }
-        .contextMenu {
+        .raftRowContextMenu {
             Button {
                 Task { await open(entry) }
             } label: {
