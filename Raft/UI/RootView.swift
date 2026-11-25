@@ -191,8 +191,10 @@ struct RouteView: View {
         switch route {
         case .conversation(let ref):
             ChatView(store: workspace.conversation(for: ref), ref: ref)
+                .hidesTabBarWhenPushed()
         case .thread(let ref):
             ThreadView(store: workspace.thread(for: ref))
+                .hidesTabBarWhenPushed()
         case .servers:
             ServerPickerView(showsBack: true)
         case .saved:
