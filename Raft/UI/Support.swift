@@ -30,10 +30,10 @@ extension View {
     /// title for VoiceOver and the back menu. With the vertical bar (Duo folded, unfolded
     /// landscape) the title is a block at the top of the content instead (`TopTitleBlock`), so
     /// content scrolls under it and fades rather than running through the title.
-    /// `headerStyle`: a page whose content scrolls under the title (thread) follows `HeaderStyle`
-    /// (B: the title in a glass capsule, no top scroll edge).
-    func raftNavigationTitle(_ title: String, hashPrefix: Bool = false, subtitle: String? = nil, headerStyle: Bool = false) -> some View {
-        modifier(RaftNavigationTitle(title: title, hashPrefix: hashPrefix, subtitle: subtitle, headerStyle: headerStyle))
+    /// `glass`: a page whose content scrolls under the title (thread) shows it in the glass
+    /// capsule (`GlassTitle`, XIN 5662 / Colo 5665) and its content has no top scroll edge.
+    func raftNavigationTitle(_ title: String, hashPrefix: Bool = false, subtitle: String? = nil, glass: Bool = false) -> some View {
+        modifier(RaftNavigationTitle(title: title, hashPrefix: hashPrefix, subtitle: subtitle, glass: glass))
     }
 }
 
@@ -41,15 +41,12 @@ private struct RaftNavigationTitle: ViewModifier {
     let title: String
     let hashPrefix: Bool
     let subtitle: String?
-    let headerStyle: Bool
+    let glass: Bool
     @Environment(\.dynamicTypeSize) private var typeSize
-
-    private var glass: Bool { headerStyle && HeaderStyle.isGlass }
 
     @ViewBuilder private var navTitle: some View {
         if glass {
-            NavTitle(title: title, hashPrefix: hashPrefix, subtitle: subtitle, typeSize: typeSize, lineSpacing: 2)
-                .headerTitleGlass()
+            GlassTitle(title: title, hashPrefix: hashPrefix, subtitle: subtitle, typeSize: typeSize)
         } else {
             NavTitle(title: title, hashPrefix: hashPrefix, subtitle: subtitle, typeSize: typeSize)
         }
@@ -58,7 +55,6 @@ private struct RaftNavigationTitle: ViewModifier {
     func body(content: Content) -> some View {
         VerticalBarReader { vertical in
             content
-                .scrollEdgeEffectHidden(glass, for: .top)
                 .navigationTitle(Text(verbatim: title))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -112,56 +108,76 @@ private struct VerticalBarReader271<Content: View>: View {
     var body: some View { content(edge != nil) }
 }
 
-/// The top title's treatment on chat and thread pages. A (Colo 5661, the default): only the
-/// system's soft scroll edge (`.scrollEdgeEffectStyle(.soft, for: .top)`) under the bars. B
-/// (XIN 5662, Colo 5665): title and subtitle in a Liquid Glass capsule and no top scroll edge at
-/// all. DEBUG builds switch to B with `RAFT_HEADER=B` for comparison.
-enum HeaderStyle {
-    case edge
-    case glass
+/// The page title in a Liquid Glass capsule, the back button's glass (XIN 5662, Colo 5665 /
+/// 5677): "# all" 15 SemiBold over the subtitle 12 Regular, no line spacing, each line at most
+/// 220 wide and truncated; 14 × 5 padding (44 tall with a subtitle at the standard size, as
+/// the back button). The capsule hugs the text and follows Dynamic Type up to xLarge. Content
+/// scrolls to the screen's top under it: no top scroll edge, blur or mask.
+struct GlassTitle: View {
+    let title: String
+    var hashPrefix = false
+    var subtitle: String?
+    /// The page's text size: the bar hosts its items at its own (see `NavTitle`).
+    var typeSize: DynamicTypeSize?
 
-    static let current: HeaderStyle = {
-        #if DEBUG
-        if ProcessInfo.processInfo.environment["RAFT_HEADER"] == "B" { return .glass }
-        #endif
-        return .edge
-    }()
+    static let lineWidth: CGFloat = 220
 
-    static var isGlass: Bool { current == .glass }
-}
-
-extension View {
-    /// B: the title in the glass capsule (Colo 5665): 16 × 8 padding, at least 36 tall, two
-    /// lines centred. A: unchanged.
-    @ViewBuilder func headerTitleGlass() -> some View {
-        if HeaderStyle.isGlass {
-            padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .frame(minHeight: 36)
-                .raftGlass(Capsule())
-        } else {
-            self
+    var body: some View {
+        VStack(spacing: 0) {
+            CappedWidth(max: Self.lineWidth) {
+                ((hashPrefix ? Text(verbatim: "# ").foregroundStyle(Color.raftTextTertiary) : Text(verbatim: ""))
+                    + Text(verbatim: title).foregroundStyle(Color.raftTextPrimary))
+                    .raftStyle(.grotesk(RaftFont.semibold, 15, relativeTo: .subheadline))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+            if let subtitle, !subtitle.isEmpty {
+                CappedWidth(max: Self.lineWidth) {
+                    Text(verbatim: subtitle)
+                        .raftStyle(.grotesk(RaftFont.regular, 12, relativeTo: .caption))
+                        .foregroundStyle(Color.raftTextSecondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 5)
+        .frame(minHeight: 36)
+        // The glass alone left text behind it readable (Colo 5672); the thin material under it
+        // blurs that to light and dark only, as under the back button.
+        .background(.ultraThinMaterial, in: Capsule())
+        .raftGlass(Capsule())
+        .contentShape(Capsule())
+        .dynamicTypeSize(...min(typeSize ?? .xLarge, .xLarge))
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+        .accessibilityShowsLargeContentViewer {
+            Text(verbatim: (hashPrefix ? "# " : "") + title)
         }
     }
 }
 
-/// The channel title as a button: plain (A), or the capsule shrinking to 0.97 while pressed (B).
+/// The glass title as a button: the capsule shrinks to 0.97 while pressed.
 struct HeaderTitleButtonStyle: ButtonStyle {
-    var scales: Bool
-
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(scales && configuration.isPressed ? 0.97 : 1)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.smooth(duration: 0.15), value: configuration.isPressed)
     }
 }
 
 /// A page title shown at the top of the content where the bars are vertical (大字号补充 A.4),
 /// at least 8 below the safe-area top. It sits in the page's `.safeAreaBar(edge: .top)` with no
-/// background of its own: the system's soft scroll edge fades content scrolled under it. Its
-/// height is the title's real height (Dynamic Type), so the content's top inset follows it.
+/// background of its own: the system's soft scroll edge fades content scrolled under it, or (the
+/// glass title) the capsule carries its own glass. Its height is the title's real height
+/// (Dynamic Type), so the content's top inset follows it.
 struct TopTitleBlock<Title: View>: View {
     @ViewBuilder var title: () -> Title
+    /// Kept clear on both sides of the screen, whatever the side safe areas (Colo 5682): the
+    /// back button's 44 + 16 + 8. The title is centred on the screen, not on the content
+    /// column beside the Duo's vertical bar.
+    static var sideReserve: CGFloat { 68 }
     @State private var insets = BarInsets()
     @State private var height: CGFloat = 0
 
@@ -175,10 +191,11 @@ struct TopTitleBlock<Title: View>: View {
 
     var body: some View {
         title()
-            .padding(.horizontal, 16)
+            .padding(.horizontal, Self.sideReserve)
             .padding(.top, 8)
             .padding(.bottom, 6)
             .frame(maxWidth: .infinity)
+            .ignoresSafeArea(.container, edges: .horizontal)
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
             .padding(.top, lift)
             .background(alignment: .top) {

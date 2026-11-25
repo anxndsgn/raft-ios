@@ -106,14 +106,14 @@ struct ThreadView: View {
             if composer.mentionQuery != nil { composer.dismissedQuery = composer.mentionQuery }
             composerFocused = false
         })
-        // The composer is the scroll view's own bottom bar (it insets the replies). Soft fade at the
-        // top only: replies pass under the composer's glass unblurred.
+        // The composer is the scroll view's own bottom bar (it insets the replies). No scroll edge:
+        // replies run under the glass title capsule and the composer's glass.
         .safeAreaBar(edge: .bottom) {
             composerBar
                 .jumpToLatest(shown: farFromEnd && !landing && store.phase == .loaded, action: scrollToLatest)
         }
         .composerPageBottom()
-        .scrollEdgeEffectStyle(.soft, for: .top)
+        .scrollEdgeEffectHidden(true, for: .top)
         .scrollEdgeEffectHidden(true, for: .bottom)
         .scrollPosition($position)
         .defaultScrollAnchor(.top, for: .alignment)
@@ -152,7 +152,7 @@ struct ThreadView: View {
         }
         .onChange(of: edges.nearTop) { loadOlderIfNeeded() }
         .background(Color.raftCanvas.ignoresSafeArea())
-        .raftNavigationTitle(L10n.t("thread_reply_title", "Thread"), subtitle: subtitle, headerStyle: true)
+        .raftNavigationTitle(L10n.t("thread_reply_title", "Thread"), subtitle: subtitle, glass: true)
         .toolbar {
             if !isPreview {
             ToolbarItem(placement: .topBarTrailing) {

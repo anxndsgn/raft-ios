@@ -165,7 +165,7 @@ private struct PressDimButtonStyle: ButtonStyle {
 
 /// Its child at most `max` wide, else its own width (`.frame(maxWidth:)` would grow a short name
 /// to the full width).
-private struct CappedWidth: Layout {
+struct CappedWidth: Layout {
     let max: CGFloat
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {

@@ -475,24 +475,19 @@ struct ChatView: View {
 
     // MARK: Title (§2.12, 10)
 
-    private var titleLineSpacing: CGFloat { HeaderStyle.isGlass ? 2 : 0 }
-
     @ViewBuilder private var title: some View {
         // A DM with its peer loaded shows it under the bar (`DMHeaderBar`).
         if isTask || isDirectMessage {
-            NavTitle(title: store.title, hashPrefix: !isDirectMessage, subtitle: isDirectMessage ? nil : (ref.subtitle ?? topic), typeSize: typeSize, lineSpacing: titleLineSpacing)
-                .headerTitleGlass()
+            GlassTitle(title: store.title, hashPrefix: !isDirectMessage, subtitle: isDirectMessage ? nil : (ref.subtitle ?? topic), typeSize: typeSize)
         } else {
             // A channel: the title opens Channel info (§11 27).
             Button {
                 model.push(.channelInfo(store.channelId))
             } label: {
-                NavTitle(title: store.title, hashPrefix: true, subtitle: channelSubtitle, typeSize: typeSize, lineSpacing: titleLineSpacing)
+                GlassTitle(title: store.title, hashPrefix: true, subtitle: channelSubtitle, typeSize: typeSize)
                     .contentTransition(.numericText())
-                    .headerTitleGlass()
-                    .contentShape(HeaderStyle.isGlass ? AnyShape(Capsule()) : AnyShape(Rectangle()))
             }
-            .buttonStyle(HeaderTitleButtonStyle(scales: HeaderStyle.isGlass))
+            .buttonStyle(HeaderTitleButtonStyle())
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text(verbatim: "# \(store.title), " + L10n.t("ios_channel_info_title", "Channel info")))
             .accessibilityHint(Text(L10n.t("ios_channel_info_hint", "Shows channel details")))
@@ -561,11 +556,11 @@ struct ChatView: View {
         .defaultScrollAnchor((isEmpty || store.isLoadingOlder || store.phase != .loaded) ? .top : .bottom, for: .alignment)
         .defaultScrollAnchor((edges.atBottom || holdingForOlder) ? .bottom : .top, for: .sizeChanges)
         .scrollDismissesKeyboard(.interactively)
-        // System soft fade under the nav bar and the title block (§2.12, Colo 5661); no custom bar
-        // background, fade or divider. None with the glass title (B, `HeaderStyle`) and none at
-        // the bottom: messages pass under the glass unblurred.
+        // No top scroll edge under the glass title capsule (XIN 5662 / Colo 5665): messages run to
+        // the screen's top. A DM keeps the system's soft edge under its header (its caption has
+        // no glass). None at the bottom: messages pass under the composer's glass.
         .scrollEdgeEffectStyle(.soft, for: .top)
-        .scrollEdgeEffectHidden(HeaderStyle.isGlass && dmHeaderPeer == nil, for: .top)
+        .scrollEdgeEffectHidden(dmHeaderPeer == nil, for: .top)
         .scrollEdgeEffectHidden(true, for: .bottom)
         .onScrollGeometryChange(for: StreamEdges.self) { geometry in
             StreamEdges(
