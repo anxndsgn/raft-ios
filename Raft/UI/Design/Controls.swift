@@ -151,7 +151,13 @@ private struct RowPressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .contentShape(Rectangle())
-            .background(configuration.isPressed || latched ? Color.raftRowPressed : Color.clear)
+            // A view, not `background(_ style:)`: a style background takes the enclosing
+            // container shape (the card's 16pt corners) and would round every row on its own.
+            .background {
+                if configuration.isPressed || latched {
+                    Rectangle().fill(Color.raftRowPressed)
+                }
+            }
     }
 }
 
