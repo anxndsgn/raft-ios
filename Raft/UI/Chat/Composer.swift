@@ -254,38 +254,30 @@ struct ComposerPanel: View {
                 joinContent(join)
                     .transition(.opacity.animation(.easeOut(duration: 0.15)))
             } else {
-                if expanded, !model.attachments.isEmpty {
+                let tray = expanded && !model.attachments.isEmpty
+                if tray {
                     AttachmentTray(model: model, retry: retryUpload)
-                        .padding(.bottom, 8)
+                        .padding(EdgeInsets(top: 10, leading: 16, bottom: 8, trailing: 10))
                         .transition(.opacity)
                 }
-                field
-                    // Collapsed: room for + (left) and send (right), 32 each plus 8 spacing.
-                    .padding(.horizontal, expanded ? 0 : 40)
-                    // After a join the placeholder fades in as the bar settles into the capsule.
-                    .transition(.asymmetric(
-                        insertion: .opacity.animation(.easeOut(duration: 0.2).delay(reduceMotion ? 0 : 0.12)),
-                        removal: .opacity.animation(.easeOut(duration: 0.15))
-                    ))
-                if expanded {
-                    toolRow
-                        .transition(reduceMotion ? .opacity : .asymmetric(
-                            insertion: .opacity.animation(.easeOut(duration: 0.2).delay(0.08)),
-                            removal: .opacity.animation(.easeOut(duration: 0.1))
-                        ))
+                // +, field, As task and send are always laid out together against the panel's
+                // current width, so in every frame of the morph (and if focus lands before
+                // `expanded` flips) + and send hug the edges; nothing is left behind fading.
+                ComposerLayout(expanded: expanded, topInset: tray ? 0 : 10) {
+                    attachMenu
+                    field
+                    asTaskToggle
+                    sendButton(size: expanded ? 36 : 32)
                 }
+                // After a join the bar's content fades in as it settles into the capsule.
+                .transition(.asymmetric(
+                    insertion: .opacity.animation(.easeOut(duration: 0.2).delay(reduceMotion ? 0 : 0.12)),
+                    removal: .opacity.animation(.easeOut(duration: 0.15))
+                ))
             }
         }
-        .padding(join != nil
-            ? EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12)
-            : (expanded ? EdgeInsets(top: 10, leading: 16, bottom: 8, trailing: 10) : EdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 8)))
+        .padding(join != nil ? EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12) : EdgeInsets())
         .frame(minHeight: 48)
-        .overlay {
-            if join == nil, !expanded {
-                collapsedControls
-                    .transition(.opacity.animation(.easeOut(duration: 0.1)))
-            }
-        }
         .contentShape(ComposerGlass.shape(focused: focus.wrappedValue))
         .modifier(ComposerGlass(focused: focus.wrappedValue, namespace: glass, reduceTransparency: reduceTransparency, dark: scheme == .dark))
     }
@@ -321,17 +313,6 @@ struct ComposerPanel: View {
         }
     }
 
-    /// Collapsed capsule: + 8pt from the left, send 8pt from the right (32pt circles, r16 = 24 − 8,
-    /// concentric with the capsule). The placeholder between them is the field itself.
-    private var collapsedControls: some View {
-        HStack(spacing: 0) {
-            attachMenu
-            Spacer(minLength: 0)
-            sendButton(size: 32)
-        }
-        .padding(.horizontal, 8)
-    }
-
     private var field: some View {
         TextField(text: $model.text, axis: .vertical) {
             Text(verbatim: placeholder).foregroundStyle(Color.raftTextTertiary)
@@ -363,33 +344,30 @@ struct ComposerPanel: View {
         return .handled
     }
 
-    private var toolRow: some View {
-        HStack(spacing: 0) {
-            // 10pt from the panel's left edge (the panel's leading inset is 16).
-            attachMenu
-                .padding(.leading, -6)
-            Spacer(minLength: 8)
-            if case .channel = mode {
-                Button {
-                    model.asTask.toggle()
-                } label: {
-                    HStack(spacing: 7) {
-                        RaftCheckbox(isOn: model.asTask)
-                        Text(L10n.t("thread_composer_as_task", "As task"))
-                            .font(.custom(RaftFont.semibold, size: 14, relativeTo: .subheadline))
-                            .foregroundStyle(Color.raftTextPrimary)
-                    }
-                    .frame(minHeight: 44)
-                    .contentShape(Rectangle())
+    /// "As task" (channels only): shown in the expanded tool row, left of send.
+    @ViewBuilder private var asTaskToggle: some View {
+        if case .channel = mode {
+            Button {
+                model.asTask.toggle()
+            } label: {
+                HStack(spacing: 7) {
+                    RaftCheckbox(isOn: model.asTask)
+                    Text(L10n.t("thread_composer_as_task", "As task"))
+                        .font(.custom(RaftFont.semibold, size: 14, relativeTo: .subheadline))
+                        .foregroundStyle(Color.raftTextPrimary)
                 }
-                .buttonStyle(.plain)
-                .padding(.trailing, 10)
-                .accessibilityAddTraits(model.asTask ? [.isButton, .isSelected] : .isButton)
-                .accessibilityIdentifier("as-task")
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
             }
-            sendButton(size: 36)
+            .buttonStyle(.plain)
+            .opacity(expanded ? 1 : 0)
+            .allowsHitTesting(expanded)
+            .accessibilityHidden(!expanded)
+            .accessibilityAddTraits(model.asTask ? [.isButton, .isSelected] : .isButton)
+            .accessibilityIdentifier("as-task")
+        } else {
+            Color.clear.frame(width: 0, height: 0).accessibilityHidden(true)
         }
-        .frame(height: 36)
     }
 
     /// + (XIN 5390): one system menu for Photo library / Camera / File. Opening it keeps the
@@ -472,6 +450,55 @@ struct ComposerPanel: View {
     }
 }
 
+/// The composer's controls: [+, field, As task, send].
+/// Collapsed (48pt capsule): + 8pt from the left, send (32) 8pt from the right, both centred,
+/// the field between them (48 … width − 48); As task is hidden.
+/// Expanded: insets top 10 (0 under the tray) / leading 16 / trailing 10 / bottom 8; the field on
+/// top, then a 36pt tool row: + 10pt from the left, send (36) 10pt from the right, As task 10pt
+/// before send. One layout for both, so a change of `expanded` moves the same views (no
+/// fading copies) and every frame is placed against the panel's current width.
+private struct ComposerLayout: Layout {
+    var expanded: Bool
+    var topInset: CGFloat
+
+    private static let rowHeight: CGFloat = 36
+
+    private func fieldWidth(_ width: CGFloat) -> CGFloat {
+        max(0, expanded ? width - 26 : width - 96)
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? 320
+        guard subviews.count > 1 else { return CGSize(width: width, height: 48) }
+        let field = subviews[1].sizeThatFits(ProposedViewSize(width: fieldWidth(width), height: nil))
+        let height = expanded
+            ? topInset + field.height + Self.rowHeight + 8
+            : max(48, field.height)
+        return CGSize(width: width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard subviews.count == 4 else { return }
+        let plus = subviews[0], field = subviews[1], asTask = subviews[2], send = subviews[3]
+        let fieldProposal = ProposedViewSize(width: fieldWidth(bounds.width), height: nil)
+        let sendSize = send.sizeThatFits(.unspecified)
+        if expanded {
+            field.place(at: CGPoint(x: bounds.minX + 16, y: bounds.minY + topInset), proposal: fieldProposal)
+            let rowMid = bounds.maxY - 8 - Self.rowHeight / 2
+            plus.place(at: CGPoint(x: bounds.minX + 10, y: rowMid), anchor: .leading, proposal: .unspecified)
+            send.place(at: CGPoint(x: bounds.maxX - 10, y: rowMid), anchor: .trailing, proposal: .unspecified)
+            asTask.place(at: CGPoint(x: bounds.maxX - 10 - sendSize.width - 10, y: rowMid), anchor: .trailing, proposal: .unspecified)
+        } else {
+            field.place(at: CGPoint(x: bounds.minX + 48, y: bounds.midY), anchor: .leading,
+                        proposal: ProposedViewSize(width: fieldProposal.width, height: bounds.height))
+            plus.place(at: CGPoint(x: bounds.minX + 8, y: bounds.midY), anchor: .leading, proposal: .unspecified)
+            send.place(at: CGPoint(x: bounds.maxX - 8, y: bounds.midY), anchor: .trailing, proposal: .unspecified)
+            // Hidden (opacity 0) until expanded; parked where it appears in the tool row.
+            asTask.place(at: CGPoint(x: bounds.maxX - 8 - sendSize.width - 10, y: bounds.midY), anchor: .trailing, proposal: .unspecified)
+        }
+    }
+}
+
 /// One glass shape for the capsule, the expanded panel and the Join bar.
 /// Keyboard down: concentric with the display corners (the bar sits 38pt from the screen's
 /// left, right and bottom edges; on a 62pt-corner screen that resolves to 24, the 48pt
@@ -482,8 +509,11 @@ private struct ComposerGlass: ViewModifier {
     let reduceTransparency: Bool
     let dark: Bool
 
+    /// Keyboard down: concentric with the display, never less than 24 (the 48pt bar's half
+    /// height, i.e. a capsule). Where the display's shape can't be resolved (e.g. iPhone Duo)
+    /// `.concentric` alone comes out square; the minimum makes that case the capsule.
     static func shape(focused: Bool) -> ConcentricRectangle {
-        ConcentricRectangle(corners: focused ? .fixed(26) : .concentric, isUniform: true)
+        ConcentricRectangle(corners: focused ? .fixed(26) : .concentric(minimum: .fixed(24)), isUniform: true)
     }
 
     func body(content: Content) -> some View {
