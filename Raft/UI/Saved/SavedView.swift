@@ -55,6 +55,7 @@ struct SavedView: View {
             if !isEmpty { hadEntries = true }
         }
         .refreshable { await saved.refresh() }
+        .resolvesAvatars(workspace.directory, avatarNeeds)
         .task { await saved.refresh() }
         .task(id: saved.phase == .loading) {
             showsSkeleton = false
@@ -103,6 +104,16 @@ struct SavedView: View {
                 footer
             }
         }
+    }
+
+    /// The saved messages' people: the rosters of the first few conversations, then profiles.
+    private var avatarNeeds: AvatarNeeds {
+        var needs = AvatarNeeds()
+        for entry in saved.entries {
+            needs.add(type: entry.senderType, id: entry.senderId, avatarURL: entry.senderAvatarUrl)
+            if needs.channels.count < 3 { needs.add(channel: entry.parentChannelId ?? entry.channelId) }
+        }
+        return needs
     }
 
     private func row(_ entry: SavedEntry, last: Bool) -> some View {

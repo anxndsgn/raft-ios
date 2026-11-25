@@ -102,6 +102,7 @@ struct MessageSearchView: View {
         }
         .onChange(of: store.text) { store.textChanged() }
         .onChange(of: store.resultsVersion) { announceResults() }
+        .resolvesAvatars(workspace.directory, avatarNeeds)
         .onAppear {
             guard !didAppear else { return }
             didAppear = true
@@ -235,6 +236,17 @@ struct MessageSearchView: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("search-load-more-retry")
         }
+    }
+
+    /// The results' people (search sends no avatars): the rosters of the first few conversations,
+    /// then profiles for the rest.
+    private var avatarNeeds: AvatarNeeds {
+        var needs = AvatarNeeds()
+        for result in store.results {
+            needs.add(type: result.senderType, id: result.senderId, avatarURL: result.senderAvatarUrl)
+            if needs.channels.count < 3 { needs.add(channel: result.parentChannelId ?? result.channelId) }
+        }
+        return needs
     }
 
     private func resultRow(_ result: MessageSearchResult) -> some View {

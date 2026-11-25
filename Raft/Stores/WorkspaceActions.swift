@@ -107,6 +107,7 @@ extension Workspace {
     func channelMembers(_ channelId: String) async throws -> [ChannelMember] {
         let members = try await api.channelMembers(channelId: channelId)
         channelList.noteMemberCount(channelId, members.count)
+        directory.learn(roster: members)
         return ChannelMember.ordered(members, creatorId: channelList.channel(id: channelId)?.createdById)
     }
 }

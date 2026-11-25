@@ -116,6 +116,8 @@ struct Message: Sendable, Hashable, Decodable, Identifiable {
     var senderName: String?
     var senderDescription: String?
     var senderMembershipStatus: String?
+    /// Not sent by server v1.33 (the directory supplies human avatars); read when present.
+    var senderAvatarUrl: String?
     var messageType: String?
     var content: String
     /// The sender's client id for an optimistic send (echoed back).
@@ -138,7 +140,7 @@ struct Message: Sendable, Hashable, Decodable, Identifiable {
     var delegatedBy: JSONValue?
 
     private enum CodingKeys: String, CodingKey {
-        case id, seq, channelId, senderType, senderId, senderName, senderDescription, senderMembershipStatus
+        case id, seq, channelId, senderType, senderId, senderName, senderDescription, senderMembershipStatus, senderAvatarUrl
         case messageType, content, randomId, threadId, createdAt, updatedAt, deletedAt, attachments, reactions
         case mentions, replyCount, threadSummary, conversationContext, actionMetadata, commentRef, forwardBundle
         case externalAuthor, delegatedBy
@@ -154,6 +156,7 @@ struct Message: Sendable, Hashable, Decodable, Identifiable {
         senderName = c.lenient(.senderName)
         senderDescription = c.lenient(.senderDescription)
         senderMembershipStatus = c.lenient(.senderMembershipStatus)
+        senderAvatarUrl = c.lenient(.senderAvatarUrl)
         messageType = c.lenient(.messageType)
         content = c.lenient(.content) ?? ""
         randomId = c.lenient(.randomId)
@@ -466,6 +469,8 @@ struct InboxItem: Sendable, Hashable, Decodable, Identifiable {
     /// `lastMessageSenderType/Id` or `latestActivitySenderType/Id`.
     var senderType: String?
     var senderId: String?
+    /// The latest sender's avatar (`senderAvatarUrl`, both arms).
+    var senderAvatarUrl: String?
     var isFollowing: Bool?
     /// Task rows: the task's number ("#1"), title and status.
     var taskNumber: Int?
@@ -476,7 +481,7 @@ struct InboxItem: Sendable, Hashable, Decodable, Identifiable {
         case kind, channelId, channelName, channelType, threadChannelId, parentMessageId, parentChannelId
         case parentChannelName, parentChannelType, parentMessagePreview
         case lastMessagePreview, latestActivityPreview, lastMessageSenderName, latestActivitySenderName
-        case lastMessageSenderType, latestActivitySenderType, lastMessageSenderId, latestActivitySenderId, isFollowing
+        case lastMessageSenderType, latestActivitySenderType, lastMessageSenderId, latestActivitySenderId, senderAvatarUrl, isFollowing
         case lastMessageId, latestActivityMessageId, lastMessageAt, lastActivityAt, latestActivityAt, lastReplyAt, updatedAt, latestActivitySeq
         case firstUnreadMessageId, firstMentionMessageId, unreadCount, hasMention, replyCount, readStateVersion
         case taskNumber, taskTitle, taskStatus
@@ -509,6 +514,7 @@ struct InboxItem: Sendable, Hashable, Decodable, Identifiable {
         readStateVersion = c.flexibleInt64(.readStateVersion)
         senderType = c.lenient(.lastMessageSenderType) ?? c.lenient(.latestActivitySenderType)
         senderId = c.lenient(.lastMessageSenderId) ?? c.lenient(.latestActivitySenderId)
+        senderAvatarUrl = c.lenient(.senderAvatarUrl)
         isFollowing = c.lenient(.isFollowing)
         taskNumber = c.flexibleInt(.taskNumber)
         taskTitle = c.lenient(.taskTitle)
