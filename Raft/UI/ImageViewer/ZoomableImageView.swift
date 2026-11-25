@@ -8,6 +8,8 @@ struct ZoomableImageView: UIViewRepresentable {
     let image: UIImage?
     /// Not the page shown: its zoom goes back to 1×.
     let isCurrent: Bool
+    /// At 1× the image rests in the page inset by these (the controls' region, `ImageViewerFit`).
+    var fitInsets: UIEdgeInsets = .zero
     var reduceMotion = false
     let onZoomChange: (Bool) -> Void
     let onSingleTap: () -> Void
@@ -16,6 +18,7 @@ struct ZoomableImageView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> ZoomScrollView {
         let view = ZoomScrollView()
+        view.fitInsets = fitInsets
         view.callbacks = context.coordinator
         context.coordinator.view = view
         view.setImage(image, animated: false)
@@ -25,6 +28,7 @@ struct ZoomableImageView: UIViewRepresentable {
     func updateUIView(_ view: ZoomScrollView, context: Context) {
         context.coordinator.parent = self
         view.reduceMotion = reduceMotion
+        view.fitInsets = fitInsets
         if view.imageView.image !== image {
             view.setImage(image, animated: view.imageView.image != nil)
         }
@@ -63,6 +67,12 @@ struct ZoomableImageView: UIViewRepresentable {
 final class ZoomScrollView: UIScrollView, UIScrollViewDelegate {
     let imageView = UIImageView()
     var reduceMotion = false
+    var fitInsets: UIEdgeInsets = .zero {
+        didSet {
+            guard fitInsets != oldValue else { return }
+            layoutImage(force: true)
+        }
+    }
     weak var callbacks: ZoomableImageView.Coordinator?
     private var lastBounds: CGSize = .zero
     private let dismissPan = UIPanGestureRecognizer()
@@ -115,23 +125,30 @@ final class ZoomScrollView: UIScrollView, UIScrollViewDelegate {
         layoutImage(force: false)
     }
 
-    /// At 1× the image is fitted to the page; zoomed, only the centering insets change.
+    /// At 1× the image is fitted to the region the controls leave (`fitInsets`) and centred in
+    /// it; zoomed, only the centering insets change.
     private func layoutImage(force: Bool) {
         guard bounds.width > 0, bounds.height > 0 else { return }
         if (force || bounds.size != lastBounds), zoomScale == 1 {
             lastBounds = bounds.size
             let size = imageView.image?.size ?? CGSize(width: 4, height: 3)
-            let fit = ImageViewerDismiss.fitted(size, in: CGRect(origin: .zero, size: bounds.size)).size
+            let region = CGRect(origin: .zero, size: bounds.size).inset(by: fitInsets)
+            let fit = ImageViewerDismiss.fitted(size, in: region).size
             imageView.frame = CGRect(origin: .zero, size: fit)
             contentSize = fit
+            center()
+            // At rest the content and its insets span the page exactly: pin the offset there.
+            if !isTracking, !isZooming {
+                contentOffset = CGPoint(x: -contentInset.left, y: -contentInset.top)
+            }
+        } else {
+            center()
         }
-        center()
     }
 
     private func center() {
-        let horizontal = max(0, (bounds.width - contentSize.width) / 2)
-        let vertical = max(0, (bounds.height - contentSize.height) / 2)
-        contentInset = UIEdgeInsets(top: vertical, left: horizontal, bottom: vertical, right: horizontal)
+        let insets = ImageViewerFit.centering(content: contentSize, bounds: bounds.size, fit: fitInsets)
+        if contentInset != insets { contentInset = insets }
     }
 
     func viewForZooming(in scrollView: UIScrollView) -> UIView? { imageView }
