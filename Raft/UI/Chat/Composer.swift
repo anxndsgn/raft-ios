@@ -602,7 +602,11 @@ private struct ComposerGlass: ViewModifier {
                 .background(dark ? Color(hex: 0x2C2C29) : Color.raftCard, in: shape)
                 .overlay(shape.stroke(dark ? Color.white.opacity(0.12) : Color.raftInk.opacity(0.12), lineWidth: 0.5))
         } else {
+            // The glass alone left messages behind it readable, colliding with the placeholder;
+            // the thin material under it blurs them to light and dark only, as the title capsule
+            // (`GlassTitle`) does.
             content
+                .background(.ultraThinMaterial, in: shape)
                 .glassEffect(.regular.interactive(), in: shape)
                 .glassEffectID("composer", in: namespace)
         }

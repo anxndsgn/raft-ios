@@ -136,6 +136,8 @@ enum AnchoredLanding {
     static let space = "anchored-stream"
     /// How long the target row has to report its frame before the stream is shown anyway.
     static let deadline: Duration = .milliseconds(300)
+    /// The longest a stream stays hidden (a landing, the first settle), from its messages' arrival.
+    static let revealDeadline: Duration = .seconds(1)
 
     /// The final position.
     enum Step: Equatable {
@@ -233,6 +235,12 @@ struct ChatView: View {
     /// the laid-out last row agree it is there. The first passes placed it the bottom bar's height
     /// (86pt) past its end, then corrected it, which flashed.
     @State private var endSettled = false
+    /// The messages were already loaded when the page was created (a held store): the list is
+    /// laid out on its end in its first pass and is shown from the first frame, through the push.
+    @State private var loadedAtOpen: Bool
+    /// Set `AnchoredLanding.revealDeadline` after the messages are loaded: whatever the landing or
+    /// the settle is doing, the stream is never left hidden past it.
+    @State private var revealed = false
     /// More than a screen from the end: the jump-to-latest button shows.
     @State private var farFromEnd = false
     @State private var landingTarget: String?
@@ -253,6 +261,15 @@ struct ChatView: View {
         self.ref = ref
         _landing = State(initialValue: ref.focusMessageId != nil)
         _holdsBottom = State(initialValue: ref.focusMessageId == nil)
+        _loadedAtOpen = State(initialValue: store.phase == .loaded)
+    }
+
+    /// The stream is hidden while it lands on a message (29c), and while the first page that
+    /// arrives after the page opened settles on its end (its first passes place it past the end,
+    /// then correct it). Never past `revealed`.
+    private var isHidden: Bool {
+        guard store.phase == .loaded, !revealed else { return false }
+        return landing || (opening && holdsBottom && !endSettled && !loadedAtOpen)
     }
 
     private var isDirectMessage: Bool { store.kind == .directMessage }
@@ -404,6 +421,11 @@ struct ChatView: View {
                 }
             }
             .task { await start() }
+            .task(id: store.phase == .loaded) {
+                guard store.phase == .loaded, !revealed else { return }
+                try? await Task.sleep(for: AnchoredLanding.revealDeadline)
+                revealed = true
+            }
             .savedChecks(workspace.saved, ids: store.messages.map(\.id), page: store.phase == .loaded ? store.messages.first?.id : nil)
             .resolvesAvatars(workspace.directory, avatarNeeds)
             .task(id: workspace.isOffline) {
@@ -545,7 +567,7 @@ struct ChatView: View {
             .scrollTargetLayout()
             .coordinateSpace(name: AnchoredLanding.space)
             .padding(.bottom, 12)
-            .opacity(store.phase == .loaded && (landing || (opening && holdsBottom && !endSettled)) ? 0 : 1)
+            .opacity(isHidden ? 0 : 1)
         }
         // A tap on the messages ends writing. On the scroll view itself, inside the bottom bar:
         // over the whole page it also saw taps in the composer (As task, +, send) and dropped the

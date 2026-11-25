@@ -29,6 +29,9 @@ struct ThreadView: View {
     @State private var scrollIdle = true
     /// Opening at a reply: the stream is hidden until it has landed there (29c).
     @State private var landing = false
+    /// Set `AnchoredLanding.revealDeadline` after the replies arrive: the list is never left
+    /// hidden past it, whatever the landing or the first settle is doing.
+    @State private var revealed = false
     @State private var geometry = StreamGeometry()
     /// More than a screen from the end: the jump-to-latest button shows.
     @State private var farFromEnd = false
@@ -113,7 +116,8 @@ struct ThreadView: View {
             .scrollTargetLayout()
             .coordinateSpace(name: AnchoredLanding.space)
             .padding(.bottom, 12)
-            .opacity(landing || (opening && startsAtBottom && !reachedBottom) ? 0 : 1)
+            // Never hidden past `revealed` (`AnchoredLanding.revealDeadline` after the replies arrive).
+            .opacity((landing || (opening && startsAtBottom && !reachedBottom)) && !revealed ? 0 : 1)
         }
         // A tap on the messages ends writing. On the scroll view itself, inside the bottom bar:
         // over the whole page it also saw taps in the composer (As task, +, send) and dropped the
@@ -214,6 +218,11 @@ struct ThreadView: View {
             await store.start()
             replies?.isVisible = scenePhase == .active
             await scrollToStart()
+        }
+        .task(id: replies?.messages.isEmpty == false) {
+            guard replies?.messages.isEmpty == false, !revealed else { return }
+            try? await Task.sleep(for: AnchoredLanding.revealDeadline)
+            revealed = true
         }
         .savedChecks(workspace.saved, ids: [store.parentMessageId] + (replies?.messages.map(\.id) ?? []), page: store.phase == .loaded ? (replies?.messages.first?.id ?? store.parentMessageId) : nil)
         .resolvesAvatars(workspace.directory, avatarNeeds)
