@@ -299,7 +299,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$dh"
+            "value" : "%1$dh ago"
           }
         },
         "zh-Hans" : {
@@ -317,7 +317,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$dm"
+            "value" : "%1$dm ago"
           }
         },
         "zh-Hans" : {
@@ -3707,7 +3707,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ 提到了你"
+            "value" : "%1$@提到了你"
           }
         }
       }

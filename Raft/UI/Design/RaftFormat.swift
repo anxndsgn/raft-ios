@@ -44,13 +44,13 @@ enum RaftFormat {
         return monthDayFormatter.string(from: date)
     }
 
-    /// Activity rows: `now`, `3m`, `1h` today; `HH:mm` before.
+    /// Activity rows: `now`, `3m ago`, `1h ago` today; `HH:mm` before.
     static func relative(_ date: Date, now: Date = Date(), calendar: Calendar = .current) -> String {
         let seconds = now.timeIntervalSince(date)
         if calendar.isDate(date, inSameDayAs: now) {
             if seconds < 60 { return L10n.t("activity_list_time_now", "now") }
-            if seconds < 3600 { return L10n.f("activity_list_time_minutes", "%1$dm", Int(seconds / 60)) }
-            return L10n.f("activity_list_time_hours", "%1$dh", Int(seconds / 3600))
+            if seconds < 3600 { return L10n.f("activity_list_time_minutes", "%1$dm ago", Int(seconds / 60)) }
+            return L10n.f("activity_list_time_hours", "%1$dh ago", Int(seconds / 3600))
         }
         return clock(date)
     }
