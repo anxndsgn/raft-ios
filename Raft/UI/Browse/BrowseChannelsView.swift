@@ -32,7 +32,7 @@ struct BrowseEntryRow: View {
                 .accessibilityHidden(true)
         }
         .padding(.horizontal, 14)
-        .frame(minHeight: 52)
+        .frame(minHeight: 60)
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(L10n.t("ios_browse_title", "Browse channels")))

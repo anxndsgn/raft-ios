@@ -444,7 +444,7 @@ struct ChannelRowView: View {
             trailing
         }
         .padding(.horizontal, 14)
-        .frame(minHeight: 52)
+        .frame(minHeight: 60)
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: HomeA11y.label(row)))
@@ -660,7 +660,7 @@ struct HomeSkeleton: View {
                         Spacer()
                     }
                     .padding(.horizontal, 14)
-                    .frame(height: 52)
+                    .frame(height: 60)
                 }
             }
             SkeletonBlock(width: 110, height: 12).padding(.leading, 20).padding(.top, 26).padding(.bottom, 10)

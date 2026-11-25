@@ -27,9 +27,6 @@ struct DebugCoreView: View {
                     }
                 }
                 diagnosticsSection
-                Section {
-                    MadeWithAirBuild()
-                }
             }
             .navigationTitle("Raft Core")
             .disabled(model.busy)

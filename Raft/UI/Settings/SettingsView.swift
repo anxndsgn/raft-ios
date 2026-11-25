@@ -19,23 +19,6 @@ struct SettingsView: View {
     #if DEBUG
     @State private var showsDiagnostics = false
     #endif
-    @State private var contentAboveFooter: CGFloat = 0
-    @State private var viewport = ScrollViewport(height: 0, topInset: 0)
-
-    private struct ScrollViewport: Equatable {
-        var height: CGFloat
-        var topInset: CGFloat
-    }
-
-    /// At least 120pt below Sign out, and always enough that the AirBuild footer starts below
-    /// the first screen on any device or text size (Colo 5227). At the end of the list the
-    /// scroll view's tab-bar inset keeps the footer fully above the bar.
-    private var footerGap: CGFloat {
-        guard viewport.height > 0, contentAboveFooter > 0 else { return 120 }
-        let toFold = viewport.height - viewport.topInset - contentAboveFooter + 8
-        return max(120, ceil(toFold))
-    }
-
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
@@ -59,18 +42,8 @@ struct SettingsView: View {
                     if !model.isPreview { developerGroup }
                     #endif
                 }
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentAboveFooter = $0 }
-                MadeWithAirBuild()
-                    .padding(.top, footerGap)
-                    .padding(.bottom, 16)
+                .padding(.bottom, 16)
             }
-        }
-        .onScrollGeometryChange(for: ScrollViewport.self) { geometry in
-            // `containerSize` stops at the safe area; the visible rect spans the whole screen,
-            // including the strip under the floating tab bar.
-            ScrollViewport(height: geometry.visibleRect.height, topInset: geometry.contentInsets.top)
-        } action: { _, value in
-            viewport = value
         }
         .background(Color.raftCanvasWarm.ignoresSafeArea())
         .raftNavigationTitle(L10n.t("settings_title", "Settings"))

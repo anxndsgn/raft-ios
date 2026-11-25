@@ -202,7 +202,8 @@ extension View {
 
     /// The hard ink offset shadow of illustration stickers.
     func hardShadow(_ offset: CGFloat = 3) -> some View {
-        shadow(color: .raftInk, radius: 0, x: offset, y: offset)
+        // Flattened first, so only the outline casts it: glyphs inside don't get their own.
+        compositingGroup().shadow(color: .raftInk, radius: 0, x: offset, y: offset)
     }
 
     /// Floating glass (only for the layer above content: composer, banners, menus), solid when
