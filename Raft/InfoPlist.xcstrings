@@ -1,0 +1,24 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSPhotoLibraryAddUsageDescription" : {
+      "comment" : "Privacy - Photo Library Additions Usage Description (Save to Photos in the image viewer)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raft saves message image attachments to your Photos library when you choose Save to Photos."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当你选择“存储到照片”时，Raft 会将消息中的图片附件存储到你的照片图库。"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

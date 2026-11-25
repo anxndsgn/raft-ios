@@ -2,10 +2,13 @@
 import SwiftUI
 
 /// Screens with prepared data for design review: launch with `RAFT_PREVIEW=<screen>`
-/// (`02`, `03`, `04`, `05`, `05b`, `06`, `06d`, `06e`, `07`, `08`, `09`, `10`, `11`, `13`, `14`,
-/// `15`, `16`, `17`, `18`, `19`, `20`, `28`, `28b`, `28c`, `29`, `29b`, `29c`, `29d`, `29e`,
-/// `saved`). Nothing reaches a server: every request fails offline.
+/// (`02`, `03`, `04`, `05`, `05b`, `06`, `06d`, `06e`, `07`, `08`, `09`, `10`, `11`, `12b`, `12c`,
+/// `13`, `14`, `15`, `16`, `17`, `18`, `19`, `20`, `28`, `28b`, `28c`, `29`, `29b`, `29c`, `29d`,
+/// `29e`, `30`, `30b`, `30c`, `31a`, `31`, `31c`, `31d`, `saved`). Nothing reaches a server: every
+/// request fails offline.
 /// `06d` / `06e` are Home (its New message and Search entries); `28*` open New message over it.
+/// `12b` lifts Ruby's message into the long-press menu; `31`, `31c` and `31d` open the image
+/// viewer out of 31a's first image (images are drawn locally, see `Fixtures.scenes`).
 @MainActor
 enum PreviewGallery {
     /// The screen being shown, for the few views that open a state on their own (alerts, drafts).
@@ -98,10 +101,8 @@ private struct Fixtures {
         model.installPreview(workspace: workspace)
         workspace.directory.debugSeed(agents: Self.agents, members: decode([ServerMember].self, Self.members))
         workspace.homeExtras.debugSeed(
-            savedCount: 5,
             pinned: decode([SidebarOrder.PinnedRef].self, [["kind": "channel", "id": "c-announce"], ["kind": "channel", "id": "c-now"]]),
             level: .all,
-            saved: decode([SavedEntry].self, Self.saved),
             previews: [
                 "c-release": .init(sender: "Leo Park", text: "@Maya can you review the 2.4 notes before noon?"),
                 "d-builder": .init(sender: "Builder", text: "Pushed the fix for the login crash, PR #486 is ready for review."),
@@ -109,11 +110,12 @@ private struct Fixtures {
             ]
         )
         seedHome(workspace, loading: screen == "07")
+        seedSaved(workspace, screen: screen)
         if screen == "08" {
             workspace.debugSet(connection: .reconnecting(after: 4, failures: 3, reason: "preview"))
         }
         switch screen {
-        case "09", "11", "13", "15":
+        case "09", "11", "12b", "12c", "13", "15":
             let store = chat(workspace, failed: screen == "15")
             if screen == "11" {
                 let draft = ComposerModel()
@@ -147,8 +149,11 @@ private struct Fixtures {
             model.tab = .activity
         case "19", "20":
             model.tab = .settings
-        case "saved":
+        case "30", "30b", "30c", "saved":
             model.homePath = [.saved]
+        case "31a", "31", "31c", "31d":
+            let store = imageChat(workspace)
+            model.homePath = [.conversation(ConversationRef(channelId: store.channelId, title: store.title, kind: .channel))]
         case "29", "29b", "29d", "29e":
             PreviewGallery.searchStore = search(screen)
             model.homePath = [.messageSearch]
@@ -377,16 +382,159 @@ private struct Fixtures {
 
     private static var saved: [[String: Any]] {
         [
+            ["messageId": "i4", "channelId": "c-mobile", "channelName": "ship-mobile", "channelType": "channel",
+             "content": "Three options for the 2.4 store hero. I like the first one best.", "senderType": "user", "senderId": "u-leo",
+             "senderName": "Leo Park", "createdAt": iso(42), "savedAt": iso(10),
+             "attachments": [imageAttachment("img-hero", "store-hero-a.png")]],
             ["messageId": "m3", "channelId": "c-mobile", "channelName": "ship-mobile", "channelType": "channel",
-             "content": "Found it: a null `locale` when the device language isn’t supported.", "senderType": "agent", "senderId": "a-ruby",
-             "senderName": "Ruby", "createdAt": iso(33), "savedAt": iso(20)],
+             "content": "Found it: a null `locale` when the device language isn’t supported. Fix is up in PR #482, with a test, CI is green.",
+             "senderType": "agent", "senderId": "a-ruby", "senderName": "Ruby", "createdAt": iso(33), "savedAt": iso(20)],
             ["messageId": "r1", "channelId": "t-notes", "channelName": "ship-mobile", "channelType": "thread", "parentChannelId": "c-mobile",
-             "parentChannelName": "ship-mobile", "parentMessageId": "m4", "content": "Draft is ready, 6 fixes and 2 features.",
+             "parentChannelName": "ship-mobile", "parentChannelType": "channel", "parentMessageId": "m4",
+             "content": "Draft is ready, 6 fixes and 2 features. Want me to post the 2.4 notes to #announcements when it’s approved?",
              "senderType": "agent", "senderId": "a-atlas", "senderName": "Atlas", "createdAt": iso(31), "savedAt": iso(25)],
-            ["messageId": "dm3", "channelId": "d-cindy", "channelName": "Cindy", "channelType": "dm",
-             "content": "Baselines are captured: 184 screens, 3 differences against 2.3.", "senderType": "agent", "senderId": "a-cindy",
-             "senderName": "Cindy", "createdAt": iso(45), "savedAt": iso(44)],
+            ["messageId": "x4", "channelId": "c-research", "channelName": "research", "channelType": "channel",
+             "content": "Whiteboard from the onboarding synthesis. Mentions are the biggest pain point, then search.",
+             "senderType": "user", "senderId": "u-sara", "senderName": "Sara Kim", "createdAt": iso(60 * 50), "savedAt": iso(60 * 49),
+             "attachments": [imageAttachment("img-board", "whiteboard.png")]],
+            ["messageId": "dl1", "channelId": "d-leo", "channelName": "dm-leo", "channelType": "dm",
+             "content": "Code freeze checklist: bump build number, tag release/2.4, freeze strings, then ping #release.",
+             "senderType": "user", "senderId": "u-leo", "senderName": "Leo Park", "createdAt": iso(60 * 75), "savedAt": iso(60 * 74)],
+            ["messageId": "s4", "channelId": "c-release", "channelName": "release", "channelType": "channel",
+             "content": "TestFlight 2.4.0 (317) is processing. I’ll paste the notes into the build description when it’s done.",
+             "senderType": "agent", "senderId": "a-nova", "senderName": "Nova", "createdAt": iso(60 * 24 * 40), "savedAt": iso(60 * 24 * 40)],
         ]
+    }
+
+    // MARK: Saved (12b, 12c, 30)
+
+    /// 6 on Home's chip everywhere; 12c marks Ruby's message and Nova's continued one.
+    private func seedSaved(_ workspace: Workspace, screen: String) {
+        switch screen {
+        case "30", "saved":
+            seedImages(workspace, ["img-hero", "img-board"], originals: false)
+            workspace.saved.debugSeed(phase: .loaded, entries: decode([SavedEntry].self, Self.saved), total: 6)
+        case "30b":
+            workspace.saved.debugSeed(phase: .loaded, total: 0)
+        case "30c":
+            workspace.saved.debugSeed(phase: .loading, total: 6)
+        case "12c":
+            workspace.saved.debugSeed(phase: .idle, total: 6, savedIds: ["m3", "m6"])
+        default:
+            workspace.saved.debugSeed(phase: .idle, total: 6)
+        }
+    }
+
+    // MARK: Images (31a, 31)
+
+    /// Nova's one image, Cindy's six (five shown, "+1"), Leo's three (31a; the viewer opens on
+    /// the first of them in 31, 31c, 31d).
+    private func imageChat(_ workspace: Workspace) -> ConversationStore {
+        let store = workspace.conversation(for: ConversationRef(channelId: "c-mobile", title: "ship-mobile", kind: .channel))
+        let onboarding = (1...6).map { Self.imageAttachment("img-ob\($0)", "onboarding-\($0).png") }
+        let hero = [
+            Self.imageAttachment("img-hero", "store-hero-a.png"),
+            Self.imageAttachment("img-dusk", "store-hero-b.png"),
+            Self.imageAttachment("img-coral", "store-hero-c.png"),
+        ]
+        let messages: [[String: Any]] = [
+            message("i1", 1, agent: "a-nova", name: "Nova", minutes: 58, "Simulator capture of the new Saved list on build 318.",
+                    attachments: [Self.imageAttachment("img-sim", "saved-list-318.png")]),
+            message("i2", 2, agent: "a-cindy", name: "Cindy", minutes: 52, "All six onboarding screens from the baseline run.", attachments: onboarding),
+            message("i3", 3, user: "u-maya", name: "Maya Chen", minutes: 44, "Do we have the store art yet?"),
+            message("i4", 4, user: "u-leo", name: "Leo Park", minutes: 42, "Three options for the 2.4 store hero. I like the first one best.",
+                    reactions: [["emoji": "😍", "count": 2, "reactorIds": ["u-rae", "u-noor"], "reactorNames": ["Rae Okafor", "Noor Haddad"]]],
+                    attachments: hero),
+        ]
+        let ids = ["img-sim", "img-hero", "img-dusk", "img-coral"] + (1...6).map { "img-ob\($0)" }
+        seedImages(workspace, ids, originals: true)
+        store.debugSeed(phase: .loaded, messages: decode([Message].self, messages))
+        return store
+    }
+
+    private static func thumbnailURL(_ id: String) -> URL {
+        URL(string: "https://cdn.raft.build/thumbs/preview/\(id).webp")!
+    }
+
+    /// No width / height, as the server sends them today (4:3 first image).
+    private static func imageAttachment(_ id: String, _ filename: String) -> [String: Any] {
+        ["id": id, "filename": filename, "mimeType": "image/png", "sizeBytes": 412_000, "thumbnailUrl": thumbnailURL(id).absoluteString]
+    }
+
+    /// Thumbnails go into the image cache behind their made-up URLs; originals (31) are written
+    /// to temporary files and handed to the attachment store as if downloaded.
+    private func seedImages(_ workspace: Workspace, _ ids: [String], originals: Bool) {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("raft-preview", isDirectory: true)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        for id in ids {
+            guard let scene = Self.scenes[id] else { continue }
+            RaftImageCache.shared.debugSeed(sceneArt(scene, scale: 2), for: Self.thumbnailURL(id))
+            guard originals else { continue }
+            let file = folder.appendingPathComponent("\(id).png")
+            if let data = sceneArt(scene, scale: 3).pngData() { try? data.write(to: file) }
+            workspace.attachments.debugSeed(file: file, for: id)
+        }
+    }
+
+    private struct Scene {
+        var sky: Color
+        var sun: Color
+        var hill: Color
+        var ground: Color
+    }
+
+    private static let scenes: [String: Scene] = {
+        let cream = Color(hex: 0xFFF8EC)
+        let hero = Scene(sky: .raftCyanSoft, sun: .raftYellow, hill: .raftLime, ground: .raftPink)
+        let dusk = Scene(sky: .raftLavender, sun: cream, hill: .raftCyan, ground: .raftStone)
+        let coral = Scene(sky: .raftChannelChip, sun: .raftRed, hill: .raftYellow, ground: .raftOrange)
+        let noon = Scene(sky: Color(hex: 0xFFF0BD), sun: .raftOrange, hill: .raftLime, ground: .raftCyan)
+        let mint = Scene(sky: Color(hex: 0xDDF3D0), sun: .raftYellow, hill: .raftCyan, ground: .raftLavender)
+        let slate = Scene(sky: Color(hex: 0xDCE3EA), sun: cream, hill: .raftSlate, ground: .raftPink)
+        return [
+            "img-hero": hero, "img-dusk": dusk, "img-coral": coral, "img-board": coral, "img-sim": noon,
+            "img-ob1": hero, "img-ob2": mint, "img-ob3": coral, "img-ob4": slate, "img-ob5": dusk, "img-ob6": noon,
+        ]
+    }()
+
+    /// The store hero family (sky, sun, two hills, a boat) at 320×240 points.
+    private func sceneArt(_ scene: Scene, scale: CGFloat) -> UIImage {
+        let ink = Color.raftInk
+        let size = CGSize(width: 320, height: 240)
+        func hill(_ y0: CGFloat, _ y1: CGFloat, _ c0: CGPoint, _ c1: CGPoint, closed: Bool) -> Path {
+            Path { p in
+                p.move(to: CGPoint(x: 0, y: y0))
+                p.addCurve(to: CGPoint(x: size.width, y: y1), control1: c0, control2: c1)
+                if closed {
+                    p.addLine(to: CGPoint(x: size.width, y: size.height))
+                    p.addLine(to: CGPoint(x: 0, y: size.height))
+                    p.closeSubpath()
+                }
+            }
+        }
+        let back = (y0: CGFloat(170), y1: CGFloat(156), c0: CGPoint(x: 90, y: 120), c1: CGPoint(x: 210, y: 220))
+        let front = (y0: CGFloat(204), y1: CGFloat(200), c0: CGPoint(x: 110, y: 180), c1: CGPoint(x: 220, y: 222))
+        let sail = Path { p in
+            p.move(to: CGPoint(x: 102, y: 80)); p.addLine(to: CGPoint(x: 102, y: 128)); p.addLine(to: CGPoint(x: 134, y: 118)); p.closeSubpath()
+        }
+        let renderer = ImageRenderer(content:
+            ZStack(alignment: .topLeading) {
+                scene.sky
+                Circle().fill(scene.sun).overlay(Circle().strokeBorder(ink, lineWidth: 3.5))
+                    .frame(width: 70, height: 70).offset(x: 222, y: 34)
+                hill(back.y0, back.y1, back.c0, back.c1, closed: true).fill(scene.hill)
+                hill(back.y0, back.y1, back.c0, back.c1, closed: false).stroke(ink, lineWidth: 3.5)
+                hill(front.y0, front.y1, front.c0, front.c1, closed: true).fill(scene.ground)
+                hill(front.y0, front.y1, front.c0, front.c1, closed: false).stroke(ink, lineWidth: 3.5)
+                sail.fill(Color(hex: 0xFFF8EC)).overlay(sail.stroke(ink, lineWidth: 3))
+                RoundedRectangle(cornerRadius: 4).fill(Color.raftOrange)
+                    .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(ink, lineWidth: 3))
+                    .frame(width: 72, height: 20).offset(x: 70, y: 126)
+            }
+            .frame(width: size.width, height: size.height)
+        )
+        renderer.scale = scale
+        return renderer.uiImage ?? UIImage()
     }
 
     // MARK: People

@@ -31,6 +31,8 @@ final class Workspace {
     /// People and agents (loaded by the app, not by `start()`).
     let directory: DirectoryStore
     let homeExtras: HomeExtrasStore
+    /// Saved messages: marks, the long-press Save item, Home's chip count, the Saved list.
+    let saved: SavedStore
     @ObservationIgnored let attachments: AttachmentStore
     private(set) var connection: RealtimeStatus = .idle {
         didSet {
@@ -71,7 +73,8 @@ final class Workspace {
         channelList = ChannelListStore(api: api, serverId: serverId, currentUserId: currentUserId)
         activity = ActivityStore(api: api, currentUserId: currentUserId)
         directory = DirectoryStore(api: api, serverId: serverId)
-        homeExtras = HomeExtrasStore(api: api, serverId: serverId, preferences: preferences)
+        saved = SavedStore(api: api, preferences: preferences)
+        homeExtras = HomeExtrasStore(api: api, serverId: serverId, preferences: preferences, saved: saved)
         attachments = AttachmentStore(api: api)
     }
 

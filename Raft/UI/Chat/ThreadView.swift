@@ -147,6 +147,7 @@ struct ThreadView: View {
             replies?.isVisible = scenePhase == .active
             await scrollToStart()
         }
+        .savedChecks(workspace.saved, ids: [store.parentMessageId] + (replies?.messages.map(\.id) ?? []), page: store.phase == .loaded ? (replies?.messages.first?.id ?? store.parentMessageId) : nil)
         .onAppear { replies?.isVisible = scenePhase == .active }
         .onDisappear { replies?.isVisible = false }
         .onChange(of: scenePhase) { _, phase in replies?.isVisible = phase == .active }
@@ -377,6 +378,7 @@ struct ThreadView: View {
         actions.copyText = { copy(row.plainText) }
         actions.copyLink = { copyLink(message, isReply: false) }
         actions.replyInThread = { composerFocused = true }
+        actions.toggleSaved = workspace.saved.toggleAction(for: message)
         actions.longPress = { frame in lift(row, message, frame: frame, isReply: false) }
         return actions
     }
@@ -390,6 +392,7 @@ struct ThreadView: View {
         actions.copyText = { copy(row.plainText) }
         actions.copyLink = { copyLink(message, isReply: true) }
         actions.replyInThread = { composerFocused = true }
+        actions.toggleSaved = workspace.saved.toggleAction(for: message)
         actions.longPress = { frame in lift(row, message, frame: frame, isReply: true) }
         return actions
     }
@@ -439,6 +442,7 @@ struct ThreadView: View {
             MessageMenuItem(id: "link", title: L10n.t("thread_action_copy_link", "Copy link"), systemImage: "link") { copyLink(message, isReply: isReply) },
         ]
         if isPreview { items.removeAll { $0.id == "react" } }
+        if !isPreview, let save = workspace.saved.menuItem(for: message) { items.insert(save, at: 0) }
         interactions.present(MessageActionTarget(
             row: row,
             frame: frame,

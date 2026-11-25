@@ -22,6 +22,36 @@ final class AttachmentStore {
         return signed.url
     }
 
+    /// Signed URLs for several attachments at once (`POST attachments/urls`, 50 ids per call;
+    /// its items carry no `expiresAt`, so they are kept for the same five minutes). Ids the batch
+    /// leaves out are asked one by one.
+    @discardableResult
+    func prefetchURLs(for ids: [String]) async -> [String: URL] {
+        var result: [String: URL] = [:]
+        var missing: [String] = []
+        for id in ids {
+            if let cached = urls[id], Date().timeIntervalSince(cached.fetchedAt) < 300 {
+                result[id] = cached.url
+            } else if !missing.contains(id) {
+                missing.append(id)
+            }
+        }
+        guard let api, !missing.isEmpty else { return result }
+        for start in stride(from: 0, to: missing.count, by: 50) {
+            let chunk = Array(missing[start..<min(start + 50, missing.count)])
+            guard let batch = try? await api.attachmentURLs(ids: chunk) else { continue }
+            for item in batch {
+                guard let id = item.id, chunk.contains(id) else { continue }
+                urls[id] = (item.url, Date())
+                result[id] = item.url
+            }
+        }
+        for id in missing where result[id] == nil {
+            if let url = try? await url(for: id) { result[id] = url }
+        }
+        return result
+    }
+
     /// A local copy named like the attachment (Quick Look needs a file and uses its extension).
     func localFile(for attachment: MessageAttachment) async throws -> URL {
         if let file = files[attachment.id], FileManager.default.fileExists(atPath: file.path) { return file }
@@ -43,4 +73,11 @@ final class AttachmentStore {
         files[attachment.id] = file
         return file
     }
+
+    #if DEBUG
+    /// Preview gallery: a local file stands in for the download.
+    func debugSeed(file: URL, for id: String) {
+        files[id] = file
+    }
+    #endif
 }

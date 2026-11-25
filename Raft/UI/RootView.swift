@@ -31,7 +31,7 @@ struct RootView: View {
                 AuthFlowView().transition(.opacity)
             case .main:
                 if let workspace = model.workspace {
-                    MainTabView()
+                    MainStage(workspace: workspace)
                         .environment(workspace)
                         .id(workspace.serverId)
                         .transition(.opacity)

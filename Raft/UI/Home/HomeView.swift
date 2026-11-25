@@ -227,8 +227,11 @@ struct HomeView: View {
             HStack(spacing: 8) {
                 NavigationLink(value: AppRoute.saved) {
                     HomeChip(systemImage: "bookmark", title: L10n.t("home_nav_saved", "Saved")) {
-                        if let count = extras.savedCount {
+                        // No number at 0 (30b); counts move with a save or removal (13.2).
+                        if let count = extras.savedCount, count > 0 {
                             Text(verbatim: String(count)).raftFont(.monoCaption).foregroundStyle(Color.raftTextTertiary)
+                                .contentTransition(.numericText(value: Double(count)))
+                                .animation(.smooth(duration: 0.25), value: count)
                         }
                     }
                 }

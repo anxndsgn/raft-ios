@@ -192,11 +192,11 @@ final class AppModel {
         await session.signOut()
     }
 
-    func showToast(_ text: String) {
+    func showToast(_ text: String, duration: Duration = .seconds(2)) {
         toast = text
         toastTask?.cancel()
         toastTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(2))
+            try? await Task.sleep(for: duration)
             guard !Task.isCancelled else { return }
             withAnimation(.easeIn(duration: 0.2)) { self?.toast = nil }
         }

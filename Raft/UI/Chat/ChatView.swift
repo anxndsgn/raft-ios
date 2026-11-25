@@ -180,6 +180,7 @@ struct ChatView: View {
                 }
             }
             .task { await start() }
+            .savedChecks(workspace.saved, ids: store.messages.map(\.id), page: store.phase == .loaded ? store.messages.first?.id : nil)
             .task(id: workspace.isOffline) {
                 guard workspace.isOffline else {
                     showsBanner = false
@@ -531,6 +532,7 @@ struct ChatView: View {
                 actions.replyInThread = { openThread(message) }
                 actions.copyLink = { copyLink(message) }
             }
+            actions.toggleSaved = workspace.saved.toggleAction(for: message)
             actions.openAttachment = { open($0) }
             actions.copyText = { copy(row.plainText) }
             actions.longPress = { frame in lift(row, message: message, frame: frame) }
@@ -552,6 +554,9 @@ struct ChatView: View {
         ]
         if isTask { items.removeAll { $0.id == "reply" || $0.id == "link" } }
         if isPreview { items.removeAll { $0.id == "reply" || $0.id == "react" } }
+        if !isPreview, let save = workspace.saved.menuItem(for: message) {
+            items.insert(save, at: items.first?.id == "reply" ? 1 : 0)
+        }
         interactions.present(MessageActionTarget(
             row: row,
             frame: frame,

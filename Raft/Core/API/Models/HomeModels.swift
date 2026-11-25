@@ -17,12 +17,16 @@ struct SavedEntry: Sendable, Hashable, Decodable, Identifiable {
     var parentChannelId: String?
     var parentChannelName: String?
     var parentMessageId: String?
+    /// The thread's or task's root conversation type (`dm` for a DM thread).
+    var parentChannelType: String?
+    /// Not sent by v1.33.1 (the web client never reads it); shown as a thumbnail when present.
+    var attachments: [MessageAttachment] = []
 
     var id: String { messageId }
 
     private enum CodingKeys: String, CodingKey {
         case messageId, channelId, channelName, channelType, content, senderType, senderId, senderName, senderAvatarUrl
-        case createdAt, savedAt, parentChannelId, parentChannelName, parentMessageId
+        case createdAt, savedAt, parentChannelId, parentChannelName, parentMessageId, parentChannelType, attachments
     }
 
     init(from decoder: Decoder) throws {
@@ -41,21 +45,36 @@ struct SavedEntry: Sendable, Hashable, Decodable, Identifiable {
         parentChannelId = c.lenient(.parentChannelId)
         parentChannelName = c.lenient(.parentChannelName)
         parentMessageId = c.lenient(.parentMessageId)
+        parentChannelType = c.lenient(.parentChannelType)
+        attachments = c.lenientArray(.attachments)
+    }
+
+    /// A thread reply (the web client's rule: `channelType == "thread"`, or a parent message).
+    var isThreadReply: Bool { channelType == "thread" || (parentMessageId?.isEmpty == false) }
+    var isTask: Bool { channelType == "task" }
+    /// Its conversation (a thread's or task's root conversation) is a DM.
+    var isDirectMessage: Bool {
+        (isThreadReply || isTask ? (parentChannelType ?? channelType) : channelType) == "dm"
     }
 }
 
 struct SavedPage: Sendable, Hashable, Decodable {
     var saved: [SavedEntry]
     var hasMore: Bool
+    /// The count for the list's subtitle and Home's chip: `globalTotal`, else `total`, else
+    /// `totalCount` (v1.33.1 sends `globalTotal` and `total`).
     var total: Int
+    /// Entries the page held before undecodable ones were dropped: the next page's offset step.
+    var rawCount: Int
 
-    private enum CodingKeys: String, CodingKey { case saved, hasMore, total }
+    private enum CodingKeys: String, CodingKey { case saved, hasMore, total, globalTotal, totalCount }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         saved = c.lenientArray(.saved)
+        rawCount = c.lenient(.saved, as: [JSONValue].self)?.count ?? saved.count
         hasMore = c.lenient(.hasMore) ?? false
-        total = c.flexibleInt(.total) ?? saved.count
+        total = c.flexibleInt(.globalTotal) ?? c.flexibleInt(.total) ?? c.flexibleInt(.totalCount) ?? saved.count
     }
 }
 

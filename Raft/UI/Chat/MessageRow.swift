@@ -115,6 +115,8 @@ struct MessageRowActions {
     var copyText: () -> Void = {}
     var copyLink: () -> Void = {}
     var replyInThread: () -> Void = {}
+    /// Save / Remove from Saved (12b); nil where it is not offered.
+    var toggleSaved: (() -> Void)?
 }
 
 /// Not observed: the row's last known frame, read when it is long-pressed.
@@ -137,11 +139,21 @@ struct MessageRowView: View {
 
     @State private var frameBox = FrameBox()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(SavedStore.self) private var savedStore: SavedStore?
+
+    /// 12c: a sent message this person saved.
+    private var isSaved: Bool { row.state == .sent && savedStore?.isSaved(row.id) == true }
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             if continuation {
-                Color.clear.frame(width: AvatarSize.md.side, height: 1)
+                // The mark of a continued message sits in the avatar column (12c).
+                ZStack(alignment: .topTrailing) {
+                    Color.clear.frame(width: AvatarSize.md.side, height: 1)
+                    if isSaved { SavedMark().padding(.top, 1).transition(SavedMark.transition) }
+                }
+                .frame(width: AvatarSize.md.side, alignment: .topTrailing)
+                .animation(.spring(duration: 0.25, bounce: 0.3), value: isSaved)
             } else {
                 AvatarView(persona: row.persona, size: .md, showsPresence: true, ringColor: .raftCanvas)
                     .padding(.top, 2)
@@ -195,8 +207,21 @@ struct MessageRowView: View {
             guard interactive else { return }
             actions.longPress(frameBox.frame)
         }
+        #if DEBUG
+        .task {
+            // Preview gallery 12b: Ruby's message in the long-press menu.
+            guard PreviewGallery.screen == "12b", interactive, row.id == "m3" else { return }
+            try? await Task.sleep(for: .milliseconds(700))
+            actions.longPress(frameBox.frame)
+        }
+        #endif
         .accessibilityElement(children: .contain)
         .accessibilityAction(named: Text(L10n.t("thread_action_reply_in_thread", "Reply in thread"))) { actions.replyInThread() }
+        .accessibilityActions {
+            if let toggle = actions.toggleSaved {
+                Button(SavedStore.actionTitle(saved: isSaved), action: toggle)
+            }
+        }
         .accessibilityAction(named: Text(L10n.t("thread_action_add_reaction", "Add reaction"))) { actions.addReaction() }
         .accessibilityAction(named: Text(L10n.t("file_preview_action_copy_text", "Copy text"))) { actions.copyText() }
         .accessibilityAction(named: Text(L10n.t("thread_action_copy_link", "Copy link"))) { actions.copyLink() }
@@ -224,7 +249,13 @@ struct MessageRowView: View {
                     .foregroundStyle(Color.raftTextTertiary)
                     .fixedSize()
             }
+            if isSaved {
+                SavedMark()
+                    .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 4 }
+                    .transition(SavedMark.transition)
+            }
         }
+        .animation(.spring(duration: 0.25, bounce: 0.3), value: isSaved)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: a11yHeader))
     }
@@ -236,6 +267,7 @@ struct MessageRowView: View {
             if let runtime = row.persona.runtime { parts.append(runtime) }
         }
         if let date = row.date { parts.append(RaftFormat.clock(date)) }
+        if isSaved { parts.append(L10n.t("thread_label_saved", "Saved").lowercased()) }
         return parts.joined(separator: ", ")
     }
 
@@ -271,6 +303,8 @@ struct MessageRowView: View {
         } else if row.attachments.count > 1 {
             parts.append(L10n.f("ios_attachments_count_a11y", "%1$d attachments", row.attachments.count))
         }
+        // A continued message has no header to say it is saved.
+        if continuation, isSaved { parts.append(L10n.t("thread_label_saved", "Saved")) }
         if row.isFailed { parts.append(L10n.t("ios_not_sent", "Not sent")) }
         if row.state == .pending { parts.append(L10n.t("ios_message_sending", "Sending…")) }
         // One period between parts, not two when the text already ends a sentence.
@@ -283,16 +317,21 @@ struct MessageRowView: View {
     // MARK: Attachments (§3-13)
 
     private var attachmentList: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ForEach(row.attachments) { attachment in
-                if attachment.isImage {
-                    ImageAttachmentView(attachment: attachment, store: context.attachments) {
-                        actions.openAttachment(attachment)
-                    }
-                } else {
-                    FileCardView(attachment: attachment) {
-                        actions.openAttachment(attachment)
-                    }
+        let images = row.attachments.filter(\.isImage)
+        return VStack(alignment: .leading, spacing: 8) {
+            if !images.isEmpty {
+                MessageImageGroup(
+                    images: images,
+                    sender: row.persona,
+                    date: row.date,
+                    store: context.attachments,
+                    fallbackOpen: actions.openAttachment,
+                    interactive: interactive
+                )
+            }
+            ForEach(row.attachments.filter { !$0.isImage }) { attachment in
+                FileCardView(attachment: attachment) {
+                    actions.openAttachment(attachment)
                 }
             }
         }
@@ -473,58 +512,6 @@ struct InsetCardStyle: ButtonStyle {
 }
 
 // MARK: Attachments (§3-13)
-
-struct ImageAttachmentView: View {
-    let attachment: MessageAttachment
-    let store: AttachmentStore
-    let open: () -> Void
-    @State private var url: URL?
-    @State private var failed = false
-
-    private var displaySize: CGSize {
-        let width: CGFloat = 262
-        guard let w = attachment.width, let h = attachment.height, w > 0, h > 0 else { return CGSize(width: width, height: 180) }
-        let height = width * CGFloat(h) / CGFloat(w)
-        return CGSize(width: width, height: min(320, max(80, height)))
-    }
-
-    var body: some View {
-        Button(action: open) {
-            ZStack {
-                Color.raftFill
-                if let url {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let image): image.resizable().scaledToFill()
-                        case .failure: Image(systemName: "photo").font(.system(size: 28)).foregroundStyle(Color.raftTextTertiary)
-                        default: ProgressView().tint(.raftTextSecondary)
-                        }
-                    }
-                } else if failed {
-                    Image(systemName: "photo").font(.system(size: 28)).foregroundStyle(Color.raftTextTertiary)
-                } else {
-                    ProgressView().tint(.raftTextSecondary)
-                }
-            }
-            .frame(maxWidth: displaySize.width)
-            .frame(height: displaySize.height)
-            .clipShape(.rect(cornerRadius: 9, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(Color.raftInk.opacity(0.18), lineWidth: 0.5))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text(verbatim: attachment.filename.isEmpty ? L10n.t("ios_image", "Image") : attachment.filename))
-        .accessibilityAddTraits(.isImage)
-        .task(id: attachment.id) {
-            if let thumbnail = Persona.httpURL(attachment.thumbnailUrl) {
-                url = thumbnail
-            } else if let signed = try? await store.url(for: attachment.id) {
-                url = signed
-            } else {
-                failed = true
-            }
-        }
-    }
-}
 
 struct FileCardView: View {
     let attachment: MessageAttachment

@@ -8,9 +8,11 @@ struct MessageAttachment: Sendable, Hashable, Decodable, Identifiable {
     var width: Int?
     var height: Int?
     var thumbnailUrl: String?
+    /// A browser-displayable rendition of an image type the app cannot draw (HEIC on old servers, TIFF).
+    var rasterPreviewUrl: String?
     var commentCount: Int
 
-    private enum CodingKeys: String, CodingKey { case id, filename, mimeType, sizeBytes, width, height, thumbnailUrl, commentCount }
+    private enum CodingKeys: String, CodingKey { case id, filename, mimeType, sizeBytes, width, height, thumbnailUrl, rasterPreviewUrl, commentCount }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -21,6 +23,7 @@ struct MessageAttachment: Sendable, Hashable, Decodable, Identifiable {
         width = c.flexibleInt(.width)
         height = c.flexibleInt(.height)
         thumbnailUrl = c.lenient(.thumbnailUrl)
+        rasterPreviewUrl = c.lenient(.rasterPreviewUrl)
         commentCount = c.flexibleInt(.commentCount) ?? 0
     }
 

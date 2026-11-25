@@ -112,6 +112,8 @@ enum AvatarSize {
     case compact
     /// 32: people rows (28).
     case row
+    /// 24: the image viewer's sender (31).
+    case mini
 
     var side: CGFloat {
         switch self {
@@ -121,6 +123,7 @@ enum AvatarSize {
         case .lg: 51
         case .compact: 28
         case .row: 32
+        case .mini: 24
         }
     }
 
@@ -132,6 +135,7 @@ enum AvatarSize {
         case .lg: 18
         case .compact: 11
         case .row: 12
+        case .mini: 10
         }
     }
 }

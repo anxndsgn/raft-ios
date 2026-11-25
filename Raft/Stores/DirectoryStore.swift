@@ -137,9 +137,8 @@ final class DirectoryStore {
 @MainActor
 @Observable
 final class HomeExtrasStore {
-    private(set) var savedCount: Int?
-    private(set) var saved: [SavedEntry] = []
-    private(set) var savedPhase: LoadPhase = .idle
+    /// The Saved chip's number (the saved store's total).
+    var savedCount: Int? { savedStore?.total }
     private(set) var pinned: [SidebarOrder.PinnedRef] = []
     private(set) var notificationLevel: NotificationLevel?
     /// The newest unread message per conversation (Unread cards), from Activity's unread rows;
@@ -154,21 +153,16 @@ final class HomeExtrasStore {
         var threadTitle: String?
     }
 
-    enum LoadPhase: Equatable {
-        case idle
-        case loading
-        case loaded
-        case failed(String)
-    }
-
     @ObservationIgnored let serverId: String
     @ObservationIgnored private let api: RaftAPI?
     @ObservationIgnored private let preferences: AppPreferences
+    @ObservationIgnored private let savedStore: SavedStore?
 
-    init(api: RaftAPI?, serverId: String, preferences: AppPreferences) {
+    init(api: RaftAPI?, serverId: String, preferences: AppPreferences, saved: SavedStore? = nil) {
         self.api = api
         self.serverId = serverId
         self.preferences = preferences
+        savedStore = saved
     }
 
     func load() async {
@@ -178,7 +172,7 @@ final class HomeExtrasStore {
         async let orderResult = captureResult { try await api.sidebarOrder(serverId: serverId) }
         async let levelResult = captureResult { try await api.notificationLevels() }
         let (savedPage, order, level) = await (savedResult, orderResult, levelResult)
-        if case .success(let page) = savedPage { savedCount = page.total }
+        if case .success(let page) = savedPage { savedStore?.absorbTotal(page) }
         if case .success(let value) = order { pinned = value.pinned }
         if case .success(let value) = level { notificationLevel = value.server }
     }
@@ -195,19 +189,6 @@ final class HomeExtrasStore {
             }
         }
         previews = next
-    }
-
-    func loadSaved() async {
-        guard let api else { return }
-        if saved.isEmpty { savedPhase = .loading }
-        do {
-            let page = try await api.saved(limit: 50)
-            saved = page.saved
-            savedCount = page.total
-            savedPhase = .loaded
-        } catch {
-            if saved.isEmpty { savedPhase = .failed(ErrorText.describe(error)) }
-        }
     }
 
     /// Writes the server level (refused in read-only mode; the menu shows the error).
@@ -228,13 +209,10 @@ final class HomeExtrasStore {
     }
 
     #if DEBUG
-    func debugSeed(savedCount: Int?, pinned: [SidebarOrder.PinnedRef], level: NotificationLevel?, saved: [SavedEntry] = [], previews: [String: UnreadPreview] = [:]) {
+    func debugSeed(pinned: [SidebarOrder.PinnedRef], level: NotificationLevel?, previews: [String: UnreadPreview] = [:]) {
         self.previews = previews
-        self.savedCount = savedCount
         self.pinned = pinned
         notificationLevel = level
-        self.saved = saved
-        savedPhase = .loaded
     }
     #endif
 }

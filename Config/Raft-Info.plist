@@ -42,6 +42,8 @@
 	<string>$(RAFT_OAUTH_CALLBACK_SCHEME)</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Raft uses the camera to take photos you send in conversations.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Raft saves message image attachments to your Photos library when you choose Save to Photos.</string>
 	<key>RaftBuildType</key>
 	<string>$(CONFIGURATION)</string>
 </dict>
