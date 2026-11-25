@@ -154,6 +154,12 @@ private struct FloatingGlassHeader<Title: View, Trailing: View, Accessory: View>
         }
         .frame(maxWidth: .infinity)
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
+        .background {
+            SwipeBackWithoutBar()
+                .frame(width: 0, height: 0)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
         .accessibilityElement(children: .contain)
         .accessibilitySortPriority(1)
     }
@@ -172,6 +178,96 @@ private struct FloatingGlassHeader<Title: View, Trailing: View, Accessory: View>
         .accessibilityLabel(Text(L10n.t("ios_back", "Back")))
         .raftLargeContent(systemImage: "chevron.left", label: L10n.t("ios_back", "Back"))
         .accessibilityIdentifier("header-back")
+    }
+}
+
+/// The swipe back on a page that hides the navigation bar (`floatingGlassHeader`). UIKit's own
+/// back swipes, from the edge and from the content, never start while the bar is hidden (they
+/// don't even ask their delegate), so while such a page is on screen the navigation controller
+/// gets one more pan, driving the same interactive pop as the system's: a rightward swipe from
+/// anywhere on the page, whenever there is a page to go back to and no transition is running.
+private struct SwipeBackWithoutBar: UIViewRepresentable {
+    func makeUIView(context: Context) -> Marker {
+        let view = Marker()
+        view.isUserInteractionEnabled = false
+        view.backgroundColor = .clear
+        return view
+    }
+
+    func updateUIView(_ view: Marker, context: Context) {}
+
+    @MainActor
+    final class Marker: UIView {
+        private weak var navigation: UINavigationController?
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            if window != nil {
+                guard navigation == nil, let nav = navigationController() else { return }
+                navigation = nav
+                SwipeBack.hold(nav)
+            } else if let nav = navigation {
+                navigation = nil
+                SwipeBack.release(nav)
+            }
+        }
+
+        private func navigationController() -> UINavigationController? {
+            var responder: UIResponder? = self
+            while let current = responder {
+                if let controller = current as? UIViewController, let nav = controller.navigationController {
+                    return nav
+                }
+                responder = current.next
+            }
+            return nil
+        }
+    }
+}
+
+@MainActor
+private final class SwipeBack: NSObject, UIGestureRecognizerDelegate {
+    private static var installed: [ObjectIdentifier: SwipeBack] = [:]
+
+    private weak var navigation: UINavigationController?
+    private var pan: UIPanGestureRecognizer?
+    private var holds = 0
+
+    static func hold(_ nav: UINavigationController) {
+        let key = ObjectIdentifier(nav)
+        if let existing = installed[key] {
+            existing.holds += 1
+            return
+        }
+        // The system's back swipes send this action to their target, the interactive transition.
+        let action = NSSelectorFromString("handleNavigationTransition:")
+        guard let system = nav.interactivePopGestureRecognizer?.delegate as? NSObject,
+              system.responds(to: action) else { return }
+        let swipe = SwipeBack()
+        swipe.navigation = nav
+        swipe.holds = 1
+        let pan = UIPanGestureRecognizer(target: system, action: action)
+        pan.delegate = swipe
+        pan.maximumNumberOfTouches = 1
+        nav.view.addGestureRecognizer(pan)
+        swipe.pan = pan
+        installed[key] = swipe
+    }
+
+    static func release(_ nav: UINavigationController) {
+        let key = ObjectIdentifier(nav)
+        guard let swipe = installed[key] else { return }
+        swipe.holds -= 1
+        guard swipe.holds <= 0 else { return }
+        if let pan = swipe.pan { pan.view?.removeGestureRecognizer(pan) }
+        installed[key] = nil
+    }
+
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard let nav = navigation, nav.viewControllers.count > 1, nav.transitionCoordinator == nil,
+              let pan = gestureRecognizer as? UIPanGestureRecognizer else { return false }
+        let velocity = pan.velocity(in: pan.view)
+        return velocity.x > 0 && velocity.x > abs(velocity.y)
     }
 }
 
