@@ -133,7 +133,7 @@ func isFarFromEnd(_ geometry: ScrollGeometry) -> Bool {
 /// Left on the id, a short stream could stay scrolled out of sight until the user scrolled.
 @MainActor
 enum AnchoredLanding {
-    static let space = "anchored-stream"
+    nonisolated static let space = "anchored-stream"
     /// How long the target row has to report its frame before the stream is shown anyway.
     static let deadline: Duration = .milliseconds(300)
     /// The longest a stream stays hidden (a landing, the first settle), from its messages' arrival.
@@ -264,6 +264,7 @@ struct ChatView: View {
         _landing = State(initialValue: ref.focusMessageId != nil)
         _holdsBottom = State(initialValue: ref.focusMessageId == nil)
         _loadedAtOpen = State(initialValue: store.phase == .loaded)
+        _showsSpinner = State(initialValue: store.phase == .idle || store.phase == .loading)
     }
 
     /// The stream is hidden while it lands on a message (29c), and while the first page that
@@ -442,8 +443,13 @@ struct ChatView: View {
                 showsBanner = true
             }
             .task(id: store.phase == .loading) {
-                showsSpinner = false
-                guard store.phase == .loading else { return }
+                // Not loaded yet when the page opened (a first push): the loading state shows from
+                // the slide's first frame, never an empty page. A reload later waits 300ms first.
+                guard store.phase == .loading || store.phase == .idle else {
+                    showsSpinner = false
+                    return
+                }
+                guard !showsSpinner else { return }
                 try? await Task.sleep(for: .milliseconds(300))
                 if !Task.isCancelled { showsSpinner = true }
             }
@@ -572,6 +578,7 @@ struct ChatView: View {
                 // estimate of the lazy rows and was not always reported again once they were
                 // measured (a DM opened 86pt past its end, below an empty band).
                 Color.clear.frame(height: 0)
+                    .background(WindowAttachObserver(onAttach: attachedToWindow).frame(width: 1, height: 1))
                     .onGeometryChange(for: StreamEnd.self) { g in
                         StreamEnd(content: g.frame(in: .named(AnchoredLanding.space)).maxY, screen: g.frame(in: .global).maxY)
                     } action: { old, new in
@@ -701,6 +708,23 @@ struct ChatView: View {
         if farFromEnd || pastEnd || streamEnd == nil, let last = entries.last?.id {
             position.scrollTo(id: last, anchor: .bottom)
         } else {
+            settleOnEnd(force: true)
+        }
+    }
+
+    /// The stream's scroll view joined the window (a push starts). A page whose messages were
+    /// already loaded is laid out once off screen first: its bottom anchor lands on the lazy
+    /// rows' estimated height (hundreds of points past the end) and the settle that follows
+    /// moves only SwiftUI's position: the `UIScrollView` kept the estimate, so the page slid in
+    /// and stayed with the last message under the title and a blank screen below it, until
+    /// dragged, while every reading said it was on the end. Scrolled again now, by id (a new
+    /// request reaches the scroll view), then onto the bar by offset; before the slide's first
+    /// frame.
+    private func attachedToWindow() {
+        guard holdsBottom, !landing, store.phase == .loaded, !isEmpty, let last = entries.last?.id else { return }
+        position.scrollTo(id: last, anchor: .bottom)
+        Task {
+            try? await Task.sleep(for: .milliseconds(16))
             settleOnEnd(force: true)
         }
     }
@@ -1015,5 +1039,28 @@ struct ChatView: View {
         )
         UIPasteboard.general.url = url
         model.showToast(L10n.t("common_copied", "Copied"))
+    }
+}
+
+/// Calls `onAttach` whenever its view joins a window (the page goes on screen).
+struct WindowAttachObserver: UIViewRepresentable {
+    let onAttach: () -> Void
+
+    func makeUIView(context: Context) -> Observer {
+        let view = Observer()
+        view.isUserInteractionEnabled = false
+        view.backgroundColor = .clear
+        return view
+    }
+
+    func updateUIView(_ view: Observer, context: Context) { view.onAttach = onAttach }
+
+    final class Observer: UIView {
+        var onAttach: (() -> Void)?
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            if window != nil { onAttach?() }
+        }
     }
 }

@@ -166,6 +166,21 @@ final class Workspace {
         return store
     }
 
+    /// Loads the newest page of Home's first conversations (joined channels, then DMs) ahead of
+    /// a tap, one at a time: the first push into one of them then shows its messages from the
+    /// slide's first frame instead of an empty page while the page loads. Read-only requests;
+    /// nothing is marked read (the stores are not visible). Stays within the store cache.
+    func prefetchConversations(limit: Int = 8) async {
+        let rows = Array((channelList.channelRows + channelList.directMessageRows).prefix(min(limit, cacheLimit - 2)))
+        for row in rows {
+            guard !Task.isCancelled, !channelList.isPreview(row.id) else { continue }
+            let store = conversation(for: ConversationRef(channelId: row.id, title: row.title, kind: row.conversationKind, lastReadSeq: row.maxReadSeq))
+            // Opened meanwhile (its page loads it) or already held.
+            guard store.phase == .idle, !store.isVisible else { continue }
+            await store.loadLatest()
+        }
+    }
+
     /// The store of a thread screen.
     func thread(for ref: ThreadRef) -> ThreadStore {
         if let store = threads[ref.parentMessageId] {

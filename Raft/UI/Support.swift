@@ -159,6 +159,10 @@ private struct FloatingGlassHeader<Title: View, Trailing: View, Accessory: View>
                 .frame(width: 0, height: 0)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
+            NavigationBarFade()
+                .frame(width: 0, height: 0)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
         }
         .accessibilityElement(children: .contain)
         .accessibilitySortPriority(1)
@@ -178,6 +182,154 @@ private struct FloatingGlassHeader<Title: View, Trailing: View, Accessory: View>
         .accessibilityLabel(Text(L10n.t("ios_back", "Back")))
         .raftLargeContent(systemImage: "chevron.left", label: L10n.t("ios_back", "Back"))
         .accessibilityIdentifier("header-back")
+    }
+}
+/// The navigation bar's opacity around a page that hides it (`floatingGlassHeader`). SwiftUI
+/// draws the bar in its own view (beside UIKit's hidden `UINavigationBar`, inside the navigation
+/// controller's view) and moves the bar's content with the transition at full opacity: pushed
+/// over Home, Search and the bell slid across over the incoming page's back button for 0.3–0.5s;
+/// on a swipe back, Home's title stood at full opacity over the capsule while the page slid out.
+/// - The page coming on screen (a push, or a pop back to it): the bar is gone from the first
+///   frame (a swipe back to it: fades with the finger) and stays transparent while the page is
+///   on top.
+/// - The page going (a pop, or a push of a page that shows the bar): the bar fades in with the
+///   transition, following the finger on a swipe; a cancelled swipe takes it back to 0.
+/// The bar is opaque again once no such page is on top. Pages under the vertical bar (Duo
+/// folded) keep the bar and never use this.
+private struct NavigationBarFade: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> Controller { Controller() }
+    func updateUIViewController(_ controller: Controller, context: Context) {}
+
+    final class Controller: UIViewController {
+        /// The pages of this kind on top, per navigation controller (a thread over a channel).
+        private static var onTop: [ObjectIdentifier: Int] = [:]
+        private weak var navigation: UINavigationController?
+        private var isOnTop = false
+
+        override func loadView() {
+            let view = UIView()
+            view.isUserInteractionEnabled = false
+            view.backgroundColor = .clear
+            self.view = view
+        }
+
+        private var nav: UINavigationController? { navigationController ?? parent?.navigationController }
+
+        override func viewWillAppear(_ animated: Bool) {
+            super.viewWillAppear(animated)
+            guard let nav else { return }
+            navigation = nav
+            setOnTop(true, nav: nav)
+            guard let coordinator = nav.transitionCoordinator else {
+                Self.settle(nav)
+                return
+            }
+            if coordinator.isInteractive {
+                coordinator.animate(alongsideTransition: { _ in Self.setAlpha(0, nav) })
+            } else {
+                // A push (SwiftUI starts it without an animated appearance): gone from the
+                // slide's first frame. The page's back button is on screen from that frame, and
+                // the bar's items slide left into it: any fade (0.15s took 4 frames) still drew
+                // Search and the bell over the back button. Masked as well: the bar's own hiding
+                // animates its alpha back to 1 during the push.
+                UIView.performWithoutAnimation {
+                    Self.setAlpha(0, nav)
+                    Self.setMasked(true, nav)
+                }
+            }
+            coordinator.animate(alongsideTransition: nil) { [weak self] _ in
+                self?.updateOnTop(nav)
+                Self.settle(nav)
+            }
+        }
+
+        override func viewWillDisappear(_ animated: Bool) {
+            super.viewWillDisappear(animated)
+            guard let nav = navigation else { return }
+            setOnTop(false, nav: nav)
+            guard let coordinator = nav.transitionCoordinator else {
+                Self.settle(nav)
+                return
+            }
+            // The bar is hidden while the page is on top, and UIKit shows it again at full
+            // opacity as the transition starts: start it from 0 (no animation), then fade it in.
+            // Another page of this kind coming in keeps it transparent (its own
+            // `viewWillAppear` runs next).
+            coordinator.animate(alongsideTransition: { _ in
+                guard !Self.hidesBar(nav) else { return }
+                UIView.performWithoutAnimation {
+                    Self.setAlpha(0, nav)
+                    Self.setMasked(false, nav)
+                }
+                Self.setAlpha(1, nav)
+            }) { [weak self] _ in
+                self?.updateOnTop(nav)
+                Self.settle(nav)
+            }
+        }
+
+        override func viewDidDisappear(_ animated: Bool) {
+            super.viewDidDisappear(animated)
+            guard let nav = navigation else { return }
+            setOnTop(false, nav: nav)
+            if nav.transitionCoordinator == nil { Self.settle(nav) }
+        }
+
+        /// After a transition, finished or cancelled (a cancelled swipe back also calls the
+        /// page's `viewWillAppear`, with the same cancelled transition): on top if its page is
+        /// the navigation controller's top page.
+        private func updateOnTop(_ nav: UINavigationController) {
+            var controller: UIViewController? = self
+            while let current = controller, current.parent !== nav { controller = current.parent }
+            setOnTop(controller != nil && controller === nav.topViewController, nav: nav)
+        }
+
+        private func setOnTop(_ value: Bool, nav: UINavigationController) {
+            guard value != isOnTop else { return }
+            isOnTop = value
+            let key = ObjectIdentifier(nav)
+            let count = (Self.onTop[key] ?? 0) + (value ? 1 : -1)
+            Self.onTop[key] = count > 0 ? count : nil
+        }
+
+        private static func hidesBar(_ nav: UINavigationController) -> Bool { (onTop[ObjectIdentifier(nav)] ?? 0) > 0 }
+
+        /// The bars drawn over the pages: UIKit's and SwiftUI's own (`UIKitNavigationBar`), direct
+        /// subviews of the navigation controller's view.
+        private static func bars(_ nav: UINavigationController) -> [UIView] {
+            var views: [UIView] = [nav.navigationBar]
+            for view in nav.view.subviews where view !== nav.navigationBar && String(describing: type(of: view)).contains("NavigationBar") {
+                views.append(view)
+            }
+            return views
+        }
+
+        private static func setAlpha(_ alpha: CGFloat, _ nav: UINavigationController) {
+            for bar in bars(nav) where bar.alpha != alpha { bar.alpha = alpha }
+        }
+
+        /// An empty mask: the bar draws nothing whatever its alpha.
+        private static func setMasked(_ masked: Bool, _ nav: UINavigationController) {
+            for bar in bars(nav) {
+                let isMasked = bar.layer.mask?.name == maskName
+                if masked, !isMasked {
+                    let mask = CALayer()
+                    mask.name = maskName
+                    bar.layer.mask = mask
+                } else if !masked, isMasked {
+                    bar.layer.mask = nil
+                }
+            }
+        }
+
+        private static let maskName = "raft.navigationBarFade"
+
+        /// After a transition: transparent while such a page is on top, else opaque (unmasked).
+        private static func settle(_ nav: UINavigationController) {
+            let hides = hidesBar(nav)
+            setAlpha(hides ? 0 : 1, nav)
+            if !hides { setMasked(false, nav) }
+        }
     }
 }
 
