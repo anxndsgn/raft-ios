@@ -37,6 +37,12 @@ struct HomeRow: Identifiable, Hashable, Sendable {
     var isMuted: Bool
     var lastActivity: Date?
     var maxReadSeq: Int64?
+    /// A DM with yourself.
+    var isSelf = false
+
+    /// What the row shows: a DM with yourself says so ("XIN (you)"). `title` stays the plain
+    /// name (order, identifiers, the avatar's initials).
+    var displayTitle: String { isSelf ? L10n.withYouSuffix(title) : title }
 
     var priority: Priority {
         if hasMention || threadHasMention { return .mention }
@@ -172,7 +178,8 @@ final class ChannelListStore {
             threadHasMention: threads?.hasMention ?? false,
             isMuted: dm.activityMuted,
             lastActivity: RaftDate.parse(dm.lastMessageAt),
-            maxReadSeq: scope.maxReadSeq ?? dm.maxReadSeq
+            maxReadSeq: scope.maxReadSeq ?? dm.maxReadSeq,
+            isSelf: dm.isSelf(currentUserId: currentUserId)
         )
     }
 
@@ -386,5 +393,17 @@ final class ChannelListStore {
             channels.append(channel)
         }
         seed(channel.id, version: channel.readStateVersion, maxReadSeq: channel.maxReadSeq)
+    }
+}
+
+extension DirectMessageChannel {
+    /// A DM with yourself: the server lists it as a user DM whose peer is you.
+    func isSelf(currentUserId: String) -> Bool {
+        peerType == "user" && !currentUserId.isEmpty && peerId == currentUserId
+    }
+
+    /// The DM's name wherever it shows: the peer's, with "(you)" for a DM with yourself.
+    func displayTitle(currentUserId: String) -> String {
+        isSelf(currentUserId: currentUserId) ? L10n.withYouSuffix(peerVisibleName) : peerVisibleName
     }
 }

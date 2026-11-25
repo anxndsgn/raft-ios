@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // Content stickers and avatars (§2.1–2.5). Everything here is solid: no glass in content.
 
@@ -167,13 +168,9 @@ struct AvatarView: View {
                     .tracking(-0.02 * size.initialsSize)
                     .foregroundStyle(Color.raftInk)
                 if let url = persona.imageURL {
-                    AsyncImage(url: url) { image in
-                        image.resizable().scaledToFill()
-                    } placeholder: {
-                        Color.clear
-                    }
-                    .clipShape(.rect(cornerRadius: 1.5))
-                    .padding(1.5)
+                    AvatarImage(url: url)
+                        .clipShape(.rect(cornerRadius: 1.5))
+                        .padding(1.5)
                 }
             }
         }
@@ -190,6 +187,64 @@ struct AvatarView: View {
             .padding(ring)
             .background(RoundedRectangle(cornerRadius: 3, style: .continuous).fill(ringColor))
             .offset(x: small ? 3 : 4, y: small ? 3 : 4)
+    }
+}
+
+/// A face photo, from memory when it was seen before: a row that appears (a message just sent,
+/// a row scrolled in) shows it in its first frame, not the initials for a frame while it loads.
+struct AvatarImage: View {
+    let url: URL
+    @State private var image: UIImage?
+
+    init(url: URL) {
+        self.url = url
+        _image = State(initialValue: AvatarImageCache.shared.image(for: url))
+    }
+
+    var body: some View {
+        ZStack {
+            if let image {
+                Image(uiImage: image).resizable().scaledToFill()
+            } else {
+                Color.clear
+            }
+        }
+        .task(id: url) {
+            if let cached = AvatarImageCache.shared.image(for: url) {
+                image = cached
+            } else {
+                image = await AvatarImageCache.shared.load(url)
+            }
+        }
+    }
+}
+
+/// Decoded avatars in memory (evicted under pressure); one download per URL at a time.
+@MainActor
+final class AvatarImageCache {
+    static let shared = AvatarImageCache()
+
+    private let images = NSCache<NSURL, UIImage>()
+    private var loads: [URL: Task<UIImage?, Never>] = [:]
+
+    func image(for url: URL) -> UIImage? {
+        images.object(forKey: url as NSURL)
+    }
+
+    func load(_ url: URL) async -> UIImage? {
+        if let image = image(for: url) { return image }
+        if let load = loads[url] { return await load.value }
+        let load = Task<UIImage?, Never>.detached(priority: .utility) {
+            guard let (data, response) = try? await URLSession.shared.data(from: url) else { return nil }
+            if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) { return nil }
+            guard let image = UIImage(data: data) else { return nil }
+            return await image.byPreparingForDisplay() ?? image
+        }
+        loads[url] = load
+        let image = await load.value
+        loads[url] = nil
+        if let image { images.setObject(image, forKey: url as NSURL) }
+        return image
     }
 }
 

@@ -12,6 +12,7 @@ struct RootView: View {
     }
 
     private var stage: Stage {
+        if model.signingOut { return .auth }
         switch model.session.phase {
         case .restoring: return .launch
         case .signedIn:

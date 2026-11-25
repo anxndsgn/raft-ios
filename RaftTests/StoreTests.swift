@@ -97,6 +97,24 @@ struct ChannelListStoreTests {
         #expect(store.row(id: "d1")?.title == "Bot")
     }
 
+    @Test func aDMWithYourselfSaysSo() async {
+        let core = TestCore(session: sampleSession())
+        core.server.on("GET channels", .json(200, "[]"))
+        core.server.on("GET channels/dm", .json(200, #"[{"id":"d1","name":"dm-1","type":"dm","peerType":"agent","peerId":"a1","peerName":"Bot"},{"id":"d2","name":"dm-2","type":"dm","peerType":"user","peerId":"u-1","peerName":"xin","peerDisplayName":"XIN"}]"#))
+        core.server.on("GET channels/unread", .json(200, #"{"channels":{},"threadUnread":{}}"#))
+        let store = listStore(core)
+        await store.load()
+        let suffix = L10n.t("member_label_you_suffix", "(you)")
+        // The plain name stays the row's title (order, identifiers, initials).
+        #expect(store.row(id: "d2")?.title == "XIN")
+        #expect(store.row(id: "d2")?.isSelf == true)
+        #expect(store.row(id: "d2")?.displayTitle.hasPrefix("XIN") == true)
+        #expect(store.row(id: "d2")?.displayTitle.hasSuffix(suffix) == true)
+        #expect(store.directMessages.last?.displayTitle(currentUserId: "u-1") == store.row(id: "d2")?.displayTitle)
+        #expect(store.row(id: "d1")?.isSelf == false)
+        #expect(store.row(id: "d1")?.displayTitle == "Bot")
+    }
+
     @Test func unreadFailureKeepsListsAndMarksStale() async {
         let core = TestCore(session: sampleSession())
         core.server.on("GET channels", .json(200, channelsJSON))
@@ -227,6 +245,55 @@ struct ConversationStoreTests {
         #expect(store.messages.count == 2)
     }
 
+    @Test func enqueuedRowShowsAtOnceAsSendingThenTurnsIntoTheServerCopy() async {
+        let core = TestCore(session: sampleSession())
+        core.server.on("GET messages/channel/c1", .json(200, pageJSON([messageJSON(id: "m1", seq: 1)])))
+        core.server.on("POST v2/messages") { request, _ in
+            let randomId = request.json?["randomId"]?.stringValue ?? ""
+            return .json(201, #"{"message":\#(messageJSON(id: "m2", seq: 2, senderId: "u-1", content: "hello", randomId: randomId))}"#)
+        }
+        let store = conversationStore(core)
+        await store.start()
+        // On the tap: the row is there, sending, before any request.
+        let randomId = store.enqueue("hello") ?? ""
+        #expect(!randomId.isEmpty)
+        #expect(store.pending.map(\.randomId) == [randomId])
+        #expect(store.pending.first?.state == .sending)
+        #expect(core.server.count("POST v2/messages") == 0)
+        await store.deliver(randomId, attachmentIds: [])
+        #expect(store.pending.isEmpty)
+        #expect(store.messages.map(\.id) == ["m1", "m2"])
+        #expect(core.server.requests("POST v2/messages").first?.json?["randomId"]?.stringValue == randomId)
+        // The socket copy of the same message does not add a second row.
+        store.receive(makeMessage(messageJSON(id: "m2", seq: 2, senderId: "u-1", content: "hello", randomId: randomId)))
+        #expect(store.messages.map(\.id) == ["m1", "m2"])
+        #expect(store.pending.isEmpty)
+    }
+
+    @Test func socketCopyBeforeTheAnswerReplacesThePendingRowOnce() async {
+        let core = TestCore(session: sampleSession())
+        core.server.on("GET messages/channel/c1", .json(200, pageJSON([])))
+        let store = conversationStore(core)
+        await store.start()
+        let randomId = store.enqueue("hello") ?? ""
+        store.receive(makeMessage(messageJSON(id: "m2", seq: 2, senderId: "u-1", content: "hello", randomId: randomId)))
+        #expect(store.pending.isEmpty)
+        #expect(store.messages.map(\.id) == ["m2"])
+    }
+
+    @Test func filesOnlySendWhoseUploadsAllFailedIsDropped() async {
+        let core = TestCore(session: sampleSession())
+        core.server.on("GET messages/channel/c1", .json(200, pageJSON([])))
+        let store = conversationStore(core)
+        await store.start()
+        let randomId = store.enqueue("", hasAttachments: true, attachmentNames: ["a.png"]) ?? ""
+        #expect(store.pending.first?.attachmentNames == ["a.png"])
+        await store.deliver(randomId, attachmentIds: [])
+        #expect(store.pending.isEmpty)
+        #expect(store.errorMessage != nil)
+        #expect(core.server.count("POST v2/messages") == 0)
+    }
+
     @Test func failedSendStaysPendingAndRetriesWithTheSameRandomId() async {
         let core = TestCore(session: sampleSession())
         core.server.on("GET messages/channel/c1", .json(200, pageJSON([])))
@@ -335,6 +402,72 @@ struct ThreadAndActivityStoreTests {
         await store.sendReply("hi")
         #expect(core.server.count("POST channels/c1/threads") == 0)
         #expect(store.errorMessage == StoreError.readOnly.errorDescription)
+    }
+
+    @Test func firstReplyShowsAtOnceThenCreatesTheThreadAndBecomesTheServerCopy() async {
+        let core = TestCore(session: sampleSession())
+        core.server.on("GET channels/c1/threads", .json(200, "{}"))
+        core.server.on("POST channels/c1/threads", .json(201, #"{"threadChannelId":"t1","parentMessageId":"p1","created":true}"#))
+        core.server.on("GET messages/channel/t1", .json(200, pageJSON([])))
+        core.server.on("POST v2/messages") { request, _ in
+            let randomId = request.json?["randomId"]?.stringValue ?? ""
+            return .json(201, #"{"message":\#(messageJSON(id: "r1", seq: 1, channelId: "t1", senderId: "u-1", content: "hi", randomId: randomId))}"#)
+        }
+        let workspace = Workspace(serverId: "srv-1", currentUserId: "u-1", api: core.api, preferences: .inMemory(readOnly: false), realtime: FakeRealtime())
+        let store = workspace.thread(for: ThreadRef(parentChannelId: "c1", parentMessageId: "p1", title: "general", parent: makeMessage(messageJSON(id: "p1", seq: 1))))
+        await store.start()
+        #expect(store.replies == nil)
+        // On the tap: shown, sending, before the thread exists.
+        let randomId = store.enqueueReply("hi") ?? ""
+        #expect(!randomId.isEmpty)
+        #expect(store.pendingBeforeThread.map(\.randomId) == [randomId])
+        #expect(store.pendingBeforeThread.first?.state == .sending)
+        #expect(core.server.count("POST channels/c1/threads") == 0)
+        await store.deliverReply(randomId, attachmentIds: [])
+        #expect(core.server.count("POST channels/c1/threads") == 1)
+        #expect(store.pendingBeforeThread.isEmpty)
+        #expect(store.replies?.pending.isEmpty == true)
+        #expect(store.replies?.messages.map(\.id) == ["r1"])
+        #expect(core.server.requests("POST v2/messages").first?.json?["randomId"]?.stringValue == randomId)
+        #expect(store.isFollowing == true)
+        // The socket copy does not add a second row.
+        store.replies?.receive(makeMessage(messageJSON(id: "r1", seq: 1, channelId: "t1", senderId: "u-1", content: "hi", randomId: randomId)))
+        #expect(store.replies?.messages.map(\.id) == ["r1"])
+    }
+
+    @Test func firstReplyWhoseThreadFailsTurnsFailedAndRetries() async {
+        let core = TestCore(session: sampleSession())
+        core.server.on("GET channels/c1/threads", .json(200, "{}"))
+        core.server.on("POST channels/c1/threads", .json(500, #"{"error":"boom"}"#))
+        core.server.on("GET messages/channel/t1", .json(200, pageJSON([])))
+        core.server.on("POST v2/messages") { request, _ in
+            let randomId = request.json?["randomId"]?.stringValue ?? ""
+            return .json(201, #"{"message":\#(messageJSON(id: "r1", seq: 1, channelId: "t1", senderId: "u-1", content: "hi", randomId: randomId))}"#)
+        }
+        let workspace = Workspace(serverId: "srv-1", currentUserId: "u-1", api: core.api, preferences: .inMemory(readOnly: false), realtime: FakeRealtime())
+        let store = workspace.thread(for: ThreadRef(parentChannelId: "c1", parentMessageId: "p1", title: "general", parent: makeMessage(messageJSON(id: "p1", seq: 1))))
+        await store.start()
+        await store.sendReply("hi")
+        guard let item = store.pendingBeforeThread.first, case .failed = item.state else {
+            Issue.record("expected a failed first reply")
+            return
+        }
+        #expect(core.server.count("POST v2/messages") == 0)
+        core.server.on("POST channels/c1/threads", .json(201, #"{"threadChannelId":"t1"}"#))
+        await store.retryBeforeThread(item.randomId)
+        #expect(store.pendingBeforeThread.isEmpty)
+        #expect(store.replies?.messages.map(\.id) == ["r1"])
+        #expect(core.server.requests("POST v2/messages").first?.json?["randomId"]?.stringValue == item.randomId)
+    }
+
+    @Test func systemNoticesAreFromSystemNotSomeone() throws {
+        // A task row's status notice: a "user" sender whose id is "system", no name.
+        let task = try RaftJSON.decode(InboxItem.self, from: Data(#"{"kind":"task","threadChannelId":"t2","parentMessageId":"p2","parentChannelId":"c1","parentChannelName":"general","latestActivitySenderId":"system","latestActivitySenderType":"user","latestActivityPreview":"moved #1","unreadCount":0}"#.utf8))
+        #expect(ActivityRow.isSystemSender(task))
+        #expect(ActivityRow.senderName(task) == L10n.t("ios_activity_system_sender", "System"))
+        let unnamed = try RaftJSON.decode(InboxItem.self, from: Data(#"{"kind":"thread","threadChannelId":"t3","parentMessageId":"p3","parentChannelId":"c1","latestActivitySenderId":"u-9","latestActivitySenderType":"user","unreadCount":0}"#.utf8))
+        #expect(!ActivityRow.isSystemSender(unnamed))
+        #expect(ActivityRow.senderName(unnamed) == L10n.t("ios_activity_someone", "Someone"))
     }
 
     @Test func inboxRowsDecodeAndRoute() async throws {

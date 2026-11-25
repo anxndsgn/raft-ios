@@ -224,7 +224,7 @@ struct HomeView: View {
                 .accessibilityIdentifier("chip-saved")
                 ForEach(pinnedRows) { row in
                     NavigationLink(value: AppRoute.conversation(ref(for: row))) {
-                        HomeChip(systemImage: "pin", title: row.kind == .channel ? "#\(row.title)" : row.title) {
+                        HomeChip(systemImage: "pin", title: row.kind == .channel ? "#\(row.title)" : row.displayTitle) {
                             if row.unreadCount > 0 && !row.isMuted { RaftSticker(kind: .count(row.unreadCount)) }
                         }
                     }
@@ -408,7 +408,7 @@ struct ChannelRowView: View {
         HStack(spacing: 12) {
             ChannelTile(isPrivate: row.channelType == "private", isMuted: row.isMuted)
             HStack(spacing: 6) {
-                Text(verbatim: row.title)
+                Text(verbatim: row.displayTitle)
                     .raftFont(row.isMuted ? .rowTitleMedium : .rowTitle)
                     .foregroundStyle(row.isMuted ? Color.raftTextTertiary : Color.raftTextPrimary)
                     .lineLimit(1)
@@ -452,7 +452,7 @@ struct DMRowView: View {
             AvatarView(persona: persona, size: .md, showsPresence: true, ringColor: .raftCard)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(verbatim: row.title)
+                    Text(verbatim: row.displayTitle)
                         .raftFont(.rowTitle)
                         .foregroundStyle(Color.raftTextPrimary)
                         .lineLimit(1)
@@ -505,7 +505,7 @@ struct UnreadCard: View {
             .padding(.bottom, 8)
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 // The tile already shows the "#" (Colo review: no prefix on card titles).
-                Text(verbatim: row.title)
+                Text(verbatim: row.displayTitle)
                     .raftFont(.author)
                     .foregroundStyle(Color.raftTextPrimary)
                     .lineLimit(1)
@@ -573,7 +573,7 @@ enum HomeA11y {
     }
 
     static func label(_ row: HomeRow, preview: String? = nil, presence: Presence? = nil) -> String {
-        var parts = [row.title]
+        var parts = [row.displayTitle]
         if row.peerType == "agent" {
             parts.append(L10n.t("member_label_agent", "Agent"))
             if let presence { parts.append(presence.label) }

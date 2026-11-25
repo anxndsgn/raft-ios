@@ -8,7 +8,7 @@ struct AuthFlowView: View {
         @Bindable var model = model
         NavigationStack(path: $model.authPath) {
             Group {
-                if model.session.phase == .signedIn {
+                if model.session.phase == .signedIn && !model.signingOut {
                     ServerPickerView(showsBack: false)
                 } else {
                     LoginView()
@@ -102,7 +102,8 @@ struct LoginView: View {
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 32)
-            .disabled(session.busy)
+            // Signing out is busy too, but the form shows as it will stay (no greyed-out frame).
+            .disabled(session.busy && !model.signingOut)
         }
         .scrollBounceBehavior(.basedOnSize)
         .background(Color.raftCanvas.ignoresSafeArea())
@@ -177,7 +178,7 @@ struct LoginView: View {
                     .padding(.top, 8)
                     .accessibilityIdentifier("login-error")
             }
-            PrimaryButton(title: L10n.t("auth_action_sign_in", "Sign in"), isLoading: session.busy, action: submit)
+            PrimaryButton(title: L10n.t("auth_action_sign_in", "Sign in"), isLoading: session.busy && !model.signingOut, action: submit)
                 .padding(.top, 14)
                 .accessibilityIdentifier("sign-in-button")
             orDivider.padding(.vertical, 16)

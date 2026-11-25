@@ -45,6 +45,8 @@ enum ChatRows {
 struct StreamEdges: Equatable {
     var nearTop: Bool
     var atBottom: Bool
+    /// The content is taller than the space it shows in (it can scroll).
+    var overflows = true
 }
 
 // MARK: 09 / 10 / 11 / 12 / 13 / 14 / 15 Chat
@@ -104,6 +106,13 @@ struct ChatView: View {
         return workspace.directory.persona(type: dm.peerType == "agent" ? "agent" : "user", id: dm.peerId, name: dm.peerDisplayName ?? dm.peerName, avatarURL: dm.peerAvatarUrl)
     }
 
+    /// The DM's name in the title: "XIN (you)" for a DM with yourself.
+    private var peerTitle: String? {
+        guard let peer else { return nil }
+        let dm = workspace.channelList.directMessages.first { $0.id == store.channelId }
+        return dm?.isSelf(currentUserId: store.currentUserId) == true ? L10n.withYouSuffix(peer.name) : peer.name
+    }
+
     private var mentionCandidates: [MentionCandidate] {
         guard let query = composer.mentionQuery else { return [] }
         return workspace.directory.mentionMatches(query, excluding: store.currentUserId)
@@ -112,7 +121,7 @@ struct ChatView: View {
     var body: some View {
         stream
             .background(Color.raftCanvas.ignoresSafeArea())
-            .navigationTitle(Text(verbatim: peer?.name ?? store.title))
+            .navigationTitle(Text(verbatim: peerTitle ?? store.title))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) { title }
@@ -215,7 +224,7 @@ struct ChatView: View {
             VStack(spacing: 0) {
                 HStack(spacing: 8) {
                     AvatarView(persona: peer, size: .sm)
-                    Text(verbatim: peer.name)
+                    Text(verbatim: peerTitle ?? peer.name)
                         .raftFont(.navTitle)
                         .foregroundStyle(Color.raftTextPrimary)
                         .lineLimit(1)
@@ -428,15 +437,17 @@ struct ChatView: View {
         let draft = composer
         composer = ComposerModel()
         sendTick += 1
+        // The row shows on the tap, marked as sending; uploads and the request follow.
+        guard let randomId = store.enqueue(
+            draft.text,
+            mentions: draft.resolvedMentions,
+            hasAttachments: !draft.attachments.isEmpty,
+            attachmentNames: draft.attachments.map(\.filename),
+            asTask: draft.asTask
+        ) else { return }
         Task {
             await draft.waitForUploads()
-            await store.send(
-                draft.text,
-                mentions: draft.resolvedMentions,
-                attachmentIds: draft.uploadedIds,
-                attachmentNames: draft.attachments.map(\.filename),
-                asTask: draft.asTask
-            )
+            await store.deliver(randomId, attachmentIds: draft.uploadedIds)
         }
         withAnimation(.smooth(duration: 0.25)) { position.scrollTo(edge: .bottom) }
     }

@@ -28,6 +28,9 @@ final class AppModel {
     var showsServerPicker = false
     /// A short confirmation pill ("Copied").
     var toast: String?
+    /// Set the moment sign-out is confirmed: the root shows the sign-in screen at once, before
+    /// anything the main screens show (tab, paths, user, server) is torn down underneath.
+    private(set) var signingOut = false
 
     /// Built once per signed-in person and server; keyed so a change rebuilds it.
     @ObservationIgnored private var workspaceKey: String?
@@ -126,6 +129,13 @@ final class AppModel {
     }
 
     func signOut() async {
+        // Root first, with no cross-fade: a fading Home would show its state being cleared.
+        var instant = Transaction()
+        instant.disablesAnimations = true
+        withTransaction(instant) { signingOut = true }
+        defer { signingOut = false }
+        // Let the swap reach the screen before the main screens' state changes.
+        await Task.yield()
         await workspace?.stop()
         workspace = nil
         workspaceKey = nil

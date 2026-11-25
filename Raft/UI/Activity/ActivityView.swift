@@ -170,7 +170,7 @@ struct ActivityView: View {
         return Button {
             if let route = store.route(for: item) { model.push(route) }
         } label: {
-            ActivityRow(item: item, persona: persona(for: item), currentUserId: workspace.currentUserId, channelNames: channelNames)
+            ActivityRow(item: item, persona: persona(for: item), currentUserId: workspace.currentUserId, channelNames: channelNames, selfDMTitle: selfDMTitle(for: item))
         }
         .buttonStyle(RowButtonStyle())
         .listRowInsets(EdgeInsets())
@@ -200,6 +200,17 @@ struct ActivityView: View {
 
     private var channelNames: Set<String> {
         Set(workspace.channelList.channels.map { $0.name.lowercased() })
+    }
+
+    /// The row's DM, or its thread's parent DM, when it is a DM with yourself: "XIN (you)".
+    private func selfDMTitle(for item: InboxItem) -> String? {
+        let dmId = item.isSubConversation
+            ? (item.parentChannelType == "dm" ? item.parentChannelId : nil)
+            : (item.kind == "dm" ? item.channelId : nil)
+        guard let dmId,
+              let dm = workspace.channelList.directMessages.first(where: { $0.id == dmId }),
+              dm.isSelf(currentUserId: workspace.currentUserId) else { return nil }
+        return dm.displayTitle(currentUserId: workspace.currentUserId)
     }
 
     private func persona(for item: InboxItem) -> Persona {
@@ -347,6 +358,9 @@ struct ActivityRow: View {
     let persona: Persona
     let currentUserId: String
     var channelNames: Set<String> = []
+    /// Set for a DM with yourself ("XIN (you)"): "You sent a message" alone does not say
+    /// where, so the location names it instead of "Direct message".
+    var selfDMTitle: String?
 
     private var unread: Bool { item.unreadCount > 0 }
 
@@ -370,8 +384,14 @@ struct ActivityRow: View {
     }
 
     private var isMine: Bool {
-        guard let sender = item.senderId, !sender.isEmpty else { return false }
-        return sender == currentUserId && item.senderType != "agent" && item.senderType != "system"
+        guard let sender = item.senderId, !sender.isEmpty, !Self.isSystemSender(item) else { return false }
+        return sender == currentUserId && item.senderType != "agent"
+    }
+
+    /// Server notices: `senderType` "system", or (channel, DM and task broadcasts) a "user"
+    /// sender whose id is "system". The web client reads both the same way.
+    static func isSystemSender(_ item: InboxItem) -> Bool {
+        item.senderType == "system" || item.senderId == "system"
     }
 
     private var name: String {
@@ -380,15 +400,16 @@ struct ActivityRow: View {
         return value == "?" ? Self.senderName(item) : value
     }
 
-    /// The sender's name; system notices are from Raft, an unnamed sender is "Someone".
+    /// The sender's name; server notices are "System" (localized first: their raw name, if
+    /// any, is English), an unnamed sender is "Someone".
     static func senderName(_ item: InboxItem) -> String {
+        if isSystemSender(item) { return L10n.t("ios_activity_system_sender", "System") }
         if let name = item.senderName, !name.isEmpty { return name }
-        if item.senderType == "system" { return "Raft" }
         return L10n.t("ios_activity_someone", "Someone")
     }
 
     private var location: String {
-        let dm = L10n.t("thread_direct_message_title", "Direct message")
+        let dm = selfDMTitle ?? L10n.t("thread_direct_message_title", "Direct message")
         if item.isSubConversation {
             let parent = item.parentChannelType == "dm" ? dm : "#\(item.parentChannelName ?? "")"
             let root = PlainText.preview(item.parentMessagePreview)

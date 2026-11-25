@@ -345,29 +345,49 @@ final class ConversationStore {
     /// Optimistic send: a pending row at once, replaced by the server's copy (matched by
     /// `randomId`, from the answer or `message:new`, whichever lands first).
     func send(_ text: String, mentions: [MessageMention] = [], attachmentIds: [String] = [], attachmentNames: [String] = [], asTask: Bool = false) async {
+        guard let randomId = enqueue(text, mentions: mentions, hasAttachments: !attachmentIds.isEmpty, attachmentNames: attachmentNames, asTask: asTask) else { return }
+        await deliver(randomId, attachmentIds: attachmentIds)
+    }
+
+    /// The pending row alone, synchronously (the screen calls this on the tap, before any
+    /// upload or network wait); `deliver` sends it. Nil when nothing is to be sent.
+    @discardableResult
+    func enqueue(_ text: String, mentions: [MessageMention] = [], hasAttachments: Bool = false, attachmentNames: [String] = [], asTask: Bool = false, randomId: String? = nil, createdAt: Date? = nil) -> String? {
         guard !preferences.readOnly else {
             errorMessage = StoreError.readOnly.errorDescription
-            return
+            return nil
         }
         let content = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !content.isEmpty || !attachmentIds.isEmpty else { return }
+        guard !content.isEmpty || hasAttachments else { return nil }
         guard content.count <= SendMessageBody.maxContentLength else {
             errorMessage = "That message is too long."
-            return
+            return nil
         }
         let item = PendingSend(
-            randomId: Self.makeRandomId(),
+            randomId: randomId ?? Self.makeRandomId(),
             channelId: channelId,
             content: content,
             mentions: mentions,
             state: .sending,
-            createdAt: now(),
-            attachmentIds: attachmentIds,
+            createdAt: createdAt ?? now(),
             attachmentNames: attachmentNames,
             asTask: asTask
         )
         pending.append(item)
-        await deliver(item.randomId)
+        return item.randomId
+    }
+
+    /// Sends an enqueued row with its uploaded files (ids known only after the uploads).
+    func deliver(_ randomId: String, attachmentIds: [String]) async {
+        guard let index = pending.firstIndex(where: { $0.randomId == randomId }) else { return }
+        pending[index].attachmentIds = attachmentIds
+        if pending[index].content.isEmpty && attachmentIds.isEmpty {
+            // Every upload failed and there is no text: nothing left to send.
+            pending.remove(at: index)
+            errorMessage = L10n.t("thread_composer_attachment_upload_failed", "Upload failed")
+            return
+        }
+        await deliver(randomId)
     }
 
     /// Sends a failed message again with the same `randomId`.

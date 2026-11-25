@@ -137,46 +137,6 @@ struct SettingsRowLabel: View {
     }
 }
 
-// MARK: Toggle (§2.16)
-
-struct RaftToggleStyle: ToggleStyle {
-    @Environment(\.colorScheme) private var scheme
-
-    func makeBody(configuration: Configuration) -> some View {
-        Button {
-            withAnimation(.spring(duration: 0.25, bounce: 0.15)) { configuration.isOn.toggle() }
-        } label: {
-            HStack {
-                configuration.label
-                Spacer(minLength: 8)
-                track(on: configuration.isOn)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .sensoryFeedback(.selection, trigger: configuration.isOn)
-        .accessibilityRepresentation {
-            Toggle(isOn: configuration.$isOn) { configuration.label }
-        }
-    }
-
-    private func track(on: Bool) -> some View {
-        let offTrack = scheme == .dark ? Color.white.opacity(0.12) : Color.raftTextPrimary.opacity(0.12)
-        return ZStack(alignment: on ? .trailing : .leading) {
-            Capsule()
-                .fill(on ? Color.raftYellow : offTrack)
-                .overlay(Capsule().strokeBorder(on ? Color.raftInk : Color.raftInk.opacity(0.06), lineWidth: on ? 1.5 : 1))
-            Capsule()
-                .fill(Color.white)
-                .frame(width: 38, height: 26)
-                .overlay(Capsule().strokeBorder(on ? Color.raftInk : Color.black.opacity(0.06), lineWidth: on ? 1.5 : 0.5))
-                .shadow(color: .black.opacity(0.18), radius: 2.5, y: 2)
-                .padding(2)
-        }
-        .frame(width: 56, height: 30)
-    }
-}
-
 // MARK: Field (§2.19)
 
 struct RaftField: View {

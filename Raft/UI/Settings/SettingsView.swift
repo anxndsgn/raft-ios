@@ -409,7 +409,7 @@ private struct GroupTitle: View {
     }
 }
 
-/// Icon, title and the Raft switch.
+/// Icon, title and the system switch (§2.16: native Toggle, brand yellow tint).
 private struct ToggleRow: View {
     let systemImage: String
     let title: String
@@ -428,7 +428,7 @@ private struct ToggleRow: View {
                     .foregroundStyle(Color.raftTextPrimary)
             }
         }
-        .toggleStyle(RaftToggleStyle())
+        .tint(Color.raftYellow)
         .padding(.horizontal, 14)
         .frame(minHeight: 50)
     }

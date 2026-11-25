@@ -39,7 +39,7 @@ struct ThreadView: View {
     private var subtitle: String {
         guard parentIsDirectMessage else { return "#\(store.title)" }
         let dm = workspace.channelList.directMessages.first { $0.id == store.parentChannelId }
-        return dm?.peerVisibleName ?? store.title
+        return dm?.displayTitle(currentUserId: workspace.currentUserId) ?? store.title
     }
 
     private var me: Persona {
@@ -74,12 +74,15 @@ struct ThreadView: View {
         }
         .scrollPosition($position)
         .defaultScrollAnchor(.top, for: .alignment)
-        .defaultScrollAnchor((edges.atBottom || holdingForOlder) ? .bottom : .top, for: .sizeChanges)
+        // Short content sits at the top (alignment): kept there as it grows. Pinning its bottom
+        // instead pushed the parent up out of sight for a few frames when a reply was added.
+        .defaultScrollAnchor(((edges.atBottom && edges.overflows) || holdingForOlder) ? .bottom : .top, for: .sizeChanges)
         .scrollDismissesKeyboard(.interactively)
         .onScrollGeometryChange(for: StreamEdges.self) { geometry in
             StreamEdges(
                 nearTop: geometry.visibleRect.minY < 600,
-                atBottom: geometry.visibleRect.maxY >= geometry.contentSize.height - 60
+                atBottom: geometry.visibleRect.maxY >= geometry.contentSize.height - 60,
+                overflows: geometry.contentSize.height + geometry.contentInsets.top + geometry.contentInsets.bottom > geometry.containerSize.height
             )
         } action: { _, value in
             edges = value
@@ -122,7 +125,7 @@ struct ThreadView: View {
             Task {
                 try? await Task.sleep(for: .milliseconds(380))
                 // By id: `scrollTo(edge:)` is a no-op here, the position still reads as "bottom".
-                if let last = replies.flatMap({ replyEntries($0).last?.id }) {
+                if let last = replies.flatMap({ replyEntries(messages: $0.messages, pending: $0.pending).last?.id }) {
                     withAnimation(.smooth(duration: 0.2)) { position.scrollTo(id: last, anchor: .bottom) }
                 }
             }
@@ -196,10 +199,19 @@ struct ThreadView: View {
                 .contentTransition(.numericText())
             if let replies {
                 if replies.isLoadingOlder { LoadingOlderRow() }
-                let entries = replyEntries(replies)
+                let entries = replyEntries(messages: replies.messages, pending: replies.pending)
                 ForEach(entries) { entry in
                     entryView(entry, first: entry.id == entries.first?.id)
                 }
+            }
+            // Replies sent while the thread is being created (it has no store yet).
+            if !store.pendingBeforeThread.isEmpty {
+                let entries = replyEntries(messages: [], pending: store.pendingBeforeThread)
+                ForEach(entries) { entry in
+                    entryView(entry, first: entry.id == entries.first?.id)
+                }
+            }
+            if let replies {
                 if !replies.typingAgentIds.isEmpty {
                     TypingRow(personas: replies.typingAgentIds.map { workspace.directory.persona(type: "agent", id: $0, name: nil) })
                         .padding(.top, 6)
@@ -234,11 +246,11 @@ struct ThreadView: View {
 
     /// Replies with their date lines; the first line goes when it is the parent's day (the
     /// "N replies" line already separates them).
-    private func replyEntries(_ replies: ConversationStore) -> [ChatEntry] {
-        var list = ChatTimeline.entries(messages: replies.messages, pending: replies.pending, currentUserId: workspace.currentUserId)
+    private func replyEntries(messages: [Message], pending: [PendingSend]) -> [ChatEntry] {
+        var list = ChatTimeline.entries(messages: messages, pending: pending, currentUserId: workspace.currentUserId)
         if let first = list.first, case .date = first.kind,
            let parentDate = store.parent?.createdDate,
-           let firstDate = replies.messages.first?.createdDate ?? replies.pending.first?.createdAt,
+           let firstDate = messages.first?.createdDate ?? pending.first?.createdAt,
            Calendar.current.isDate(firstDate, inSameDayAs: parentDate) {
             list.removeFirst()
         }
@@ -288,12 +300,30 @@ struct ThreadView: View {
         let draft = composer
         composer = ComposerModel()
         sendTick += 1
+        // The row shows on the tap, marked as sending; thread creation, uploads and the request
+        // follow.
+        guard let randomId = store.enqueueReply(
+            draft.text,
+            mentions: draft.resolvedMentions,
+            hasAttachments: !draft.attachments.isEmpty,
+            attachmentNames: draft.attachments.map(\.filename)
+        ) else { return }
         Task {
+            await revealLatest()
             await draft.waitForUploads()
-            await store.sendReply(draft.text, mentions: draft.resolvedMentions, attachmentIds: draft.uploadedIds, attachmentNames: draft.attachments.map(\.filename))
+            await store.deliverReply(randomId, attachmentIds: draft.uploadedIds)
             replies?.isVisible = scenePhase == .active
-            withAnimation(.smooth(duration: 0.25)) { position.scrollTo(edge: .bottom) }
+            await revealLatest()
         }
+    }
+
+    /// Scrolls to the newest reply once the new row is laid out, only when the thread is taller
+    /// than the screen. Short content needs no scroll, and asking for the bottom edge then
+    /// pushed the parent up out of sight for a few frames.
+    private func revealLatest() async {
+        await Task.yield()
+        guard edges.overflows else { return }
+        withAnimation(.smooth(duration: 0.25)) { position.scrollTo(edge: .bottom) }
     }
 
     // MARK: Actions
@@ -336,19 +366,33 @@ struct ThreadView: View {
         return actions
     }
 
+    /// A failed reply: in the replies store, or the first reply whose thread was not created.
+    private func retry(_ randomId: String) {
+        Task {
+            if store.pendingBeforeThread.contains(where: { $0.randomId == randomId }) {
+                await store.retryBeforeThread(randomId)
+            } else {
+                await replies?.retry(randomId)
+            }
+        }
+    }
+
     private func pendingActions(_ row: MessageRowModel, _ pending: PendingSend) -> MessageRowActions {
         var actions = MessageRowActions()
-        actions.retry = { Task { await replies?.retry(pending.randomId) } }
+        actions.retry = { retry(pending.randomId) }
         actions.copyText = { copy(row.plainText) }
         actions.longPress = { frame in
             composerFocused = false
             var items = [MessageMenuItem(id: "copy", title: L10n.t("file_preview_action_copy_text", "Copy text"), systemImage: "doc.on.doc") { copy(row.plainText) }]
             if case .failed(let reason) = pending.state {
                 items.insert(MessageMenuItem(id: "retry", title: L10n.t("thread_send_failure_retry", "Retry"), systemImage: "arrow.clockwise") {
-                    Task { await replies?.retry(pending.randomId) }
+                    retry(pending.randomId)
                 }, at: 0)
                 items.append(MessageMenuItem(id: "delete", title: L10n.t("common_delete", "Delete"), systemImage: "trash", destructive: true) {
-                    withAnimation { replies?.discard(pending.randomId) }
+                    withAnimation {
+                        replies?.discard(pending.randomId)
+                        store.discardBeforeThread(pending.randomId)
+                    }
                 })
                 items.append(MessageMenuItem(id: "details", title: L10n.t("thread_send_failure_details", "Details"), systemImage: "info.circle") {
                     interactions.showFailure(reason)

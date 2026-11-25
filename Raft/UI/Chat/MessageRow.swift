@@ -164,6 +164,9 @@ struct MessageRowView: View {
                     FailedLine(retry: actions.retry)
                         .padding(.top, 6)
                         .transition(.opacity)
+                } else if row.state == .pending {
+                    SendingLine()
+                        .padding(.top, 6)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -266,6 +269,7 @@ struct MessageRowView: View {
             parts.append(L10n.f("ios_attachments_count_a11y", "%1$d attachments", row.attachments.count))
         }
         if row.isFailed { parts.append(L10n.t("ios_not_sent", "Not sent")) }
+        if row.state == .pending { parts.append(L10n.t("ios_message_sending", "Sending…")) }
         // One period between parts, not two when the text already ends a sentence.
         return parts.filter { !$0.isEmpty }.reduce("") { result, part in
             guard !result.isEmpty else { return part }
@@ -608,6 +612,22 @@ struct FailedLine: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("send-failed-retry")
+    }
+}
+
+/// Under a message this device has sent and the server has not confirmed yet; the row turns
+/// normal (or failed) in place.
+struct SendingLine: View {
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: "clock").font(.system(size: 12))
+            Text(L10n.t("ios_message_sending", "Sending…"))
+                .raftFont(.caption)
+        }
+        .foregroundStyle(Color.raftTextTertiary)
+        .padding(.vertical, 2)
+        .accessibilityHidden(true)
+        .accessibilityIdentifier("message-sending")
     }
 }
 
