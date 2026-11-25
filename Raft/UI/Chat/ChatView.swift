@@ -450,7 +450,17 @@ struct ChatView: View {
                 didFocus = true
                 try? await Task.sleep(for: .milliseconds(150))
                 if holdsBottom { settleOnEnd(force: true) }
+                // On a slow first layout (cold start) the last row is often not measured yet at
+                // 150ms: the end marker had not reported, or reported an estimate, and the list
+                // was shown where the first pass left it (a screen from the end on an 18 Pro Max
+                // after sign-in). Keep it hidden and re-anchored for up to a second, until the
+                // end is really on the bar.
+                for _ in 0..<6 where holdsBottom && !endSettled {
+                    try? await Task.sleep(for: .milliseconds(150))
+                    reanchor()
+                }
                 opening = false
+                reanchor()
             }
             return
         }
@@ -479,17 +489,16 @@ struct ChatView: View {
     @ViewBuilder private var title: some View {
         // A DM with its peer loaded shows it under the bar (`DMHeaderBar`).
         if isTask || isDirectMessage {
-            NavTitle(title: store.title, hashPrefix: !isDirectMessage, subtitle: isDirectMessage ? nil : (ref.subtitle ?? topic), typeSize: typeSize)
+            GlassTitle(title: store.title, hashPrefix: !isDirectMessage, subtitle: isDirectMessage ? nil : (ref.subtitle ?? topic), typeSize: typeSize)
         } else {
             // A channel: the title opens Channel info (§11 27).
             Button {
                 model.push(.channelInfo(store.channelId))
             } label: {
-                NavTitle(title: store.title, hashPrefix: true, subtitle: channelSubtitle, typeSize: typeSize)
+                GlassTitle(title: store.title, hashPrefix: true, subtitle: channelSubtitle, typeSize: typeSize)
                     .contentTransition(.numericText())
-                    .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(HeaderTitleButtonStyle())
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text(verbatim: "# \(store.title), " + L10n.t("ios_channel_info_title", "Channel info")))
             .accessibilityHint(Text(L10n.t("ios_channel_info_hint", "Shows channel details")))
@@ -558,9 +567,11 @@ struct ChatView: View {
         .defaultScrollAnchor((isEmpty || store.isLoadingOlder || store.phase != .loaded) ? .top : .bottom, for: .alignment)
         .defaultScrollAnchor((edges.atBottom || holdingForOlder) ? .bottom : .top, for: .sizeChanges)
         .scrollDismissesKeyboard(.interactively)
-        // System soft fade under the nav bar (§2.12); no custom bar background or divider. None
-        // at the bottom: messages pass under the composer's glass unblurred.
+        // No top scroll edge under the glass title capsule (XIN 5662 / Colo 5665): messages run to
+        // the screen's top. A DM keeps the system's soft edge under its header (its caption has
+        // no glass). None at the bottom: messages pass under the composer's glass.
         .scrollEdgeEffectStyle(.soft, for: .top)
+        .scrollEdgeEffectHidden(dmHeaderPeer == nil, for: .top)
         .scrollEdgeEffectHidden(true, for: .bottom)
         .onScrollGeometryChange(for: StreamEdges.self) { geometry in
             StreamEdges(
@@ -573,9 +584,15 @@ struct ChatView: View {
         .onScrollGeometryChange(for: StreamGeometry.self) { StreamGeometry($0) } action: { old, value in
             geometry = value
             holdBottom(old: old, new: value)
+            // Resting past the end (an empty screen over the composer) while held: re-anchor.
+            if value.visible > 0, value.top > value.maxTop + value.visible / 2 { reanchor() }
             checkEndSettled()
         }
-        .onScrollGeometryChange(for: Bool.self, of: isFarFromEnd) { _, far in farFromEnd = far }
+        .onScrollGeometryChange(for: Bool.self, of: isFarFromEnd) { _, far in
+            farFromEnd = far
+            // Held at the bottom yet a screen from the end: the hold followed a stale end.
+            if far { reanchor() }
+        }
         .onScrollPhaseChange { old, phase in
             scrollIdle = phase == .idle
             if phase == .interacting {
@@ -634,6 +651,21 @@ struct ChatView: View {
         let gap = barTop - (streamEnd.screen + 12)
         guard abs(gap) >= 0.5 else { return }
         position.scrollTo(y: target)
+    }
+
+    /// Puts the end back on the bar while the list is held at the bottom and not touched. The
+    /// end marker reports only while the lazy stack lays it out: when the list rests a screen or
+    /// more from it (`farFromEnd`), or past it, its last report is stale and the offset from it
+    /// holds the wrong place. By id the stack lays the last row out again (the marker then
+    /// reports and `settleOnEnd` fixes the bar's height left by the bottom-edge anchor).
+    private func reanchor() {
+        guard holdsBottom, scrollIdle, !landing, store.phase == .loaded, !isEmpty else { return }
+        let pastEnd = geometry.visible > 0 && geometry.top > geometry.maxTop + geometry.visible / 2
+        if farFromEnd || pastEnd || streamEnd == nil, let last = entries.last?.id {
+            position.scrollTo(id: last, anchor: .bottom)
+        } else {
+            settleOnEnd(force: true)
+        }
     }
 
     private func loadOlderIfNeeded() {

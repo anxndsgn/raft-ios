@@ -1441,6 +1441,24 @@
         }
       }
     },
+    "ios_back" : {
+      "comment" : "gen-strings: Raft/UI/BackButtonAccessibility.swift:64",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "返回"
+          }
+        }
+      }
+    },
     "ios_backup_detail" : {
       "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:471",
       "extractionState" : "manual",
