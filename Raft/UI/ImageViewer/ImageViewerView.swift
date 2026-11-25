@@ -24,6 +24,8 @@ struct ImageViewerView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
+    /// The app's own appearance (the viewer itself is dark).
+    @Environment(\.colorScheme) private var appScheme
 
     private enum Stage { case opening, shown, closing }
 
@@ -59,6 +61,8 @@ struct ImageViewerView: View {
     @State private var closeFrom: CGRect?
     @State private var closeBackdrop: Double = 1
     @State private var closeProgress: Double = 0
+    /// The status bar's (light-on-dark) style; it goes back to the app's as the close begins.
+    @State private var darkStatusBar = true
     /// What the image's resting region is worked out from (`ImageViewerFit`), each in the
     /// window's space as measured, and the insets it gives in the viewer's space.
     @State private var window = WindowMetrics()
@@ -77,6 +81,15 @@ struct ImageViewerView: View {
 
     /// The system bar (Close, Share) shows with the chrome and goes once a swipe-down is under way.
     private var barsVisible: Bool { chromeVisible && dragFade > 0.8 }
+
+    /// The status bar goes only while a tap has hidden the controls on the open viewer, and never
+    /// where the bars are vertical (iPhone Duo). It stays through the open and the close (and
+    /// comes back as a close begins). On the Duo it is part of the system column the conversation
+    /// under the viewer shares: hiding it reflows that column, which showed as the time and Wi-Fi
+    /// dropping out and the conversation's back button jumping while the viewer faded away.
+    private var statusBarHidden: Bool {
+        !verticalBar && stage == .shown && chromeIn && chromeHidden && !voiceOver
+    }
 
     var body: some View {
         // Close and Share are system toolbar items, so the system places them: across the top on
@@ -98,12 +111,12 @@ struct ImageViewerView: View {
             .toolbar { toolbarItems }
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbarColorScheme(darkStatusBar ? .dark : appScheme, for: .navigationBar)
             .toolbarVisibility(barsVisible ? .visible : .hidden, for: .navigationBar)
             .containerBackground(.clear, for: .navigation)
         }
         .environment(\.colorScheme, .dark)
-        .statusBarHidden(!chromeVisible)
+        .statusBarHidden(statusBarHidden)
         .accessibilityAddTraits(.isModal)
         .accessibilityAction(.escape) { close() }
         .sensoryFeedback(.success, trigger: successTick)
@@ -350,6 +363,7 @@ struct ImageViewerView: View {
 
     private func close() {
         guard stage == .shown else { return }
+        restoreStatusBarStyle()
         if flies && !zoomed, let image = image(for: current) {
             // One spring (0.3s, no bounce) drives the image from where it is (dragged or not) to
             // the thumbnail and the backdrop from what it shows to clear. The thumbnail's frame is
@@ -380,6 +394,15 @@ struct ImageViewerView: View {
                 viewer.dismiss()
             }
         }
+    }
+
+    /// The status bar's style goes back to the app's as the close begins: the system takes a few
+    /// frames to apply it and then cross-fades the time and Wi-Fi (dimming them as it goes), which
+    /// so runs while the backdrop is still fading. Left until the viewer had gone, the light text
+    /// faded out over the light conversation and dropped out for a frame or two.
+    private func restoreStatusBarStyle() {
+        guard appScheme != .dark else { return }
+        darkStatusBar = false
     }
 
     private func dismissDrag(_ translation: CGSize, velocity: CGPoint, ended: Bool) {
