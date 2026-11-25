@@ -88,7 +88,6 @@ struct MessageSearchView: View {
         .background(Color.raftCanvasWarm.ignoresSafeArea())
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
-        .toolbar(.hidden, for: .tabBar)
         // Our own bar (not `.searchable`): the field and the × stay on one row, focused or not,
         // so the results never move when the keyboard comes or goes.
         .safeAreaBar(edge: .top, spacing: 0) {
