@@ -198,6 +198,18 @@ struct RaftAPI: Sendable {
         return try ListEnvelope<ServerMember>.decode(response.data, keys: ["members", "items", "results"], path: "servers/{id}/members", traceId: response.traceId)
     }
 
+    /// `GET servers/{id}/members/{userId}/profile`: one person of the server, including when the
+    /// server hides people from its member list (`hideHumansFromMembers`). Nil when the person is
+    /// not (or no longer) a member (404).
+    func memberProfile(serverId: String, userId: String) async throws -> ServerMember? {
+        let path = "servers/\(Self.segment(serverId))/members/\(Self.segment(userId))/profile"
+        do {
+            return try await client.send(.get(path, serverScope: .explicit(serverId)), as: ServerMember.self)
+        } catch let error as APIError where error.status == 404 || error.status == 403 {
+            return nil
+        }
+    }
+
     /// `GET agents`: the server's agents (bare array) with avatar, runtime and live activity.
     func agents() async throws -> [AgentProfile] {
         let response = try await client.send(.get("agents"))

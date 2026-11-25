@@ -64,6 +64,7 @@ struct HomeView: View {
             try? await Task.sleep(for: .milliseconds(300))
             if !Task.isCancelled { showsSkeleton = true }
         }
+        .resolvesAvatars(workspace.directory, avatarNeeds)
         .task(id: unreadSignature) {
             try? await Task.sleep(for: .milliseconds(400))
             guard !Task.isCancelled, !unreadSignature.isEmpty else { return }
@@ -213,6 +214,15 @@ struct HomeView: View {
     var selfNames: Set<String> {
         let user = model.session.user
         return Set([user?.displayName, user?.name].compactMap { $0 }.filter { !$0.isEmpty })
+    }
+
+    /// The people of the DM list (each DM names its peer's photo; a peer without one is looked up).
+    private var avatarNeeds: AvatarNeeds {
+        var needs = AvatarNeeds()
+        for dm in list.directMessages where dm.peerType != "agent" {
+            needs.add(type: "user", id: dm.peerId, avatarURL: dm.peerAvatarUrl)
+        }
+        return needs
     }
 
     private func persona(for row: HomeRow) -> Persona {

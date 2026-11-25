@@ -87,6 +87,22 @@ struct ThreadView: View {
         return workspace.directory.mentionMatches(query, excluding: workspace.currentUserId)
     }
 
+    /// The parent's and the replies' people; the parent channel's roster first (a thread's
+    /// people are the channel's), then the thread's own.
+    private var avatarNeeds: AvatarNeeds {
+        var needs = AvatarNeeds()
+        guard store.phase == .loaded else { return needs }
+        needs.add(channel: store.parentChannelId)
+        needs.add(channel: store.threadChannelId)
+        if let parent = store.parent {
+            needs.add(type: parent.senderType, id: parent.senderId, avatarURL: parent.senderAvatarUrl)
+        }
+        for message in replies?.messages ?? [] {
+            needs.add(type: message.senderType, id: message.senderId, avatarURL: message.senderAvatarUrl)
+        }
+        return needs
+    }
+
     private var uploadChannelId: String { store.threadChannelId ?? store.parentChannelId }
 
     var body: some View {
@@ -200,6 +216,7 @@ struct ThreadView: View {
             await scrollToStart()
         }
         .savedChecks(workspace.saved, ids: [store.parentMessageId] + (replies?.messages.map(\.id) ?? []), page: store.phase == .loaded ? (replies?.messages.first?.id ?? store.parentMessageId) : nil)
+        .resolvesAvatars(workspace.directory, avatarNeeds)
         .onAppear { replies?.isVisible = scenePhase == .active }
         .onDisappear { replies?.isVisible = false }
         .onChange(of: scenePhase) { _, phase in replies?.isVisible = phase == .active }

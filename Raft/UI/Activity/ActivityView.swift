@@ -42,6 +42,7 @@ struct ActivityView: View {
             }
         }
         .refreshable { await store.load() }
+        .resolvesAvatars(workspace.directory, avatarNeeds)
         .task {
             let filter = ActivityStore.Filter(rawValue: storedFilter) ?? .all
             if filter != store.filter {
@@ -269,7 +270,16 @@ struct ActivityView: View {
     private func persona(for item: InboxItem) -> Persona {
         if ActivityRow.isSystemSender(item) { return .system(name: ActivityRow.senderName(item)) }
         let type = item.senderType == "agent" ? "agent" : "user"
-        return workspace.directory.persona(type: type, id: item.senderId ?? item.id, name: ActivityRow.senderName(item))
+        return workspace.directory.persona(type: type, id: item.senderId ?? item.id, name: ActivityRow.senderName(item), avatarURL: item.senderAvatarUrl)
+    }
+
+    /// The rows' people (most rows carry the sender's photo; the rest are looked up).
+    private var avatarNeeds: AvatarNeeds {
+        var needs = AvatarNeeds()
+        for item in store.items where !ActivityRow.isSystemSender(item) {
+            needs.add(type: item.senderType ?? "user", id: item.senderId, avatarURL: item.senderAvatarUrl)
+        }
+        return needs
     }
 
     // MARK: Actions

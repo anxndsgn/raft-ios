@@ -405,6 +405,7 @@ struct ChatView: View {
             }
             .task { await start() }
             .savedChecks(workspace.saved, ids: store.messages.map(\.id), page: store.phase == .loaded ? store.messages.first?.id : nil)
+            .resolvesAvatars(workspace.directory, avatarNeeds)
             .task(id: workspace.isOffline) {
                 guard workspace.isOffline else {
                     showsBanner = false
@@ -643,6 +644,22 @@ struct ChatView: View {
             try? await Task.sleep(for: .milliseconds(250))
             holdingForOlder = false
         }
+    }
+
+    /// The people of the loaded messages and their reply previews; the channel's roster first.
+    private var avatarNeeds: AvatarNeeds {
+        var needs = AvatarNeeds()
+        guard store.phase == .loaded else { return needs }
+        needs.add(channel: store.channelId)
+        for message in store.messages {
+            needs.add(type: message.senderType, id: message.senderId, avatarURL: message.senderAvatarUrl)
+        }
+        for thread in store.threads.values {
+            for reply in thread.latestReplies {
+                needs.add(type: reply.senderType, id: reply.senderId, avatarURL: reply.senderAvatarUrl)
+            }
+        }
+        return needs
     }
 
     @ViewBuilder private var streamContent: some View {
