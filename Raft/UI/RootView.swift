@@ -188,6 +188,10 @@ struct RouteView: View {
     @Environment(Workspace.self) private var workspace
 
     var body: some View {
+        page.backButtonAccessibility()
+    }
+
+    @ViewBuilder private var page: some View {
         switch route {
         case .conversation(let ref):
             ChatView(store: workspace.conversation(for: ref), ref: ref)

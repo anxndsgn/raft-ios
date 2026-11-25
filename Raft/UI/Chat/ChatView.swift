@@ -318,11 +318,23 @@ struct ChatView: View {
         VerticalBarReader { vertical in page(verticalBar: vertical) }
     }
 
+    /// The bottom of the title area (title + subtitle, or the DM header) in the window, and of
+    /// the offline banner under it: where the header blur ends (Colo 5653 / 5655).
+    @State private var titleBottom: CGFloat? = nil
+    @State private var bannerBottom: CGFloat? = nil
+
+    private var headerBottom: CGFloat? {
+        guard let titleBottom else { return showsBanner ? bannerBottom : nil }
+        guard showsBanner, let bannerBottom else { return titleBottom }
+        return max(titleBottom, bannerBottom)
+    }
+
     /// `verticalBar`: the system stacks the bars on the trailing edge (Duo folded, unfolded
     /// landscape). The title then sits at the top of the content (大字号补充 A.4) instead of
     /// floating over the messages.
     private func page(verticalBar: Bool) -> some View {
         stream
+            .headerBlur(headerBottom)
             .background(Color.raftCanvas.ignoresSafeArea())
             .navigationTitle(Text(verbatim: peerTitle ?? store.title))
             .navigationBarTitleDisplayMode(.inline)
@@ -332,7 +344,7 @@ struct ChatView: View {
                         if verticalBar {
                             Color.clear.frame(width: 1, height: 1).accessibilityHidden(true)
                         } else {
-                            title
+                            title.reportsHeaderBottom($titleBottom)
                         }
                     }
                 } else {
@@ -357,12 +369,14 @@ struct ChatView: View {
                 VStack(spacing: 0) {
                     if let peer = dmHeaderPeer {
                         DMHeaderBar(peer: peer, name: peerTitle ?? peer.name, subtitle: dmSubtitle(peer), info: dmInfo)
+                            .reportsHeaderBottom($titleBottom)
                     } else if verticalBar {
-                        TopTitleBlock { title }
+                        TopTitleBlock { title.reportsHeaderBottom($titleBottom) }
                     }
                     if showsBanner {
                         StatusBanner(updatedAt: workspace.lastConnectedAt)
                             .padding(.vertical, 4)
+                            .reportsHeaderBottom($bannerBottom)
                             .transition(.move(edge: .top).combined(with: .opacity))
                     }
                 }
@@ -557,9 +571,8 @@ struct ChatView: View {
         .defaultScrollAnchor((isEmpty || store.isLoadingOlder || store.phase != .loaded) ? .top : .bottom, for: .alignment)
         .defaultScrollAnchor((edges.atBottom || holdingForOlder) ? .bottom : .top, for: .sizeChanges)
         .scrollDismissesKeyboard(.interactively)
-        // System soft fade under the nav bar (§2.12); no custom bar background or divider. None
-        // at the bottom: messages pass under the composer's glass unblurred.
-        .scrollEdgeEffectStyle(.soft, for: .top)
+        // At the top the title-high blur (`headerBlur` in `page`) replaces the system's soft
+        // edge. None at the bottom: messages pass under the composer's glass unblurred.
         .scrollEdgeEffectHidden(true, for: .bottom)
         .onScrollGeometryChange(for: StreamEdges.self) { geometry in
             StreamEdges(
