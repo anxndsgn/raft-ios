@@ -41,6 +41,11 @@ struct DMHeaderBar: View {
     static let minimumTop: CGFloat = 8
 
     @State private var insets = BarInsets()
+    /// The block's origin in the window (before its top padding), from SwiftUI's layout. The
+    /// reader's UIView is not laid out again when only its position changes, so its `originY`
+    /// went stale when the bar's top inset changed in a scroll (Duo folded: 82 → 24) and the
+    /// block was pushed up off the screen.
+    @State private var origin: CGFloat?
 
     /// Moves the block to where the avatar's top belongs, from where SwiftUI put it. Under a
     /// horizontal navigation bar it goes up into the bar's row (avatar top = the bar's top, the
@@ -54,7 +59,7 @@ struct DMHeaderBar: View {
         } else {
             wanted = insets.windowTop < Self.minimumTop ? Self.minimumTop : insets.windowTop
         }
-        return wanted - insets.originY
+        return wanted - (origin ?? insets.originY)
     }
 
     var body: some View {
@@ -82,6 +87,8 @@ struct DMHeaderBar: View {
         }
         .frame(maxWidth: .infinity, minHeight: Self.height, alignment: .top)
         .padding(.top, top)
+        // The padding grows the block from its origin, so this never feeds back.
+        .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY.rounded() } action: { origin = $0 }
         .background(alignment: .top) {
             // The block's origin and its avatar band, full width: where the insets are measured.
             BarInsetsReader { insets = $0 }
