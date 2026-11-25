@@ -74,6 +74,12 @@ struct StreamGeometry: Equatable {
     }
 }
 
+/// The stream's last row end: in the content (`AnchoredLanding.space`) and on screen.
+struct StreamEnd: Equatable {
+    var content: CGFloat
+    var screen: CGFloat
+}
+
 /// Opening at a message (29c). The stream stays hidden until the row is where it will stay, so it
 /// lands once: centred when it can be, else as near the centre as the content allows (at the
 /// top or the bottom). The last step is an offset, not "this id at the centre": an id-based
@@ -178,6 +184,13 @@ struct ChatView: View {
     /// Opening at a message: the stream is hidden until it has landed there (29c).
     @State private var landing: Bool
     @State private var geometry = StreamGeometry()
+    /// Where the last row really ends (`StreamEnd`) and the bottom bar's top, on screen.
+    @State private var streamEnd: StreamEnd?
+    @State private var barTop: CGFloat?
+    /// Opening on the last message: the list stays hidden until both the scroll geometry and
+    /// the laid-out last row agree it is there. The first passes placed it the bottom bar's height
+    /// (86pt) past its end, then corrected it, which flashed.
+    @State private var endSettled = false
     @State private var landingTarget: String?
     @State private var targetFrame: CGRect?
     /// VoiceOver lands on the message the conversation opened at (29c).
@@ -391,9 +404,7 @@ struct ChatView: View {
             if !didFocus {
                 didFocus = true
                 try? await Task.sleep(for: .milliseconds(150))
-                if holdsBottom, geometry.contentHeight > geometry.visible, abs(geometry.top - geometry.maxTop) >= 0.5 {
-                    position.scrollTo(y: geometry.maxTop)
-                }
+                if holdsBottom { settleOnEnd(force: true) }
                 opening = false
             }
             return
@@ -465,11 +476,22 @@ struct ChatView: View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 streamContent
+                // The end of the last row, as laid out: the scroll geometry's content height is an
+                // estimate of the lazy rows and was not always reported again once they were
+                // measured (a DM opened 86pt past its end, below an empty band).
+                Color.clear.frame(height: 0)
+                    .onGeometryChange(for: StreamEnd.self) { g in
+                        StreamEnd(content: g.frame(in: .named(AnchoredLanding.space)).maxY, screen: g.frame(in: .global).maxY)
+                    } action: { old, new in
+                        streamEnd = new
+                        if new.content != old.content || opening { settleOnEnd(force: false) }
+                        checkEndSettled()
+                    }
             }
             .scrollTargetLayout()
             .coordinateSpace(name: AnchoredLanding.space)
             .padding(.bottom, 12)
-            .opacity(landing && store.phase == .loaded ? 0 : 1)
+            .opacity(store.phase == .loaded && (landing || (opening && holdsBottom && !endSettled)) ? 0 : 1)
         }
         // A tap on the messages ends writing. On the scroll view itself, inside the bottom bar:
         // over the whole page it also saw taps in the composer (As task, +, send) and dropped the
@@ -480,7 +502,10 @@ struct ChatView: View {
         })
         // The composer (and the join bar) is the scroll view's own bottom bar (it insets the
         // content); its edge effect is hidden below.
-        .safeAreaBar(edge: .bottom) { composerBar }
+        .safeAreaBar(edge: .bottom) {
+            composerBar
+                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { barTop = $0 }
+        }
         .composerPageBottom()
         .scrollPosition($position)
         .defaultScrollAnchor(.bottom, for: .initialOffset)
@@ -502,6 +527,7 @@ struct ChatView: View {
         .onScrollGeometryChange(for: StreamGeometry.self) { StreamGeometry($0) } action: { old, value in
             geometry = value
             holdBottom(old: old, new: value)
+            checkEndSettled()
         }
         .onScrollPhaseChange { old, phase in
             scrollIdle = phase == .idle
@@ -531,8 +557,35 @@ struct ChatView: View {
         // Once open, a change of the visible height alone (the keyboard, the composer growing) is
         // left to the animated re-pin on focus.
         guard opening || new.contentHeight != old.contentHeight || new.visible == old.visible else { return }
-        let target = new.maxTop
+        let target = endTop(visible: new.visible) ?? new.maxTop
         guard abs(new.top - target) >= 0.5 else { return }
+        position.scrollTo(y: target)
+    }
+
+    /// The visible-top content y that puts the last row's end (and the list's 12pt bottom
+    /// padding) at the bottom bar's top; nil before the end is laid out.
+    private func endTop(visible: CGFloat) -> CGFloat? {
+        guard let streamEnd, visible > 0 else { return nil }
+        return max(streamEnd.content + 12 - visible, 0)
+    }
+
+    private func checkEndSettled() {
+        guard opening, !endSettled, let streamEnd, let barTop, let target = endTop(visible: geometry.visible) else { return }
+        // Short content (it cannot reach the bar) shows where it lies.
+        if streamEnd.content + 12 <= geometry.visible || (abs(barTop - (streamEnd.screen + 12)) < 0.5 && abs(geometry.top - target) < 0.5) {
+            endSettled = true
+        }
+    }
+
+    /// Puts the last row's end on the bottom bar's top when it is not, measured on screen: that
+    /// holds whatever the scroll geometry last reported. `force`: the settle in `start()`;
+    /// otherwise only while held. Content shorter than the visible area is left where it is.
+    private func settleOnEnd(force: Bool) {
+        guard holdsBottom, force || scrollIdle, !landing, store.phase == .loaded,
+              let streamEnd, let barTop, let target = endTop(visible: geometry.visible),
+              streamEnd.content + 12 > geometry.visible else { return }
+        let gap = barTop - (streamEnd.screen + 12)
+        guard abs(gap) >= 0.5 else { return }
         position.scrollTo(y: target)
     }
 
