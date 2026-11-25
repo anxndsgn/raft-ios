@@ -16,6 +16,11 @@ struct ThreadView: View {
     @State private var edges = StreamEdges(nearTop: true, atBottom: false)
     @State private var holdingForOlder = false
     @State private var didScroll = false
+    /// Opening at a reply: the stream is hidden until it has landed there (29c).
+    @State private var landing = false
+    @State private var geometry = StreamGeometry()
+    @State private var landingTarget: String?
+    @State private var targetFrame: CGRect?
     /// VoiceOver lands on the reply the thread opened at (29c).
     @AccessibilityFocusState private var focusedEntry: String?
     @State private var pickingPhotos = false
@@ -77,8 +82,10 @@ struct ThreadView: View {
                 content
             }
             .scrollTargetLayout()
+            .coordinateSpace(name: AnchoredLanding.space)
             .padding(.bottom, 12)
         }
+        .opacity(landing ? 0 : 1)
         .scrollPosition($position)
         .defaultScrollAnchor(.top, for: .alignment)
         // Short content sits at the top (alignment): kept there as it grows. Pinning its bottom
@@ -93,6 +100,9 @@ struct ThreadView: View {
             )
         } action: { _, value in
             edges = value
+        }
+        .onScrollGeometryChange(for: StreamGeometry.self) { StreamGeometry($0) } action: { _, value in
+            geometry = value
         }
         .onChange(of: edges.nearTop) { loadOlderIfNeeded() }
         .simultaneousGesture(TapGesture().onEnded {
@@ -167,12 +177,20 @@ struct ThreadView: View {
     private func scrollToStart() async {
         guard !didScroll, let replies, !replies.messages.isEmpty else { return }
         didScroll = true
-        try? await Task.sleep(for: .milliseconds(120))
         if let focus = replies.focusMessageId {
-            position.scrollTo(id: "m:\(focus)", anchor: .center)
-            interactions.flash("m:\(focus)")
-            focusedEntry = "m:\(focus)"
-        } else if let marker = replies.unreadMarkerSeq, let first = replies.messages.first(where: { ($0.seq ?? 0) > marker }), first.id != replies.messages.first?.id {
+            // 29c: hidden until it has landed, then shown with the highlight on (as ChatView).
+            let id = "m:\(focus)"
+            landing = true
+            landingTarget = id
+            await AnchoredLanding.land(on: id, position: $position, geometry: { geometry }, target: { targetFrame })
+            landingTarget = nil
+            landing = false
+            interactions.flash(id)
+            focusedEntry = id
+            return
+        }
+        try? await Task.sleep(for: .milliseconds(120))
+        if let marker = replies.unreadMarkerSeq, let first = replies.messages.first(where: { ($0.seq ?? 0) > marker }), first.id != replies.messages.first?.id {
             position.scrollTo(id: "m:\(first.id)", anchor: .top)
         } else if replies.messages.count > 4 {
             position.scrollTo(edge: .bottom)
@@ -252,6 +270,7 @@ struct ThreadView: View {
                 actions: replyActions(row, message)
             )
             .accessibilityFocused($focusedEntry, equals: entry.id)
+            .landingFrame(landingTarget == entry.id) { targetFrame = $0 }
             .padding(.top, first ? 0 : (continuation ? 6 : 16))
         case .pending(let pending, let continuation):
             let row = ChatRows.row(pending, me: me)

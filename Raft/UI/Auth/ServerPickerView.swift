@@ -125,7 +125,7 @@ struct ServerRow: View {
         HStack(spacing: 12) {
             ServerAvatar(name: server.name, side: 35)
             VStack(alignment: .leading, spacing: 1) {
-                Text(verbatim: server.name)
+                Text(verbatim: server.displayName)
                     .raftFont(.rowTitle)
                     .foregroundStyle(Color.raftTextPrimary)
                     .lineLimit(1)
@@ -149,7 +149,7 @@ struct ServerRow: View {
         .frame(minHeight: 62)
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(verbatim: [server.name, server.slug.map { "/\($0)" }].compactMap { $0 }.joined(separator: ", ")))
+        .accessibilityLabel(Text(verbatim: [server.displayName, server.slug.map { "/\($0)" }].compactMap { $0 }.joined(separator: ", ")))
         .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
     }
 }

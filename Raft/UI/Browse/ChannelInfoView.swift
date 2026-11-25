@@ -300,12 +300,15 @@ struct ChannelMemberRow: View {
     let persona: Persona
 
     var body: some View {
+        // 27: avatar 28 (an agent's with its 11×11 presence light, as on Home and in New
+        // message) · name · Spacer · the Agent tag at the right edge.
         HStack(spacing: 12) {
-            AvatarView(persona: persona, size: .sm, ringColor: .raftCard)
+            AvatarView(persona: persona, size: .compact, showsPresence: member.kind == .agent, ringColor: .raftCard)
             Text(verbatim: persona.name)
                 .raftFont(.rowTitleMedium)
                 .foregroundStyle(Color.raftTextPrimary)
                 .lineLimit(1)
+            Spacer(minLength: 8)
             if member.kind == .agent {
                 Text(L10n.t("member_label_agent", "Agent"))
                     .raftFont(.monoSmall)
@@ -313,8 +316,8 @@ struct ChannelMemberRow: View {
                     .padding(.horizontal, 5)
                     .padding(.vertical, 1)
                     .overlay(RoundedRectangle(cornerRadius: 4, style: .continuous).strokeBorder(Color.raftTextTertiary, lineWidth: 1))
+                    .fixedSize()
             }
-            Spacer(minLength: 8)
         }
         .padding(.horizontal, 14)
         .frame(minHeight: 48)

@@ -49,6 +49,66 @@ struct StreamEdges: Equatable {
     var overflows = true
 }
 
+/// The stream's scroll geometry, kept for landing on a message (29c). `top` is the content y at
+/// the top of the visible area (under the bars); `visible` is that area's height.
+struct StreamGeometry: Equatable {
+    var top: CGFloat = 0
+    var visible: CGFloat = 0
+    var contentHeight: CGFloat = 0
+
+    init() {}
+
+    init(_ geometry: ScrollGeometry) {
+        top = geometry.contentOffset.y + geometry.contentInsets.top
+        visible = geometry.containerSize.height
+        contentHeight = geometry.contentSize.height
+    }
+
+    /// The visible-top content y that centres `frame`, kept inside the scrollable range.
+    func centring(_ frame: CGRect) -> CGFloat {
+        let wanted = frame.midY - visible / 2
+        return min(max(wanted, 0), max(contentHeight - visible, 0))
+    }
+}
+
+/// Opening at a message (29c). The stream stays hidden until the row is where it will stay, so it
+/// lands once: centred when it can be, else as near the centre as the content allows (at the
+/// top or the bottom). The last step is an offset, not "this id at the centre": an id-based
+/// position is resolved again on later layout passes (the flash ending was one), and with the
+/// estimated sizes of lazy rows that moved the content 60–70pt past its end and back.
+@MainActor
+enum AnchoredLanding {
+    static let space = "anchored-stream"
+
+    static func land(
+        on entryId: String,
+        position: Binding<ScrollPosition>,
+        geometry: () -> StreamGeometry,
+        target: () -> CGRect?
+    ) async {
+        position.wrappedValue.scrollTo(id: entryId, anchor: .center)
+        // Two layout passes: the lazy rows around the target are measured.
+        try? await Task.sleep(for: .milliseconds(100))
+        position.wrappedValue.scrollTo(id: entryId, anchor: .center)
+        try? await Task.sleep(for: .milliseconds(60))
+        guard let frame = target() else { return }
+        let y = geometry().centring(frame)
+        // Always, even when already there: the position then holds an offset, not the id.
+        position.wrappedValue.scrollTo(y: y)
+        try? await Task.sleep(for: .milliseconds(50))
+    }
+}
+
+extension View {
+    /// The row's frame in the stream's content, reported while it is the landing target. Always
+    /// attached (not `if`): switching would rebuild the row when the landing ends.
+    func landingFrame(_ isTarget: Bool, _ report: @escaping (CGRect) -> Void) -> some View {
+        onGeometryChange(for: CGRect?.self) { isTarget ? $0.frame(in: .named(AnchoredLanding.space)) : nil } action: { frame in
+            if let frame { report(frame) }
+        }
+    }
+}
+
 // MARK: 09 / 10 / 11 / 12 / 13 / 14 / 15 Chat
 
 struct ChatView: View {
@@ -66,6 +126,11 @@ struct ChatView: View {
     @State private var showsBanner = false
     @State private var showsSpinner = false
     @State private var didFocus = false
+    /// Opening at a message: the stream is hidden until it has landed there (29c).
+    @State private var landing: Bool
+    @State private var geometry = StreamGeometry()
+    @State private var landingTarget: String?
+    @State private var targetFrame: CGRect?
     /// VoiceOver lands on the message the conversation opened at (29c).
     @AccessibilityFocusState private var focusedEntry: String?
     @State private var pickingPhotos = false
@@ -75,6 +140,12 @@ struct ChatView: View {
     @State private var sendTick = 0
     @State private var joinFlow = ChannelJoinFlow()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    init(store: ConversationStore, ref: ConversationRef) {
+        self.store = store
+        self.ref = ref
+        _landing = State(initialValue: ref.focusMessageId != nil)
+    }
 
     private var isDirectMessage: Bool { store.kind == .directMessage }
     /// A task's conversation, opened from Activity: read-only, no threads or links.
@@ -219,6 +290,7 @@ struct ChatView: View {
     private func start() async {
         await store.start(focusMessageId: ref.focusMessageId)
         guard !didFocus, let focus = store.focusMessageId else {
+            landing = false
             // Lazy rows are measured as they appear; settle on the real bottom once they are.
             if !didFocus {
                 didFocus = true
@@ -228,10 +300,15 @@ struct ChatView: View {
             return
         }
         didFocus = true
-        try? await Task.sleep(for: .milliseconds(120))
-        position.scrollTo(id: "m:\(focus)", anchor: .center)
-        interactions.flash("m:\(focus)")
-        focusedEntry = "m:\(focus)"
+        let id = "m:\(focus)"
+        landing = true
+        landingTarget = id
+        await AnchoredLanding.land(on: id, position: $position, geometry: { geometry }, target: { targetFrame })
+        landingTarget = nil
+        // Shown with the highlight on: the 1.2s hold counts from here, when the row is on screen.
+        landing = false
+        interactions.flash(id)
+        focusedEntry = id
     }
 
     // MARK: Title (§2.12, 10)
@@ -306,8 +383,10 @@ struct ChatView: View {
                 streamContent
             }
             .scrollTargetLayout()
+            .coordinateSpace(name: AnchoredLanding.space)
             .padding(.bottom, 12)
         }
+        .opacity(landing && store.phase == .loaded ? 0 : 1)
         .scrollPosition($position)
         .defaultScrollAnchor(.bottom, for: .initialOffset)
         .defaultScrollAnchor((isEmpty || store.isLoadingOlder || store.phase != .loaded) ? .top : .bottom, for: .alignment)
@@ -322,6 +401,9 @@ struct ChatView: View {
             )
         } action: { _, value in
             edges = value
+        }
+        .onScrollGeometryChange(for: StreamGeometry.self) { StreamGeometry($0) } action: { _, value in
+            geometry = value
         }
         .onChange(of: edges.nearTop) { loadOlderIfNeeded() }
         .onChange(of: store.isLoadingOlder) { loadOlderIfNeeded() }
@@ -400,6 +482,7 @@ struct ChatView: View {
                 actions: actions(for: row)
             )
             .accessibilityFocused($focusedEntry, equals: entry.id)
+            .landingFrame(landingTarget == entry.id) { targetFrame = $0 }
             .padding(.top, continuation ? 6 : 16)
         case .pending(let pending, let continuation):
             let row = ChatRows.row(pending, me: me)

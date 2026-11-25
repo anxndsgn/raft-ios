@@ -168,7 +168,7 @@ struct HomeView: View {
                     BrowseEntryRow()
                 }
                 .buttonStyle(RowButtonStyle())
-                .accessibilityHint(Text(L10n.f("ios_browse_hint", "Find and join channels in %1$@", server?.name ?? "")))
+                .accessibilityHint(Text(L10n.f("ios_browse_hint", "Find and join channels in %1$@", server?.displayName ?? "")))
                 .accessibilityIdentifier("home-browse-channels")
             }
             // Shown without rows too: it holds the New message button (06d).
@@ -318,7 +318,7 @@ struct HomeView: View {
             } label: {
                 HStack(spacing: 0) {
                     ServerAvatar(name: server?.name ?? "R", side: 28, cornerRadius: 7)
-                    Text(verbatim: server?.name ?? "")
+                    Text(verbatim: server?.displayName ?? "")
                         .font(.custom(RaftFont.bold, size: 19, relativeTo: .headline))
                         .foregroundStyle(Color.raftTextPrimary)
                         .lineLimit(1)
@@ -333,7 +333,7 @@ struct HomeView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(PressDimButtonStyle())
-            .accessibilityLabel(Text(L10n.f("ios_switch_server_a11y", "%1$@, switch server", server?.name ?? "")))
+            .accessibilityLabel(Text(L10n.f("ios_switch_server_a11y", "%1$@, switch server", server?.displayName ?? "")))
             .accessibilityIdentifier("server-switcher")
             #if DEBUG
             .task {
@@ -348,7 +348,7 @@ struct HomeView: View {
             }
         }
         .sharedBackgroundVisibility(.hidden)
-        HomeSearchToolbarItems(namespace: searchZoom, serverName: server?.name ?? "")
+        HomeSearchToolbarItems(namespace: searchZoom, serverName: server?.displayName ?? "")
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 Picker(selection: Binding(
@@ -560,7 +560,7 @@ struct UnreadCard: View {
         }
         let text = PlainText.preview(preview?.text ?? (row.kind == .directMessage ? row.preview : nil))
         let sender = preview?.sender ?? row.previewSender
-        if let sender, !sender.isEmpty, row.kind == .channel { return "\(sender): \(text)" }
+        if let sender, !sender.isEmpty, row.kind == .channel { return L10n.senderPrefix(sender) + text }
         return text
     }
 
@@ -579,7 +579,7 @@ struct UnreadCard: View {
             let sender = preview?.sender ?? row.previewSender
             let mine = sender.map { selfNames.contains($0) } ?? false
             let prefix: String? = mine ? L10n.t("activity_list_self_sender", "You") : (row.kind == .channel ? sender : nil)
-            (prefix.map { Text(verbatim: "\($0): ").font(.custom(RaftFont.semibold, size: 13, relativeTo: .footnote)).foregroundStyle(Color.raftTextPrimary) } ?? Text(verbatim: ""))
+            (prefix.map { Text(verbatim: L10n.senderPrefix($0)).font(.custom(RaftFont.semibold, size: 13, relativeTo: .footnote)).foregroundStyle(Color.raftTextPrimary) } ?? Text(verbatim: ""))
                 + MessageTextBuilder(content: text, mentions: [], currentUserId: currentUserId, channelNames: [], font: .footnote, color: .raftTextSecondary, pills: false).text
         }
     }
@@ -589,7 +589,7 @@ enum HomeA11y {
     static func dmPreview(_ row: HomeRow, selfNames: Set<String>) -> String {
         let text = PlainText.preview(row.preview)
         if let sender = row.previewSender, selfNames.contains(sender) {
-            return "\(L10n.t("activity_list_self_sender", "You")): \(text)"
+            return L10n.senderPrefix(L10n.t("activity_list_self_sender", "You")) + text
         }
         return text
     }

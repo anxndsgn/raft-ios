@@ -73,7 +73,7 @@ struct ServerSwitcher: View {
         return HStack(spacing: 12) {
             ServerAvatar(name: server.name, side: 35)
             VStack(alignment: .leading, spacing: 0) {
-                Text(verbatim: server.name)
+                Text(verbatim: server.displayName)
                     .font(.custom(RaftFont.semibold, size: 16, relativeTo: .body))
                     .foregroundStyle(Color.raftTextPrimary)
                     .lineLimit(1)
@@ -105,7 +105,7 @@ struct ServerSwitcher: View {
         }
         .contentShape(.rect(cornerRadius: 18))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(verbatim: server.name))
+        .accessibilityLabel(Text(verbatim: server.displayName))
         .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
     }
 }

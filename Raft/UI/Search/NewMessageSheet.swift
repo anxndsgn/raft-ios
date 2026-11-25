@@ -172,13 +172,15 @@ struct NewMessageSheet: View {
     @State private var failedId: String?
     @State private var selectTick = 0
     @State private var errorTick = 0
+    /// The list's height that shows: under the bars, above the keyboard (28c places in it).
+    @State private var visibleHeight: CGFloat = 0
 
     private var trimmed: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var isFiltering: Bool { !trimmed.isEmpty }
     private var recent: [NewMessagePerson] { recentSnapshot ?? workspace.newMessageRecent() }
     private var people: [NewMessagePerson] { workspace.newMessagePeople }
     private var matches: [NewMessagePerson] { isFiltering ? people.filter { $0.matches(trimmed) } : people }
-    private var serverName: String { model.servers.selectedServer?.name ?? "" }
+    private var serverName: String { model.servers.selectedServer?.displayName ?? "" }
 
     var body: some View {
         NavigationStack {
@@ -189,6 +191,10 @@ struct NewMessageSheet: View {
                 }
             }
             .scrollDismissesKeyboard(.immediately)
+            // The container is already the part inside the bars and the keyboard (its insets).
+            .onScrollGeometryChange(for: CGFloat.self) { $0.containerSize.height } action: { _, height in
+                visibleHeight = height
+            }
             // One DM at a time: the list takes no taps while one is being created.
             .allowsHitTesting(openingId == nil)
             .background(Color.raftCanvasWarm.ignoresSafeArea())
@@ -231,11 +237,14 @@ struct NewMessageSheet: View {
     @ViewBuilder private var content: some View {
         if isFiltering {
             if phase == .loaded && matches.isEmpty {
+                // 28c: centred on the line a third of the way down the part that shows above
+                // the keyboard (the upper third), not at a fixed offset.
                 SearchEmptyBlock(
                     title: L10n.f("ios_new_message_no_match", "No one matches “%1$@”", trimmed),
                     detail: L10n.f("ios_new_message_members_only", "Only members of %1$@ are listed.", serverName),
-                    top: 88
+                    top: visibleHeight > 0 ? 0 : 88
                 )
+                .frame(minHeight: visibleHeight > 0 ? visibleHeight * 2 / 3 : nil, alignment: .center)
                 .onAppear {
                     AccessibilityNotification.Announcement(L10n.f("ios_new_message_no_match", "No one matches “%1$@”", trimmed)).post()
                 }

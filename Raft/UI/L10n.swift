@@ -17,6 +17,11 @@ enum L10n {
     }
 
     /// A format string (`%1$@`, `%1$d`) filled with `args`.
+    /// "You: " / "XIN: " before a preview; zh-Hans uses a full-width colon ("你：").
+    static func senderPrefix(_ name: String) -> String {
+        L10n.f("ios_preview_sender_prefix", "%1$@: ", name)
+    }
+
     static func f(_ key: String, _ fallback: String? = nil, _ args: CVarArg...) -> String {
         String(format: t(key, fallback), locale: .current, arguments: args)
     }

@@ -10,6 +10,10 @@ struct SavedView: View {
     @State private var showsSkeleton = false
     @State private var retrying = false
     @State private var opening: String?
+    /// The empty state is in. After the last row is removed it waits for the row's removal
+    /// (~0.3s) and then fades in over 0.2s, instead of fading in under the leaving row.
+    @State private var showsEmpty = false
+    @State private var hadEntries = false
 
     private var saved: SavedStore { workspace.saved }
 
@@ -29,7 +33,22 @@ struct SavedView: View {
         .background(Color.raftCanvas.ignoresSafeArea())
         .environment(\.defaultMinListRowHeight, 1)
         .raftNavigationTitle(L10n.t("saved_title", "Saved"), subtitle: subtitle)
-        .animation(.easeOut(duration: 0.2), value: saved.entries.isEmpty)
+        .task(id: saved.phase == .loaded && saved.entries.isEmpty) {
+            let empty = saved.phase == .loaded && saved.entries.isEmpty
+            guard empty else {
+                showsEmpty = false
+                if !saved.entries.isEmpty { hadEntries = true }
+                return
+            }
+            if hadEntries {
+                try? await Task.sleep(for: .milliseconds(320))
+                guard !Task.isCancelled else { return }
+                hadEntries = false
+                withAnimation(.easeOut(duration: 0.2)) { showsEmpty = true }
+            } else {
+                showsEmpty = true
+            }
+        }
         .refreshable { await saved.refresh() }
         .task { await saved.refresh() }
         .task(id: saved.phase == .loading) {
@@ -63,9 +82,11 @@ struct SavedView: View {
             .plainRow()
         case .loaded:
             if saved.entries.isEmpty {
-                SavedEmptyState()
-                    .transition(.opacity)
-                    .plainRow()
+                if showsEmpty {
+                    SavedEmptyState()
+                        .transition(.opacity)
+                        .plainRow()
+                }
             } else {
                 Color.clear.frame(height: 4).plainRow()
                 ForEach(Array(saved.entries.enumerated()), id: \.element.id) { index, entry in

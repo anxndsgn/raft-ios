@@ -53,12 +53,8 @@ struct MessageSearchView: View {
     @Environment(Workspace.self) private var workspace
     @Environment(\.dismiss) private var dismiss
     @State private var store: MessageSearchStore
-    @State private var isSearching = false
+    @FocusState private var fieldFocused: Bool
     @State private var didAppear = false
-    @State private var isOnTop = false
-    /// A result was tapped: the search ending as its page pushes is not a Cancel.
-    @State private var openingResult = false
-    @State private var presentedAt: Date?
     @State private var announcedCount: Int?
 
     init(workspace: Workspace) {
@@ -76,7 +72,7 @@ struct MessageSearchView: View {
         )
     }
 
-    private var serverName: String { model.servers.selectedServer?.name ?? "" }
+    private var serverName: String { model.servers.selectedServer?.displayName ?? "" }
 
     var body: some View {
         @Bindable var store = store
@@ -87,47 +83,35 @@ struct MessageSearchView: View {
             }
         }
         .scrollDismissesKeyboard(.immediately)
+        .scrollEdgeEffectStyle(.soft, for: .top)
         .background(Color.raftCanvasWarm.ignoresSafeArea())
         .navigationBarBackButtonHidden(true)
-        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button(L10n.t("common_cancel", "Cancel")) { cancel() }
-                    .accessibilityIdentifier("search-cancel")
-            }
+        // Our own bar (not `.searchable`): the field and the × stay on one row, focused or not,
+        // so the results never move when the keyboard comes or goes.
+        .safeAreaBar(edge: .top, spacing: 0) {
+            SearchHeader(
+                text: $store.text,
+                prompt: L10n.t("ios_search_messages_prompt", "Search messages"),
+                focus: $fieldFocused,
+                submit: { store.submit() },
+                close: cancel
+            )
         }
-        .searchable(
-            text: $store.text,
-            isPresented: $isSearching,
-            placement: .navigationBarDrawer(displayMode: .always),
-            prompt: Text(L10n.t("ios_search_messages_prompt", "Search messages"))
-        )
-        .submitLabel(.search)
-        .onSubmit(of: .search) { store.submit() }
         .onChange(of: store.text) { store.textChanged() }
         .onChange(of: store.resultsVersion) { announceResults() }
-        .onChange(of: isSearching) { _, presented in
-            if presented {
-                presentedAt = .now
-                return
-            }
-            // The search's own cancel button ends the search: on this page that is Cancel, back
-            // to Home. Not when a result is opening, and not a presentation that never settled.
-            guard isOnTop, !openingResult, let presentedAt, Date.now.timeIntervalSince(presentedAt) > 0.5 else { return }
-            dismiss()
-        }
         .onAppear {
-            isOnTop = true
-            openingResult = false
             guard !didAppear else { return }
             didAppear = true
             #if DEBUG
             if let screen = PreviewGallery.screen, ["29b", "29c"].contains(screen) { return }
             #endif
-            isSearching = true
+            Task {
+                try? await Task.sleep(for: .milliseconds(50))
+                fieldFocused = true
+            }
         }
-        .onDisappear { isOnTop = false }
     }
 
     // MARK: Content
@@ -282,7 +266,6 @@ struct MessageSearchView: View {
     private func open(_ result: MessageSearchResult) {
         KeyboardDismissal.now()
         store.noteOpened()
-        openingResult = true
         model.push(route(for: result))
     }
 
@@ -622,5 +605,73 @@ extension MessageSearchResult {
         case (nil, false): return title
         case (nil, true): return nil
         }
+    }
+}
+
+/// 29's bar: a glass search capsule (magnifier, field, clear) and the × glass circle that
+/// closes the page, 44 high, on the first row under the status bar.
+struct SearchHeader: View {
+    @Binding var text: String
+    let prompt: String
+    var focus: FocusState<Bool>.Binding
+    let submit: () -> Void
+    let close: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(Color.raftTextPrimary)
+                    .accessibilityHidden(true)
+                TextField(text: $text, prompt: Text(verbatim: prompt).foregroundStyle(Color.raftTextTertiary)) {
+                    Text(verbatim: prompt)
+                }
+                .font(.system(size: 17))
+                .foregroundStyle(Color.raftTextPrimary)
+                .focused(focus)
+                .submitLabel(.search)
+                .onSubmit(submit)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .accessibilityAddTraits(.isSearchField)
+                .accessibilityIdentifier("search-field")
+                if !text.isEmpty {
+                    Button {
+                        text = ""
+                        focus.wrappedValue = true
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 17))
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(Color(uiColor: .systemBackground), Color.raftTextPrimary)
+                            .frame(width: 32, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text(L10n.t("search_home_clear", "Clear")))
+                    .accessibilityIdentifier("search-clear")
+                }
+            }
+            .padding(.leading, 14)
+            .padding(.trailing, text.isEmpty ? 14 : 4)
+            .frame(height: 44)
+            .contentShape(Capsule())
+            .onTapGesture { focus.wrappedValue = true }
+            .raftGlass(Capsule(), interactive: true)
+            Button(action: close) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(Color.raftTextPrimary)
+                    .frame(width: 44, height: 44)
+                    .raftGlass(Circle(), interactive: true)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text(L10n.t("common_cancel", "Cancel")))
+            .accessibilityIdentifier("search-cancel")
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 2)
+        .padding(.bottom, 8)
     }
 }

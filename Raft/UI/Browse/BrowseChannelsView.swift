@@ -62,7 +62,7 @@ struct BrowseChannelsView: View {
         }
         .scrollDismissesKeyboard(.immediately)
         .background(Color.raftCanvasWarm.ignoresSafeArea())
-        .raftNavigationTitle(L10n.t("ios_browse_title", "Browse channels"), subtitle: model.servers.selectedServer?.name)
+        .raftNavigationTitle(L10n.t("ios_browse_title", "Browse channels"), subtitle: model.servers.selectedServer?.displayName)
         .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: Text(L10n.t("tasks_search_channels", "Search channels")))
         .refreshable { await list.refresh() }
         .safeAreaBar(edge: .top, spacing: 0) {

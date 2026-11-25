@@ -28,8 +28,9 @@ struct ImageViewerView: View {
     private enum Stage { case opening, shown, closing }
 
     private struct ViewerToast: Equatable {
+        enum Kind { case saved, failed, restricted }
         let serial: Int
-        let success: Bool
+        let kind: Kind
     }
 
     @State private var stage: Stage = .opening
@@ -53,6 +54,11 @@ struct ImageViewerView: View {
     @State private var successTick = 0
     @State private var errorTick = 0
     @State private var screen: CGRect = .zero
+    /// The close's flight: where the image was when it began, the backdrop's opacity then, and
+    /// the progress (0 → 1) one spring drives for both. The end is the thumbnail's live frame.
+    @State private var closeFrom: CGRect?
+    @State private var closeBackdrop: Double = 1
+    @State private var closeProgress: Double = 0
 
     private var index: Int { min(max(page ?? session.start, 0), session.images.count - 1) }
     private var current: MessageAttachment { session.images[index] }
@@ -80,13 +86,19 @@ struct ImageViewerView: View {
         .accessibilityAction(.escape) { close() }
         .sensoryFeedback(.success, trigger: successTick)
         .sensoryFeedback(.error, trigger: errorTick)
-        .alert(L10n.t("ios_photos_denied_title", "Allow Raft to save photos?"), isPresented: $showsDeniedAlert) {
-            Button(L10n.t("common_cancel", "Cancel"), role: .cancel) {}
-            Button(L10n.t("common_open_settings", "Open Settings")) {
+        // 31d: the system alert, dark like the viewer under it. A SwiftUI `.alert` here takes the
+        // window's (light) style, since the viewer is a layer of the root view, not its own
+        // presentation; this one is presented with a dark style of its own.
+        .background {
+            DarkAlertPresenter(
+                isPresented: $showsDeniedAlert,
+                title: L10n.t("ios_photos_denied_title", "Allow Raft to save photos?"),
+                message: L10n.t("thread_image_preview_photos_permission_denied", "Allow Photos access in Settings, then try again."),
+                cancel: L10n.t("common_cancel", "Cancel"),
+                action: L10n.t("common_open_settings", "Open Settings")
+            ) {
                 if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
             }
-        } message: {
-            Text(L10n.t("thread_image_preview_photos_permission_denied", "Allow Photos access in Settings, then try again."))
         }
         .onAppear(perform: present)
         .onChange(of: page) { _, value in
@@ -100,7 +112,7 @@ struct ImageViewerView: View {
     private func images(size: CGSize) -> some View {
         let local = CGRect(origin: .zero, size: size)
         return ZStack {
-            Color.black.opacity(backdrop * dragFade)
+            Color.black.opacity(stage == .closing ? closeBackdrop * (1 - closeProgress) : backdrop * dragFade)
             pager(size: size)
                 .scaleEffect(ImageViewerDismiss.scale(dy: drag.height, height: size.height))
                 .offset(drag)
@@ -173,7 +185,12 @@ struct ImageViewerView: View {
 
     /// The image that flies between the thumbnail and the page (r10 ↔ r0).
     @ViewBuilder private func hero(in local: CGRect) -> some View {
-        if let image = image(for: current) {
+        if stage == .closing, let from = closeFrom, let image = image(for: current) {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .modifier(HeroFlight(from: from, to: sourceFrame(current.id) ?? from, progress: closeProgress))
+        } else if let image = image(for: current) {
             let rect = expanded ? draggedFrame(fitted(image, in: local), in: local) : (sourceFrame(current.id) ?? fitted(image, in: local))
             Image(uiImage: image)
                 .resizable()
@@ -217,7 +234,7 @@ struct ImageViewerView: View {
     private func present() {
         page = session.start
         #if DEBUG
-        if PreviewGallery.screen == "31c" { postToast(success: true) }
+        if PreviewGallery.screen == "31c" { postToast(.saved) }
         if PreviewGallery.screen == "31d" { showsDeniedAlert = true }
         #endif
         if flies {
@@ -241,15 +258,24 @@ struct ImageViewerView: View {
 
     private func close() {
         guard stage == .shown else { return }
-        if flies && !zoomed {
+        if flies && !zoomed, let image = image(for: current) {
+            // One spring (0.3s, no bounce) drives the image from where it is (dragged or not) to
+            // the thumbnail and the backdrop from what it shows to clear. The thumbnail's frame is
+            // read live, so a conversation that moves under the viewer is followed without the
+            // spring retargeting (which overshot), and the backdrop no longer mixes the drag's
+            // fade coming back with its own going out (which held it grey).
+            let local = CGRect(origin: .zero, size: screen.size)
             var instant = Transaction()
             instant.disablesAnimations = true
-            withTransaction(instant) { stage = .closing }
-            withAnimation(.spring(duration: 0.3, bounce: 0)) {
-                expanded = false
-                backdrop = 0
+            withTransaction(instant) {
+                closeFrom = draggedFrame(fitted(image, in: local), in: local)
+                closeBackdrop = backdrop * dragFade
+                closeProgress = 0
+                stage = .closing
+            }
+            withAnimation(.spring(duration: 0.3, bounce: 0), completionCriteria: .logicallyComplete) {
+                closeProgress = 1
                 chromeIn = false
-                drag = .zero
             } completion: {
                 viewer.dismiss()
             }
@@ -269,6 +295,7 @@ struct ImageViewerView: View {
         if !ended {
             drag = translation
         } else if ImageViewerDismiss.closes(dy: translation.height, velocityY: velocity.y) {
+            drag = translation
             close()
         } else {
             withAnimation(.spring(duration: 0.3, bounce: 0.15)) { drag = .zero }
@@ -450,7 +477,7 @@ struct ImageViewerView: View {
                 showsDeniedAlert = true
                 return
             case .restricted?:
-                model.showToast(L10n.t("thread_image_preview_photos_permission_restricted", "Photos access is restricted on this device."))
+                postToast(.restricted)
                 return
             case .some:
                 return
@@ -458,22 +485,30 @@ struct ImageViewerView: View {
                 break
             }
             guard let file = try? await store.localFile(for: attachment) else {
-                postToast(success: false)
+                postToast(.failed)
                 return
             }
-            postToast(success: await PhotoSaver.save(file: file, filename: attachment.filename) == .saved)
+            postToast(await PhotoSaver.save(file: file, filename: attachment.filename) == .saved ? .saved : .failed)
         }
     }
 
-    private func postToast(success: Bool) {
+    /// The viewer's own (dark glass) toast, 31c: saved, failed, or Photos restricted.
+    private func postToast(_ kind: ViewerToast.Kind) {
         toastSerial += 1
-        withAnimation(.easeOut(duration: 0.2)) { toast = ViewerToast(serial: toastSerial, success: success) }
-        if success {
-            successTick += 1
-            AccessibilityNotification.Announcement(L10n.t("thread_image_preview_saved_to_photos", "Saved to Photos")).post()
-        } else {
-            errorTick += 1
-            AccessibilityNotification.Announcement(L10n.t("thread_image_preview_photos_save_failed", "Couldn’t save this image to Photos. Try again.")).post()
+        withAnimation(.easeOut(duration: 0.2)) { toast = ViewerToast(serial: toastSerial, kind: kind) }
+        switch kind {
+        case .saved: successTick += 1
+        case .failed: errorTick += 1
+        case .restricted: break
+        }
+        AccessibilityNotification.Announcement(Self.toastText(kind)).post()
+    }
+
+    private static func toastText(_ kind: ViewerToast.Kind) -> String {
+        switch kind {
+        case .saved: L10n.t("thread_image_preview_saved_to_photos", "Saved to Photos")
+        case .failed: L10n.t("thread_image_preview_photos_save_failed", "Couldn’t save this image to Photos. Try again.")
+        case .restricted: L10n.t("thread_image_preview_photos_permission_restricted", "Photos access is restricted on this device.")
         }
     }
 
@@ -481,11 +516,9 @@ struct ImageViewerView: View {
         VStack {
             if let toast {
                 HStack(spacing: 8) {
-                    Image(systemName: toast.success ? "checkmark" : "exclamationmark.circle")
+                    Image(systemName: toast.kind == .saved ? "checkmark" : "exclamationmark.circle")
                         .font(.system(size: 15, weight: .bold))
-                    Text(toast.success
-                         ? L10n.t("thread_image_preview_saved_to_photos", "Saved to Photos")
-                         : L10n.t("thread_image_preview_photos_save_failed", "Couldn’t save this image to Photos. Try again."))
+                    Text(verbatim: Self.toastText(toast.kind))
                         .font(.system(size: 15, weight: .semibold))
                         .lineLimit(1)
                 }
@@ -511,5 +544,91 @@ struct ImageViewerView: View {
             guard !Task.isCancelled else { return }
             withAnimation(.easeIn(duration: 0.25)) { toast = nil }
         }
+    }
+}
+
+/// The close's flight (31): the image between where the close began and the thumbnail, driven by
+/// one animated progress. Only the progress animates, so a moving end is followed, not sprung to.
+private struct HeroFlight: ViewModifier, @MainActor Animatable {
+    var from: CGRect
+    var to: CGRect
+    var progress: Double
+
+    var animatableData: Double {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    func body(content: Content) -> some View {
+        let t = CGFloat(progress)
+        let rect = CGRect(
+            x: from.minX + (to.minX - from.minX) * t,
+            y: from.minY + (to.minY - from.minY) * t,
+            width: from.width + (to.width - from.width) * t,
+            height: from.height + (to.height - from.height) * t
+        )
+        content
+            .frame(width: max(rect.width, 0), height: max(rect.height, 0))
+            .clipShape(RoundedRectangle(cornerRadius: 10 * t, style: .continuous))
+            .position(x: rect.midX, y: rect.midY)
+    }
+}
+
+/// A system alert with a dark style of its own (31d), presented from the view's place in the
+/// hierarchy: the rest of the app keeps its appearance.
+struct DarkAlertPresenter: UIViewControllerRepresentable {
+    @Binding var isPresented: Bool
+    let title: String
+    let message: String
+    let cancel: String
+    let action: String
+    let perform: () -> Void
+
+    func makeUIViewController(context: Context) -> UIViewController {
+        let controller = UIViewController()
+        controller.view.backgroundColor = .clear
+        controller.view.isUserInteractionEnabled = false
+        return controller
+    }
+
+    func updateUIViewController(_ controller: UIViewController, context: Context) {
+        context.coordinator.parent = self
+        guard isPresented, context.coordinator.alert == nil else { return }
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.overrideUserInterfaceStyle = .dark
+        alert.addAction(UIAlertAction(title: cancel, style: .cancel) { _ in context.coordinator.finish() })
+        alert.addAction(UIAlertAction(title: action, style: .default) { _ in
+            context.coordinator.finish()
+            context.coordinator.parent.perform()
+        })
+        context.coordinator.alert = alert
+        DispatchQueue.main.async {
+            guard controller.view.window != nil else {
+                context.coordinator.finish()
+                return
+            }
+            var presenter: UIViewController = controller
+            while let next = presenter.presentedViewController { presenter = next }
+            presenter.present(alert, animated: true)
+        }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
+
+    @MainActor
+    final class Coordinator {
+        var parent: DarkAlertPresenter
+        var alert: UIAlertController?
+
+        init(parent: DarkAlertPresenter) { self.parent = parent }
+
+        func finish() {
+            alert = nil
+            parent.isPresented = false
+        }
+    }
+
+    static func dismantleUIViewController(_ controller: UIViewController, coordinator: Coordinator) {
+        coordinator.alert?.dismiss(animated: false)
     }
 }

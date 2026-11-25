@@ -241,7 +241,7 @@ struct SettingsView: View {
                     SettingsRowLabel(
                         systemImage: "server.rack",
                         title: L10n.t("settings_server_title", "Server"),
-                        value: model.servers.selectedServer?.name
+                        value: model.servers.selectedServer?.displayName
                     )
                 }
                 .buttonStyle(RowButtonStyle())

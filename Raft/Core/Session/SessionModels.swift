@@ -78,6 +78,10 @@ struct AuthServer: Sendable, Hashable, Codable, Identifiable {
     var createdAt: String?
     var onboardingAgentId: String?
 
+    /// The name as shown (Home, search hints, Settings, the switcher): typed apostrophes become
+    /// typographic ones, "xin's team" → "xin’s team", the same wherever it appears.
+    var displayName: String { name.replacingOccurrences(of: "'", with: "\u{2019}") }
+
     init(
         id: String, name: String, slug: String? = nil, ownerId: String? = nil, plan: String? = nil,
         role: String? = nil, avatarUrl: String? = nil, hideHumansFromMembers: Bool = false,

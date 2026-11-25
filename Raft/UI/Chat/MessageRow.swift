@@ -187,12 +187,13 @@ struct MessageRowView: View {
         .padding(.horizontal, horizontalPadding)
         .background {
             // The located message (29c): full width, 8pt past the row above and below; on at
-            // once, faded out over 0.8s (gone at once with Reduce Motion).
+            // once, faded out over 0.8s (gone at once with Reduce Motion). Ease-in: an ease-out
+            // fade is all but gone after 0.4s, so the flash read as ~1.6s instead of 2.0s.
             Rectangle()
                 .fill(Color.raftYellow.opacity(0.22))
                 .padding(.vertical, -8)
                 .opacity(highlighted ? 1 : 0)
-                .animation(highlighted || reduceMotion ? nil : .easeOut(duration: 0.8), value: highlighted)
+                .animation(highlighted || reduceMotion ? nil : .easeIn(duration: 0.8), value: highlighted)
         }
         .contentShape(Rectangle())
         .onGeometryChange(for: CGRect.self) { proxy in
