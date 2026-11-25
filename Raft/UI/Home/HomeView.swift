@@ -348,7 +348,23 @@ struct HomeView: View {
             }
         }
         .sharedBackgroundVisibility(.hidden)
-        HomeSearchToolbarItems(namespace: searchZoom, serverName: server?.displayName ?? "")
+        // Gone as soon as a page is pushed over Home, in the same update that starts the push
+        // (Colo 5653): the rail swaps to the page's back button instead of keeping Search and the
+        // bell over the incoming page for a frame or two. Kept for Search, whose zoom starts
+        // from its button.
+        if !pagePushed {
+            HomeSearchToolbarItems(namespace: searchZoom, serverName: server?.displayName ?? "")
+            bellItem
+        }
+    }
+
+    /// A page other than message search is pushed over Home.
+    private var pagePushed: Bool {
+        guard let first = model.homePath.first else { return false }
+        return first != .messageSearch
+    }
+
+    @ToolbarContentBuilder private var bellItem: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 Picker(selection: Binding(
