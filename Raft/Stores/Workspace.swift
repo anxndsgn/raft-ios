@@ -167,6 +167,7 @@ final class Workspace {
     func thread(for ref: ThreadRef) -> ThreadStore {
         if let store = threads[ref.parentMessageId] {
             touch(ref.parentMessageId, in: &threadOrder)
+            store.reopen(at: ref.focusMessageId)
             return store
         }
         let store = ThreadStore(ref: ref, api: api, preferences: preferences) { [weak self] threadChannelId, parentMessageId in

@@ -108,6 +108,10 @@ enum AgentFace {
 
 enum AvatarSize {
     case xs, sm, md, lg
+    /// 28: search results (29b).
+    case compact
+    /// 32: people rows (28).
+    case row
 
     var side: CGFloat {
         switch self {
@@ -115,6 +119,8 @@ enum AvatarSize {
         case .sm: 27
         case .md: 35
         case .lg: 51
+        case .compact: 28
+        case .row: 32
         }
     }
 
@@ -124,6 +130,8 @@ enum AvatarSize {
         case .sm: 11
         case .md: 13
         case .lg: 18
+        case .compact: 11
+        case .row: 12
         }
     }
 }

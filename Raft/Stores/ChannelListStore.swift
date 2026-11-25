@@ -142,6 +142,22 @@ final class ChannelListStore {
 
     func isDirectMessage(_ id: String) -> Bool { directMessages.contains { $0.id == id } }
 
+    /// Home's DM with this peer (`user` or `agent`), if the list holds one (the old app's
+    /// `existingDirectMessageWith`).
+    func existingDirectMessage(peerType: String, peerId: String) -> DirectMessageChannel? {
+        guard !peerId.isEmpty else { return nil }
+        return directMessages.first { $0.type == "dm" && $0.peerId == peerId && $0.peerType == peerType }
+    }
+
+    /// A DM just opened here (`POST channels/dm`): put on top of the list now, without a reload.
+    func insertDirectMessage(_ dm: DirectMessageChannel) {
+        var row = dm
+        if row.lastMessageAt == nil { row.lastMessageAt = ISO8601DateFormatter().string(from: Date()) }
+        directMessages.removeAll { $0.id == row.id }
+        directMessages.insert(row, at: 0)
+        seed(row.id, version: row.readStateVersion, maxReadSeq: row.maxReadSeq)
+    }
+
     private func row(for channel: Channel) -> HomeRow {
         let scope = unread[channel.id] ?? ScopeUnread()
         let threads = threadUnread[channel.id]

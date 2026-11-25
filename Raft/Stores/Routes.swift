@@ -49,6 +49,8 @@ enum AppRoute: Hashable, Sendable {
     case channelInfo(String)
     /// A channel's full member list (Channel info › Members), by channel id.
     case channelMembers(String)
+    /// Message search (Home's search button, 29).
+    case messageSearch
 }
 
 enum AppTab: String, Hashable, CaseIterable, Sendable {

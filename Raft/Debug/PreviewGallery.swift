@@ -2,17 +2,26 @@
 import SwiftUI
 
 /// Screens with prepared data for design review: launch with `RAFT_PREVIEW=<screen>`
-/// (`02`, `03`, `04`, `05`, `05b`, `06`, `07`, `08`, `09`, `10`, `11`, `13`, `14`, `15`, `16`,
-/// `17`, `18`, `19`, `20`, `saved`). Nothing reaches a server: every request fails offline.
+/// (`02`, `03`, `04`, `05`, `05b`, `06`, `06d`, `06e`, `07`, `08`, `09`, `10`, `11`, `13`, `14`,
+/// `15`, `16`, `17`, `18`, `19`, `20`, `28`, `28b`, `28c`, `29`, `29b`, `29c`, `29d`, `29e`,
+/// `saved`). Nothing reaches a server: every request fails offline.
+/// `06d` / `06e` are Home (its New message and Search entries); `28*` open New message over it.
 @MainActor
 enum PreviewGallery {
     /// The screen being shown, for the few views that open a state on their own (alerts, drafts).
     static private(set) var screen: String?
     fileprivate static var drafts: [String: ComposerModel] = [:]
+    fileprivate static var searchStore: MessageSearchStore?
 
     /// A prepared composer for the conversation, handed out once.
     static func takeDraft(for channelId: String) -> ComposerModel? {
         drafts.removeValue(forKey: channelId)
+    }
+
+    /// The prepared message search (29*), handed out once.
+    static func takeSearchStore() -> MessageSearchStore? {
+        defer { searchStore = nil }
+        return searchStore
     }
 
     static func model(for screen: String) -> AppModel {
@@ -140,9 +149,72 @@ private struct Fixtures {
             model.tab = .settings
         case "saved":
             model.homePath = [.saved]
+        case "29", "29b", "29d", "29e":
+            PreviewGallery.searchStore = search(screen)
+            model.homePath = [.messageSearch]
+        case "29c":
+            PreviewGallery.searchStore = search("29b")
+            _ = chat(workspace, failed: false)
+            model.homePath = [
+                .messageSearch,
+                .conversation(ConversationRef(channelId: "c-mobile", title: "ship-mobile", kind: .channel, focusMessageId: "m4")),
+            ]
         default:
             break
         }
+    }
+
+    // MARK: Search (29)
+
+    private func search(_ screen: String) -> MessageSearchStore {
+        let recent = RecentSearches(serverId: "s-design", userId: Self.me.id, defaults: nil)
+        recent.debugSeed(["release notes", "settings crash", "TestFlight 2.4", "visual baselines", "PR #482"])
+        let store = MessageSearchStore(api: model.core.api, recent: recent)
+        switch screen {
+        case "29b":
+            store.debugSeed(text: "2.4 notes", phase: .loaded, results: decode([MessageSearchResult].self, Self.searchResults))
+        case "29d":
+            store.debugSeed(text: "xyz", phase: .loaded)
+        case "29e":
+            store.debugSeed(text: "2.4 notes", phase: .loading)
+        default:
+            break
+        }
+        return store
+    }
+
+    private static var searchResults: [[String: Any]] {
+        func hit(
+            _ id: String, _ senderId: String, _ senderType: String, _ senderName: String, channel: (id: String, name: String, type: String),
+            parent: (channelId: String, name: String, type: String, messageId: String?)? = nil, minutes: Double, _ content: String
+        ) -> [String: Any] {
+            var value: [String: Any] = [
+                "id": id, "channelId": channel.id, "channelName": channel.name, "channelType": channel.type,
+                "parentChannelId": parent?.channelId ?? channel.id, "parentChannelName": parent?.name ?? channel.name,
+                "parentChannelType": parent?.type ?? channel.type,
+                "senderId": senderId, "senderType": senderType, "senderName": senderName,
+                "content": content, "snippet": content, "createdAt": iso(minutes),
+            ]
+            if let messageId = parent?.messageId { value["parentMessageId"] = messageId; value["threadId"] = channel.id }
+            return value
+        }
+        let release = (id: "c-release", name: "release", type: "channel")
+        let mobile = (id: "c-mobile", name: "ship-mobile", type: "channel")
+        return [
+            hit("s1", "u-maya", "user", "Maya Chen", channel: release, minutes: 21,
+                "Can you review the 2.4 notes before noon? Leo wants them in the TestFlight build description too."),
+            hit("m4", "a-atlas", "agent", "Atlas", channel: mobile, minutes: 32,
+                "Reviewed #482, approved. Release notes for 2.4 are drafted in the thread."),
+            hit("r1", "a-atlas", "agent", "Atlas", channel: (id: "t-notes", name: "ship-mobile", type: "thread"),
+                parent: (channelId: "c-mobile", name: "ship-mobile", type: "channel", messageId: "m4"), minutes: 31,
+                "Draft is ready, 6 fixes and 2 features. Want me to post the 2.4 notes to #release when it’s approved?"),
+            hit("s4", "a-nova", "agent", "Nova", channel: release, minutes: 60 * 50,
+                "TestFlight 2.4.0 (317) is processing. I’ll paste the notes into the build description once it’s done."),
+            hit("s5", "u-leo", "user", "Leo Park", channel: (id: "d-leo", name: "dm-leo", type: "dm"), minutes: 60 * 52,
+                "Do the 2.4 notes mention the settings crash fix? Ruby’s PR should be in there."),
+            hit("s6", "a-ruby", "agent", "Ruby", channel: mobile, minutes: 60 * 75,
+                "Added a line about the locale crash to the 2.4 release notes draft."),
+        ]
     }
 
     // MARK: Home
@@ -331,6 +403,7 @@ private struct Fixtures {
         ["userId": "u-maya", "name": "maya", "displayName": "Maya Chen", "role": "owner"],
         ["userId": "u-leo", "name": "leo", "displayName": "Leo Park", "role": "member"],
         ["userId": "u-rae", "name": "rae", "displayName": "Rae Okafor", "role": "member"],
+        ["userId": "u-noor", "name": "noor", "displayName": "Noor Haddad", "role": "member"],
     ]
 
     // MARK: Helpers

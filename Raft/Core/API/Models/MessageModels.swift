@@ -230,8 +230,12 @@ struct MessageContextPage: Sendable, Hashable, Decodable {
     var messages: [Message]
     var historyLimited: Bool
     var channelArchived: Bool
+    /// Thread previews of the window's messages (as `MessagePage`).
+    var threadSummariesByParentMessageId: [String: ThreadSummary]
 
-    private enum CodingKeys: String, CodingKey { case channelId, targetMessageId, hasOlder, hasNewer, messages, historyLimited, channelArchived }
+    private enum CodingKeys: String, CodingKey {
+        case channelId, targetMessageId, hasOlder, hasNewer, messages, historyLimited, channelArchived, threadSummariesByParentMessageId
+    }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -242,6 +246,7 @@ struct MessageContextPage: Sendable, Hashable, Decodable {
         messages = c.lenientArray(.messages)
         historyLimited = c.lenient(.historyLimited) ?? false
         channelArchived = c.lenient(.channelArchived) ?? false
+        threadSummariesByParentMessageId = c.lenientMap(.threadSummariesByParentMessageId)
     }
 }
 

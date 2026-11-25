@@ -16,6 +16,8 @@ struct ThreadView: View {
     @State private var edges = StreamEdges(nearTop: true, atBottom: false)
     @State private var holdingForOlder = false
     @State private var didScroll = false
+    /// VoiceOver lands on the reply the thread opened at (29c).
+    @AccessibilityFocusState private var focusedEntry: String?
     @State private var pickingPhotos = false
     @State private var photoItems: [PhotosPickerItem] = []
     @State private var importingFiles = false
@@ -168,6 +170,7 @@ struct ThreadView: View {
         if let focus = replies.focusMessageId {
             position.scrollTo(id: "m:\(focus)", anchor: .center)
             interactions.flash("m:\(focus)")
+            focusedEntry = "m:\(focus)"
         } else if let marker = replies.unreadMarkerSeq, let first = replies.messages.first(where: { ($0.seq ?? 0) > marker }), first.id != replies.messages.first?.id {
             position.scrollTo(id: "m:\(first.id)", anchor: .top)
         } else if replies.messages.count > 4 {
@@ -247,6 +250,7 @@ struct ThreadView: View {
                 interactive: !message.isDeleted,
                 actions: replyActions(row, message)
             )
+            .accessibilityFocused($focusedEntry, equals: entry.id)
             .padding(.top, first ? 0 : (continuation ? 6 : 16))
         case .pending(let pending, let continuation):
             let row = ChatRows.row(pending, me: me)

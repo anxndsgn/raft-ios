@@ -66,6 +66,8 @@ struct ChatView: View {
     @State private var showsBanner = false
     @State private var showsSpinner = false
     @State private var didFocus = false
+    /// VoiceOver lands on the message the conversation opened at (29c).
+    @AccessibilityFocusState private var focusedEntry: String?
     @State private var pickingPhotos = false
     @State private var photoItems: [PhotosPickerItem] = []
     @State private var takingPhoto = false
@@ -228,6 +230,7 @@ struct ChatView: View {
         try? await Task.sleep(for: .milliseconds(120))
         position.scrollTo(id: "m:\(focus)", anchor: .center)
         interactions.flash("m:\(focus)")
+        focusedEntry = "m:\(focus)"
     }
 
     // MARK: Title (§2.12, 10)
@@ -395,6 +398,7 @@ struct ChatView: View {
                 interactive: !message.isDeleted,
                 actions: actions(for: row)
             )
+            .accessibilityFocused($focusedEntry, equals: entry.id)
             .padding(.top, continuation ? 6 : 16)
         case .pending(let pending, let continuation):
             let row = ChatRows.row(pending, me: me)

@@ -207,6 +207,8 @@ struct RouteView: View {
         case .channelMembers(let channelId):
             ChannelMembersView(channelId: channelId)
                 .toolbar(.hidden, for: .tabBar)
+        case .messageSearch:
+            MessageSearchDestination()
         }
     }
 }

@@ -398,10 +398,12 @@ struct AgentProfile: Sendable, Hashable, Decodable, Identifiable {
     /// `online`, `working`, `thinking`, `offline`, ... (orchestrator activity).
     var activity: String?
     var status: String?
+    /// Set on a deleted agent: `GET agents` still lists them (status `inactive`).
+    var deletedAt: String?
 
-    private enum CodingKeys: String, CodingKey { case id, name, displayName, avatarUrl, runtime, activity, status }
+    private enum CodingKeys: String, CodingKey { case id, name, displayName, avatarUrl, runtime, activity, status, deletedAt }
 
-    init(id: String, name: String, displayName: String? = nil, avatarUrl: String? = nil, runtime: String? = nil, activity: String? = nil, status: String? = nil) {
+    init(id: String, name: String, displayName: String? = nil, avatarUrl: String? = nil, runtime: String? = nil, activity: String? = nil, status: String? = nil, deletedAt: String? = nil) {
         self.id = id
         self.name = name
         self.displayName = displayName
@@ -409,6 +411,7 @@ struct AgentProfile: Sendable, Hashable, Decodable, Identifiable {
         self.runtime = runtime
         self.activity = activity
         self.status = status
+        self.deletedAt = deletedAt
     }
 
     init(from decoder: Decoder) throws {
@@ -420,7 +423,11 @@ struct AgentProfile: Sendable, Hashable, Decodable, Identifiable {
         runtime = c.lenient(.runtime)
         activity = c.lenient(.activity)
         status = c.lenient(.status)
+        deletedAt = c.lenient(.deletedAt)
     }
+
+    /// Deleted (kept in `GET agents` for old messages): not someone to message or mention.
+    var isDeleted: Bool { !(deletedAt ?? "").isEmpty || status == "deleted" }
 
     var visibleName: String {
         if let displayName, !displayName.isEmpty { return displayName }

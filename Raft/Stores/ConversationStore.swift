@@ -156,7 +156,16 @@ final class ConversationStore {
 
     /// The newest page, or the window around `focusMessageId` when it is not in that page.
     func start(focusMessageId: String? = nil) async {
-        if phase == .loaded, focusMessageId == nil { return }
+        if phase == .loaded, focusMessageId == nil {
+            // A plain open of a held store: an earlier focus (flashed then) is not shown again.
+            self.focusMessageId = nil
+            return
+        }
+        // Already on screen (a held store, live through the socket): no reload, just focus it.
+        if phase == .loaded, let focusMessageId, message(id: focusMessageId) != nil {
+            self.focusMessageId = focusMessageId
+            return
+        }
         await loadLatest()
         if let focusMessageId, message(id: focusMessageId) == nil {
             await loadAround(messageId: focusMessageId)
@@ -192,7 +201,7 @@ final class ConversationStore {
             messages = Self.sorted(page.messages)
             hasOlder = page.hasOlder
             historyLimited = page.historyLimited
-            absorbThreads([:], from: page.messages)
+            absorbThreads(page.threadSummariesByParentMessageId, from: page.messages)
             isDetached = page.hasNewer
             focusMessageId = messageId
             phase = .loaded

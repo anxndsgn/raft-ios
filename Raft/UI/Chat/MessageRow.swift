@@ -136,6 +136,7 @@ struct MessageRowView: View {
     var actions = MessageRowActions()
 
     @State private var frameBox = FrameBox()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -173,11 +174,13 @@ struct MessageRowView: View {
         }
         .padding(.horizontal, horizontalPadding)
         .background {
+            // The located message (29c): full width, 8pt past the row above and below; on at
+            // once, faded out over 0.8s (gone at once with Reduce Motion).
             Rectangle()
-                .fill(Color.raftHighlight)
-                .padding(.vertical, -5)
+                .fill(Color.raftYellow.opacity(0.22))
+                .padding(.vertical, -8)
                 .opacity(highlighted ? 1 : 0)
-                .animation(.easeOut(duration: 0.6), value: highlighted)
+                .animation(highlighted || reduceMotion ? nil : .easeOut(duration: 0.8), value: highlighted)
         }
         .contentShape(Rectangle())
         .onGeometryChange(for: CGRect.self) { proxy in

@@ -63,13 +63,23 @@ final class MessageInteractions {
         showsFailureDetail = true
     }
 
-    /// Highlights the focused message, fading after 1.5s (Activity → message).
+    /// Highlights the focused message (search, Activity → message): held 1.2s, then the row
+    /// fades it out over 0.8s (at once with Reduce Motion, `MessageRowView`).
     func flash(_ entryId: String) {
         highlightedId = entryId
         Task { [weak self] in
-            try? await Task.sleep(for: .seconds(1.5))
+            try? await Task.sleep(for: Self.flashHold)
+            guard self?.highlightedId == entryId else { return }
             self?.highlightedId = nil
         }
+    }
+
+    private static var flashHold: Duration {
+        #if DEBUG
+        // The design review screenshot of 29c needs the flash on screen.
+        if PreviewGallery.screen == "29c" { return .seconds(600) }
+        #endif
+        return .milliseconds(1200)
     }
 }
 

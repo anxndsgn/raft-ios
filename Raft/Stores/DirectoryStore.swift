@@ -45,6 +45,24 @@ final class DirectoryStore {
         loaded = true
     }
 
+    /// Both lists in parallel, applied together only when both arrive (New message, 28: people
+    /// and agents must not appear one list after the other). Throws the first failure.
+    func reloadPeople() async throws {
+        guard let api else { return }
+        let serverId = self.serverId
+        async let agentsResult = captureResult { try await api.agents() }
+        async let membersResult = captureResult { try await api.members(serverId: serverId) }
+        let (loadedAgents, loadedMembers) = await (agentsResult, membersResult)
+        let agentList = try loadedAgents.get()
+        let memberList = try loadedMembers.get()
+        agents = Dictionary(agentList.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        members = Dictionary(memberList.map { ($0.userId, $0) }, uniquingKeysWith: { first, _ in first })
+        loaded = true
+    }
+
+    /// People and agents are held (from an earlier load).
+    var hasPeople: Bool { !agents.isEmpty || !members.isEmpty }
+
     func agent(_ id: String) -> AgentProfile? { agents[id] }
 
     /// The avatar of a message's sender.

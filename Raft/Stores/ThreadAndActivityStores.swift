@@ -33,7 +33,8 @@ final class ThreadStore {
 
     @ObservationIgnored private let api: RaftAPI
     @ObservationIgnored private let preferences: AppPreferences
-    @ObservationIgnored private let focusMessageId: String?
+    /// The reply to open at; taken by `start()`.
+    @ObservationIgnored private var focusMessageId: String?
     /// Builds the replies store (the workspace registers it for live events).
     @ObservationIgnored private let makeReplies: @MainActor (_ threadChannelId: String, _ parentMessageId: String) -> ConversationStore?
     @ObservationIgnored var joiner: (any RealtimeChannelJoining)?
@@ -59,7 +60,13 @@ final class ThreadStore {
     /// Loads the parent when not given, finds the thread channel, loads the newest replies and
     /// joins the thread's socket room (replies under a public parent are broadcast there).
     func start() async {
-        guard phase != .loaded else { return }
+        guard phase != .loaded else {
+            // Held from an earlier visit: at the reply it is opened for now, if any.
+            let focus = focusMessageId
+            focusMessageId = nil
+            await replies?.start(focusMessageId: focus)
+            return
+        }
         phase = .loading
         if parent == nil {
             do {
@@ -81,9 +88,15 @@ final class ThreadStore {
         }
         if let threadChannelId, let store = attachReplies(threadChannelId) {
             await store.start(focusMessageId: focusMessageId)
+            focusMessageId = nil
             await join(threadChannelId)
         }
         phase = .loaded
+    }
+
+    /// Opened again while held: at `messageId` when one is given (a search result, 29c).
+    func reopen(at messageId: String?) {
+        if let messageId { focusMessageId = messageId }
     }
 
     func stop() async {

@@ -9,6 +9,10 @@ struct HomeView: View {
     @State private var layout: HomeLayout?
     @State private var showsBanner = false
     @State private var showsSkeleton = false
+    /// New message (28), from the Direct messages header (06d).
+    @State private var showsNewMessage = false
+    /// The search button the search page zooms out of (06e).
+    @Namespace private var searchZoom
 
     private var list: ChannelListStore { workspace.channelList }
     private var extras: HomeExtrasStore { workspace.homeExtras }
@@ -36,7 +40,11 @@ struct HomeView: View {
             await extras.load()
             relayout()
         }
-        .onAppear { relayout() }
+        .onAppear {
+            relayout()
+            MessageSearchZoom.namespace = searchZoom
+        }
+        .newMessageSheet(isPresented: $showsNewMessage)
         .onChange(of: list.phase) { relayout() }
         .onChange(of: rowIdentity) { relayout(keepUnread: true) }
         .task(id: workspace.isOffline) {
@@ -163,8 +171,11 @@ struct HomeView: View {
                 .accessibilityHint(Text(L10n.f("ios_browse_hint", "Find and join channels in %1$@", server?.name ?? "")))
                 .accessibilityIdentifier("home-browse-channels")
             }
+            // Shown without rows too: it holds the New message button (06d).
+            SectionHeader(title: L10n.t("home_section_direct_messages", "Direct messages"), count: dmRows.isEmpty ? nil : dmRows.count) {
+                NewMessageButton { showsNewMessage = true }
+            }
             if !dmRows.isEmpty {
-                SectionHeader(title: L10n.t("home_section_direct_messages", "Direct messages"), count: dmRows.count)
                 RaftGroupCard {
                     ForEach(Array(dmRows.enumerated()), id: \.element.id) { index, row in
                         if index > 0 { RowDivider(inset: 61) }
@@ -334,6 +345,7 @@ struct HomeView: View {
             }
         }
         .sharedBackgroundVisibility(.hidden)
+        HomeSearchToolbarItems(namespace: searchZoom, serverName: server?.name ?? "")
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 Picker(selection: Binding(
