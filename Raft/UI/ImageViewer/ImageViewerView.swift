@@ -80,7 +80,7 @@ struct ImageViewerView: View {
         .accessibilityAction(.escape) { close() }
         .sensoryFeedback(.success, trigger: successTick)
         .sensoryFeedback(.error, trigger: errorTick)
-        .alert(L10n.t("ios_photos_denied_title", "Allow Raft to add photos?"), isPresented: $showsDeniedAlert) {
+        .alert(L10n.t("ios_photos_denied_title", "Allow Raft to save photos?"), isPresented: $showsDeniedAlert) {
             Button(L10n.t("common_cancel", "Cancel"), role: .cancel) {}
             Button(L10n.t("common_open_settings", "Open Settings")) {
                 if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }

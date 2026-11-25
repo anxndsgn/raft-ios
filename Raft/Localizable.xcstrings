@@ -761,7 +761,7 @@
       }
     },
     "common_retry" : {
-      "comment" : "gen-strings: Raft/UI/Browse/BrowseChannelsView.swift:334, Raft/UI/Browse/BrowseChannelsView.swift:350, Raft/UI/Chat/MessageImages.swift:193",
+      "comment" : "gen-strings: Raft/UI/Browse/BrowseChannelsView.swift:334, Raft/UI/Browse/BrowseChannelsView.swift:350, Raft/UI/Chat/MessageImages.swift:215",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -977,7 +977,7 @@
       }
     },
     "image_lightbox_counter" : {
-      "comment" : "gen-strings: Raft/UI/Chat/MessageImages.swift:207, Raft/UI/ImageViewer/ImageViewerView.swift:161, Raft/UI/ImageViewer/ImageViewerView.swift:341",
+      "comment" : "gen-strings: Raft/UI/Chat/MessageImages.swift:229, Raft/UI/ImageViewer/ImageViewerView.swift:161, Raft/UI/ImageViewer/ImageViewerView.swift:341",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1895,7 +1895,7 @@
       }
     },
     "ios_image" : {
-      "comment" : "gen-strings: Raft/UI/Chat/MessageImages.swift:208, Raft/UI/ImageViewer/ImageViewerView.swift:160",
+      "comment" : "gen-strings: Raft/UI/Chat/MessageImages.swift:230, Raft/UI/ImageViewer/ImageViewerView.swift:160",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1913,7 +1913,7 @@
       }
     },
     "ios_image_open_hint" : {
-      "comment" : "gen-strings: Raft/UI/Chat/MessageImages.swift:193",
+      "comment" : "gen-strings: Raft/UI/Chat/MessageImages.swift:215",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1931,7 +1931,7 @@
       }
     },
     "ios_image_overflow" : {
-      "comment" : "gen-strings: Raft/UI/Chat/MessageImages.swift:173",
+      "comment" : "gen-strings: Raft/UI/Chat/MessageImages.swift:195",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2747,13 +2747,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Allow Raft to add photos?"
+            "value" : "Allow Raft to save photos?"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "允许 Raft 添加照片？"
+            "value" : "允许 Raft 保存照片？"
           }
         }
       }
@@ -2849,7 +2849,7 @@
       }
     },
     "ios_saved_empty_detail" : {
-      "comment" : "gen-strings: Raft/UI/Saved/SavedView.swift:367",
+      "comment" : "gen-strings: Raft/UI/Saved/SavedView.swift:369",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2867,7 +2867,7 @@
       }
     },
     "ios_saved_empty_title" : {
-      "comment" : "gen-strings: Raft/UI/Saved/SavedView.swift:362",
+      "comment" : "gen-strings: Raft/UI/Saved/SavedView.swift:364",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -4949,7 +4949,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法移除收藏的消息"
+            "value" : "无法取消收藏，请重试。"
           }
         }
       }
@@ -4985,7 +4985,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请在“设置”中允许访问照片，然后重试。"
+            "value" : "请在“设置”中允许 Raft 保存照片，然后重试。"
           }
         }
       }
@@ -5003,7 +5003,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此设备限制了照片访问。"
+            "value" : "此设备不允许 Raft 保存照片。"
           }
         }
       }
