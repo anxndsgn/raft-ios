@@ -3403,6 +3403,24 @@
         }
       }
     },
+    "ios_settings_appearance" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:210",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appearance"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "外观"
+          }
+        }
+      }
+    },
     "ios_settings_device_notifications" : {
       "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:134",
       "extractionState" : "manual",
@@ -3435,6 +3453,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "发送反馈"
+          }
+        }
+      }
+    },
+    "ios_settings_text_size" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:414",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Message text size"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "消息字号"
           }
         }
       }
@@ -3489,6 +3525,96 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@，切换服务器"
+          }
+        }
+      }
+    },
+    "ios_text_size_footer" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:447",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changes the text in messages. It adds to your iPhone’s Text Size setting."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "调整消息正文的字号，会在 iPhone「文字大小」的基础上再放大或缩小。"
+          }
+        }
+      }
+    },
+    "ios_text_size_large" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageTextSize.swift:34",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Large"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "大"
+          }
+        }
+      }
+    },
+    "ios_text_size_medium" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageTextSize.swift:33",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medium"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中"
+          }
+        }
+      }
+    },
+    "ios_text_size_preview" : {
+      "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:464",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "@Joy #proj-uiux The new design looks great — trying it locally with `git pull`."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "@Joy #proj-uiux 新设计很棒 — 正在 `git pull` 本地试用。"
+          }
+        }
+      }
+    },
+    "ios_text_size_small" : {
+      "comment" : "gen-strings: Raft/UI/Chat/MessageTextSize.swift:32",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Small"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "小"
           }
         }
       }

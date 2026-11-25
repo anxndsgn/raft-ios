@@ -71,13 +71,17 @@ struct MessageText: View {
     var mentions: [MessageMention] = []
     var currentUserId: String?
     var channelNames: Set<String> = []
-    var font: RaftFont = .body
+    /// Nil: the message body at the Settings text size (`MessageTextSize`).
+    var font: RaftFont?
     var color: Color = .raftTextPrimary
     var lineLimit: Int?
 
     @Environment(\.colorScheme) private var scheme
+    @AppStorage(MessageTextSize.storageKey) private var level: MessageTextSize = defaultMessageTextSize
+    @ScaledMetric(relativeTo: .body) private var scaledBody: CGFloat = 17
 
     var body: some View {
+        let font = self.font ?? level.bodyFont(scale: scaledBody / 17)
         MessageTextBuilder(content: content, mentions: mentions, currentUserId: currentUserId, channelNames: channelNames, font: font, color: color)
             .text
             .lineSpacing(font.lineSpacing)
@@ -98,7 +102,8 @@ struct MessageTextBuilder {
     /// channels and `@you` render as plain text there; pills only appear in the chat body.
     var pills: Bool = true
 
-    /// Mono pills (code, `#482`): 13pt next to 17pt body text.
+    /// Mono pills (code, `#482`): 13pt next to 17pt body text, in step with the text size level.
+    /// `font.size` is the unscaled level size; the pills' `relativeTo` adds Dynamic Type.
     private var monoSize: CGFloat { font.size * 13 / 17 }
     /// Grotesk pills (`@you`, `#channel`): 15pt next to 17pt body text.
     private var chipSize: CGFloat { font.size * 15 / 17 }

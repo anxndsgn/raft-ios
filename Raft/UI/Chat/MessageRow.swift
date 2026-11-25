@@ -312,7 +312,7 @@ struct MessageRowView: View {
         switch row.state {
         case .deleted:
             Text(L10n.t("ios_message_deleted", "This message was deleted."))
-                .raftFont(.body)
+                .messageFont()
                 .foregroundStyle(Color.raftTextTertiary)
         default:
             if !row.text.isEmpty {

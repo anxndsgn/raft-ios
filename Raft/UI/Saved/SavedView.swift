@@ -321,7 +321,7 @@ struct SavedRow: View {
                         Text(L10n.t("saved_state_no_preview", "No preview")).foregroundStyle(Color.raftTextTertiary)
                     }
                 }
-                .font(.subheadline)
+                .messageFont(.snippet)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, alignment: .leading)

@@ -84,14 +84,22 @@ struct RaftFont: Sendable {
     var tracking: CGFloat = 0
     var relativeTo: Font.TextStyle
     var family: Family = .grotesk
+    /// System face only: draw it at `size × systemScale` (a Dynamic Type factor from
+    /// `@ScaledMetric(relativeTo:)`) instead of the text style's own size — the message text
+    /// size levels (`MessageTextSize`).
+    var systemScale: CGFloat?
 
     var font: Font {
-        family == .system ? Font.system(relativeTo) : Font.custom(name, size: size, relativeTo: relativeTo)
+        guard family == .system else { return Font.custom(name, size: size, relativeTo: relativeTo) }
+        if let systemScale { return Font.system(size: size * systemScale) }
+        return Font.system(relativeTo)
     }
 
     /// The same face at another weight (bold mentions inside body text).
     func weighted(_ weight: Font.Weight, groteskName: String) -> Font {
-        family == .system ? Font.system(relativeTo, weight: weight) : Font.custom(groteskName, size: size, relativeTo: relativeTo)
+        guard family == .system else { return Font.custom(groteskName, size: size, relativeTo: relativeTo) }
+        if let systemScale { return Font.system(size: size * systemScale, weight: weight) }
+        return Font.system(relativeTo, weight: weight)
     }
 
     /// `target − natural` line height (Space Grotesk 1.276×, Space Mono 1.481×); none when negative

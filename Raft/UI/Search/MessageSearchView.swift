@@ -423,7 +423,7 @@ struct MessageResultRow: View {
                             .textRenderer(SearchHitRenderer(fill: Color.raftYellow.opacity(scheme == .dark ? 0.30 : 0.45)))
                     }
                 }
-                .raftFont(.preview)
+                .messageFont(.snippet)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
