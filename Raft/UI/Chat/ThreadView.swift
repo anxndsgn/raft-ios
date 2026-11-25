@@ -181,8 +181,16 @@ struct ThreadView: View {
             // 29c: hidden until it has landed, then shown with the highlight on (as ChatView).
             let id = "m:\(focus)"
             landing = true
+            targetFrame = nil
             landingTarget = id
-            await AnchoredLanding.land(on: id, position: $position, geometry: { geometry }, target: { targetFrame })
+            await AnchoredLanding.land(
+                on: id,
+                present: replyEntries(messages: replies.messages, pending: replies.pending).contains { $0.id == id },
+                resting: .top,
+                position: $position,
+                geometry: { geometry },
+                target: { targetFrame }
+            )
             landingTarget = nil
             landing = false
             interactions.flash(id)
@@ -257,7 +265,9 @@ struct ThreadView: View {
         case .date(let text):
             DateLine(text: text).padding(.top, first ? 0 : 16)
         case .system(let message):
-            SystemMessageRow(message: message).padding(.top, first ? 0 : 16)
+            SystemMessageRow(message: message)
+                .landingFrame(landingTarget == entry.id) { targetFrame = $0 }
+                .padding(.top, first ? 0 : 16)
         case .message(let message, let continuation):
             let row = ChatRows.row(message, directory: workspace.directory, currentUserId: workspace.currentUserId, thread: nil)
             MessageRowView(

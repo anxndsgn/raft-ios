@@ -64,10 +64,13 @@ struct StreamGeometry: Equatable {
         contentHeight = geometry.contentSize.height
     }
 
+    /// The largest visible-top content y: the content's end at the bottom of the visible area.
+    var maxTop: CGFloat { max(contentHeight - visible, 0) }
+
     /// The visible-top content y that centres `frame`, kept inside the scrollable range.
     func centring(_ frame: CGRect) -> CGFloat {
         let wanted = frame.midY - visible / 2
-        return min(max(wanted, 0), max(contentHeight - visible, 0))
+        return min(max(wanted, 0), maxTop)
     }
 }
 
@@ -76,25 +79,64 @@ struct StreamGeometry: Equatable {
 /// top or the bottom). The last step is an offset, not "this id at the centre": an id-based
 /// position is resolved again on later layout passes (the flash ending was one), and with the
 /// estimated sizes of lazy rows that moved the content 60–70pt past its end and back.
+///
+/// The landing always ends, by `deadline` at the latest: a target that is not in the stream, or
+/// whose frame is never reported, lands on the stream's resting edge instead (still as an offset).
+/// Left on the id, a short stream could stay scrolled out of sight until the user scrolled.
 @MainActor
 enum AnchoredLanding {
     static let space = "anchored-stream"
+    /// How long the target row has to report its frame before the stream is shown anyway.
+    static let deadline: Duration = .milliseconds(300)
+
+    /// The final position.
+    enum Step: Equatable {
+        /// A visible-top content y.
+        case offset(CGFloat)
+        /// No usable geometry yet: the edge the stream rests on.
+        case edge(Edge)
+    }
+
+    /// Where the stream ends up: the target centred (clamped to the content), else the resting
+    /// edge as an offset. Short content (shorter than the visible area) clamps to 0.
+    static func finalStep(frame: CGRect?, geometry: StreamGeometry, resting: Edge) -> Step {
+        guard geometry.visible > 0 else { return .edge(resting) }
+        if let frame { return .offset(geometry.centring(frame)) }
+        return .offset(resting == .top ? 0 : geometry.maxTop)
+    }
 
     static func land(
         on entryId: String,
+        present: Bool,
+        resting: Edge,
         position: Binding<ScrollPosition>,
         geometry: () -> StreamGeometry,
         target: () -> CGRect?
     ) async {
+        func apply(_ step: Step) {
+            switch step {
+            case .offset(let y): position.wrappedValue.scrollTo(y: y)
+            case .edge(let edge): position.wrappedValue.scrollTo(edge: edge)
+            }
+        }
+        // Not loaded (another page, or not a row of this stream): nothing to wait for.
+        guard present else {
+            apply(finalStep(frame: nil, geometry: geometry(), resting: resting))
+            try? await Task.sleep(for: .milliseconds(50))
+            return
+        }
+        let clock = ContinuousClock()
+        let start = clock.now
         position.wrappedValue.scrollTo(id: entryId, anchor: .center)
         // Two layout passes: the lazy rows around the target are measured.
         try? await Task.sleep(for: .milliseconds(100))
         position.wrappedValue.scrollTo(id: entryId, anchor: .center)
         try? await Task.sleep(for: .milliseconds(60))
-        guard let frame = target() else { return }
-        let y = geometry().centring(frame)
+        while target() == nil, clock.now - start < deadline, !Task.isCancelled {
+            try? await Task.sleep(for: .milliseconds(20))
+        }
         // Always, even when already there: the position then holds an offset, not the id.
-        position.wrappedValue.scrollTo(y: y)
+        apply(finalStep(frame: target(), geometry: geometry(), resting: resting))
         try? await Task.sleep(for: .milliseconds(50))
     }
 }
@@ -302,8 +344,16 @@ struct ChatView: View {
         didFocus = true
         let id = "m:\(focus)"
         landing = true
+        targetFrame = nil
         landingTarget = id
-        await AnchoredLanding.land(on: id, position: $position, geometry: { geometry }, target: { targetFrame })
+        await AnchoredLanding.land(
+            on: id,
+            present: entries.contains { $0.id == id },
+            resting: .bottom,
+            position: $position,
+            geometry: { geometry },
+            target: { targetFrame }
+        )
         landingTarget = nil
         // Shown with the highlight on: the 1.2s hold counts from here, when the row is on screen.
         landing = false
@@ -469,7 +519,9 @@ struct ChatView: View {
         case .date(let text):
             DateLine(text: text).padding(.top, 16)
         case .system(let message):
-            SystemMessageRow(message: message).padding(.top, 16)
+            SystemMessageRow(message: message)
+                .landingFrame(landingTarget == entry.id) { targetFrame = $0 }
+                .padding(.top, 16)
         case .message(let message, let continuation):
             let row = ChatRows.row(message, directory: workspace.directory, currentUserId: store.currentUserId, thread: store.threads[message.id])
             MessageRowView(
