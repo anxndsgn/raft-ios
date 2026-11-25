@@ -94,6 +94,14 @@ final class ConversationStore {
         }
     }
 
+    /// A channel this person has not joined, opened from Browse: shown read-only, never marked
+    /// read. Joining turns it off (and reads what is on screen).
+    var isPreview = false {
+        didSet {
+            if !isPreview && oldValue { scheduleMarkRead() }
+        }
+    }
+
     @ObservationIgnored let currentUserId: String
     @ObservationIgnored private let api: RaftAPI
     @ObservationIgnored private let preferences: AppPreferences
@@ -462,14 +470,14 @@ final class ConversationStore {
     // MARK: Read receipts
 
     func scheduleMarkRead() {
-        guard isVisible, !preferences.readOnly else { return }
+        guard isVisible, !isPreview, !preferences.readOnly else { return }
         markReadCoalescer.schedule { [weak self] in await self?.markReadIfNeeded() }
     }
 
     /// `POST channels/{id}/read { seq }` up to the newest message, when visible, attached to the
     /// live tail and not read-only.
     func markReadIfNeeded() async {
-        guard isVisible, !preferences.readOnly, !isDetached, !markingRead else { return }
+        guard isVisible, !isPreview, !preferences.readOnly, !isDetached, !markingRead else { return }
         guard let newest = newestSeq, newest > (lastReadSeq ?? 0) else { return }
         markingRead = true
         defer { markingRead = false }

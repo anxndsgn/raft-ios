@@ -48,6 +48,38 @@ struct RaftAPI: Sendable {
         try await client.send(.json("POST", "channels/\(Self.segment(channelId))/read", body: Body(seq: seq)))
     }
 
+    /// `POST channels/{id}/join` (no body). The answer is `{ ok }`; anything but `ok: true` is a
+    /// failure (the old app's `WireOkResponse` defaults `ok` to false).
+    func joinChannel(id: String) async throws {
+        let response = try await client.send(.post("channels/\(Self.segment(id))/join"))
+        try Self.requireOk(response, path: "channels/{id}/join")
+    }
+
+    /// `POST channels/{id}/leave` (no body), `{ ok }` as `joinChannel`.
+    func leaveChannel(id: String) async throws {
+        let response = try await client.send(.post("channels/\(Self.segment(id))/leave"))
+        try Self.requireOk(response, path: "channels/{id}/leave")
+    }
+
+    /// `GET channels/{id}/members`: the channel's people and agents.
+    func channelMembers(channelId: String) async throws -> [ChannelMember] {
+        try await client.send(.get("channels/\(Self.segment(channelId))/members"), as: ChannelRoster.self).members
+    }
+
+    /// `PATCH channels/{id}/notification-settings { activityMuted }` (the old app's channel mute).
+    /// Returns the muted state the server answered with (the request's when it says nothing).
+    @discardableResult
+    func setChannelActivityMuted(channelId: String, muted: Bool) async throws -> Bool {
+        let response = try await client.send(.json("PATCH", "channels/\(Self.segment(channelId))/notification-settings", body: ["activityMuted": muted]))
+        return JSONValue.parse(response.data)?.objectValue?["activityMuted"]?.boolValue ?? muted
+    }
+
+    static func requireOk(_ response: HTTPResponse, path: String) throws {
+        guard JSONValue.parse(response.data)?.objectValue?["ok"]?.boolValue == true else {
+            throw APIError.decoding(path: path, detail: "ok was not true", traceId: response.traceId)
+        }
+    }
+
     func inbox(filter: String? = nil, limit: Int = 30, offset: Int = 0) async throws -> InboxPage {
         var query = [URLQueryItem(name: "limit", value: String(limit)), URLQueryItem(name: "offset", value: String(offset))]
         if let filter { query.insert(URLQueryItem(name: "filter", value: filter), at: 0) }

@@ -20,6 +20,8 @@ struct ThreadView: View {
     @State private var photoItems: [PhotosPickerItem] = []
     @State private var importingFiles = false
     @State private var sendTick = 0
+    @State private var joinFlow = ChannelJoinFlow()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var replies: ConversationStore? { store.replies }
 
@@ -33,6 +35,9 @@ struct ThreadView: View {
     }
 
     private var parentIsDirectMessage: Bool { workspace.channelList.isDirectMessage(store.parentChannelId) }
+    /// A thread of a previewed channel (§11 26): read-only, Join bar instead of the composer.
+    private var isPreview: Bool { workspace.channelList.isPreview(store.parentChannelId) }
+    private var parentChannelName: String { workspace.channelList.channel(id: store.parentChannelId)?.name ?? store.title }
 
     /// A DM parent shows the person or agent. Opened from Activity or Saved, `store.title` is the
     /// server's internal DM channel name (a handle), so prefer the DM row's peer name.
@@ -95,6 +100,7 @@ struct ThreadView: View {
         .background(Color.raftCanvas.ignoresSafeArea())
         .raftNavigationTitle(L10n.t("thread_reply_title", "Thread"), subtitle: subtitle)
         .toolbar {
+            if !isPreview {
             ToolbarItem(placement: .topBarTrailing) {
                 let following = store.isFollowing == true
                 Button {
@@ -104,6 +110,7 @@ struct ThreadView: View {
                 }
                 .accessibilityLabel(Text(following ? L10n.t("thread_action_unfollow_thread", "Unfollow thread") : L10n.t("thread_action_follow_thread", "Follow thread")))
                 .accessibilityIdentifier("thread-follow")
+            }
             }
         }
         .safeAreaBar(edge: .bottom) { composerBar }
@@ -118,6 +125,9 @@ struct ThreadView: View {
             if case .success(let urls) = result { addFiles(AttachmentImport.load(urls)) }
         }
         .sensoryFeedback(.impact(weight: .light), trigger: sendTick)
+        .sensoryFeedback(.impact(weight: .light), trigger: joinFlow.tapTick)
+        .sensoryFeedback(.success, trigger: joinFlow.successTick)
+        .sensoryFeedback(.error, trigger: joinFlow.errorTick)
         // The keyboard and the composer's collapse/expand change the bottom inset together;
         // the bottom anchor can overshoot past the last message. Re-pin when it was at the bottom.
         .onChange(of: composerFocused) {
@@ -191,7 +201,7 @@ struct ThreadView: View {
         case .loaded:
             if let parent = store.parent {
                 let row = ChatRows.row(parent, directory: workspace.directory, currentUserId: workspace.currentUserId, thread: nil)
-                MessageRowView(row: row, context: context, interactive: !parent.isDeleted, actions: parentActions(row, parent))
+                MessageRowView(row: row, context: context, showsAddReaction: !isPreview, interactive: !parent.isDeleted, actions: parentActions(row, parent))
                     .padding(.top, 12)
             }
             DateLine(text: countText, strong: true)
@@ -232,6 +242,7 @@ struct ThreadView: View {
                 row: row,
                 context: context,
                 continuation: continuation,
+                showsAddReaction: !isPreview,
                 highlighted: interactions.highlightedId == entry.id,
                 interactive: !message.isDeleted,
                 actions: replyActions(row, message)
@@ -277,9 +288,10 @@ struct ThreadView: View {
                 pickFiles: { importingFiles = true },
                 retryUpload: { id in
                     composer.retryUpload(id, channelId: uploadChannelId, api: workspace.api, readOnly: model.preferences.readOnly)
-                }
+                },
+                join: isPreview ? joinFlow.bar(channelId: store.parentChannelId, name: parentChannelName, workspace: workspace, reduceMotion: reduceMotion) : nil
             )
-            .disabled(store.phase != .loaded)
+            .disabled(store.phase != .loaded && !isPreview)
         }
         .padding(.horizontal, 10)
         .padding(.bottom, composerFocused ? 8 : -8)
@@ -342,7 +354,18 @@ struct ThreadView: View {
         }
     }
 
+    /// Preview: chips do nothing, long press offers Copy text / Copy link.
+    private func previewActions(_ row: MessageRowModel, _ message: Message, isReply: Bool) -> MessageRowActions {
+        var actions = MessageRowActions()
+        actions.openAttachment = { open($0) }
+        actions.copyText = { copy(row.plainText) }
+        actions.copyLink = { copyLink(message, isReply: isReply) }
+        actions.longPress = { frame in lift(row, message, frame: frame, isReply: isReply) }
+        return actions
+    }
+
     private func parentActions(_ row: MessageRowModel, _ message: Message) -> MessageRowActions {
+        if isPreview { return previewActions(row, message, isReply: false) }
         var actions = MessageRowActions()
         actions.toggleReaction = { emoji in react(message.id, emoji) }
         actions.addReaction = { interactions.pickEmoji(for: message.id) }
@@ -355,6 +378,7 @@ struct ThreadView: View {
     }
 
     private func replyActions(_ row: MessageRowModel, _ message: Message) -> MessageRowActions {
+        if isPreview { return previewActions(row, message, isReply: true) }
         var actions = MessageRowActions()
         actions.toggleReaction = { emoji in react(message.id, emoji) }
         actions.addReaction = { interactions.pickEmoji(for: message.id) }
@@ -405,16 +429,17 @@ struct ThreadView: View {
 
     private func lift(_ row: MessageRowModel, _ message: Message, frame: CGRect, isReply: Bool) {
         composerFocused = false
-        let items = [
+        var items = [
             MessageMenuItem(id: "copy", title: L10n.t("file_preview_action_copy_text", "Copy text"), systemImage: "doc.on.doc") { copy(row.plainText) },
             MessageMenuItem(id: "react", title: L10n.t("thread_action_add_reaction", "Add reaction"), systemImage: "face.smiling") { interactions.pickEmoji(for: message.id) },
             MessageMenuItem(id: "link", title: L10n.t("thread_action_copy_link", "Copy link"), systemImage: "link") { copyLink(message, isReply: isReply) },
         ]
+        if isPreview { items.removeAll { $0.id == "react" } }
         interactions.present(MessageActionTarget(
             row: row,
             frame: frame,
             context: context,
-            reactionsEnabled: true,
+            reactionsEnabled: !isPreview,
             items: items,
             react: { emoji in react(message.id, emoji) },
             moreReactions: { interactions.pickEmoji(for: message.id) }

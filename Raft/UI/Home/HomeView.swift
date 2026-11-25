@@ -148,14 +148,20 @@ struct HomeView: View {
                 }
                 unreadCards
             }
-            if !channelRows.isEmpty {
-                SectionHeader(title: L10n.t("home_section_channels", "Channels"), count: channelRows.count)
-                RaftGroupCard {
-                    ForEach(Array(channelRows.enumerated()), id: \.element.id) { index, row in
-                        if index > 0 { RowDivider(inset: 53) }
-                        rowButton(row) { ChannelRowView(row: row) }
-                    }
+            // Always shown: Browse channels is its last row, even with no channel joined (06c).
+            SectionHeader(title: L10n.t("home_section_channels", "Channels"), count: channelRows.count)
+            RaftGroupCard {
+                ForEach(Array(channelRows.enumerated()), id: \.element.id) { index, row in
+                    if index > 0 { RowDivider(inset: 53) }
+                    rowButton(row) { ChannelRowView(row: row) }
                 }
+                if !channelRows.isEmpty { RowDivider(inset: 53) }
+                NavigationLink(value: AppRoute.browseChannels) {
+                    BrowseEntryRow()
+                }
+                .buttonStyle(RowButtonStyle())
+                .accessibilityHint(Text(L10n.f("ios_browse_hint", "Find and join channels in %1$@", server?.name ?? "")))
+                .accessibilityIdentifier("home-browse-channels")
             }
             if !dmRows.isEmpty {
                 SectionHeader(title: L10n.t("home_section_direct_messages", "Direct messages"), count: dmRows.count)
@@ -164,11 +170,6 @@ struct HomeView: View {
                         if index > 0 { RowDivider(inset: 61) }
                         rowButton(row) { DMRowView(row: row, persona: persona(for: row), selfNames: selfNames) }
                     }
-                }
-            }
-            if unreadRows.isEmpty && channelRows.isEmpty && dmRows.isEmpty {
-                EmptyStateView(title: L10n.t("home_section_empty", "No conversations"), top: 72) {
-                    ChannelTile(large: true)
                 }
             }
             Color.clear.frame(height: 24)

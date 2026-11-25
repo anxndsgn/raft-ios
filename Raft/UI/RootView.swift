@@ -199,6 +199,14 @@ struct RouteView: View {
             ServerPickerView(showsBack: true)
         case .saved:
             SavedView()
+        case .browseChannels:
+            BrowseChannelsView()
+        case .channelInfo(let channelId):
+            ChannelInfoView(channelId: channelId)
+                .toolbar(.hidden, for: .tabBar)
+        case .channelMembers(let channelId):
+            ChannelMembersView(channelId: channelId)
+                .toolbar(.hidden, for: .tabBar)
         }
     }
 }

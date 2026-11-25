@@ -94,6 +94,8 @@ final class ChannelListStore {
     private(set) var lastLoadedAt: Date?
     /// The unread summary failed or came back stale; counts may lag.
     private(set) var unreadIsStale = false
+    /// Member counts read from `channels/{id}/members` (list rows do not carry one).
+    private(set) var memberCounts: [String: Int] = [:]
 
     @ObservationIgnored let serverId: String
     @ObservationIgnored let currentUserId: String
@@ -101,6 +103,8 @@ final class ChannelListStore {
     @ObservationIgnored let unreadRefresh = Coalescer(delay: .seconds(2))
     @ObservationIgnored let dmRefresh = Coalescer(delay: .milliseconds(300))
     @ObservationIgnored private var refreshing = false
+    @ObservationIgnored private var countingMembers: Set<String> = []
+    @ObservationIgnored private var membersInFlight = 0
 
     init(api: RaftAPI, serverId: String, currentUserId: String) {
         self.api = api
@@ -387,12 +391,125 @@ final class ChannelListStore {
             scheduleDirectMessageRefresh()
             return
         }
+        var channel = channel
         if let index = channels.firstIndex(where: { $0.id == channel.id }) {
+            // `channel:updated` carries the stored row: no `joined`, no counts. Keep what is known.
+            let held = channels[index]
+            if channel.joinedField == nil { channel.joined = held.joined }
+            channel.memberCount = channel.memberCount ?? held.memberCount
+            channel.createdById = channel.createdById ?? held.createdById
+            channel.createdByName = channel.createdByName ?? held.createdByName
+            channel.createdAt = channel.createdAt ?? held.createdAt
             channels[index] = channel
         } else {
+            // A row the list did not hold and that does not say it is joined is not shown in Home.
+            if channel.joinedField == nil { channel.joined = false }
             channels.append(channel)
         }
         seed(channel.id, version: channel.readStateVersion, maxReadSeq: channel.maxReadSeq)
+    }
+
+    // MARK: Browse channels (§11)
+
+    func channel(id: String) -> Channel? { channels.first { $0.id == id } }
+
+    /// An unjoined channel opened from Browse: the conversation is a read-only preview.
+    func isPreview(_ channelId: String) -> Bool {
+        guard let channel = channel(id: channelId) else { return false }
+        return !channel.joined && channel.isBrowsable
+    }
+
+    /// The count `channels/{id}/members` answered, else the row's own.
+    func memberCount(_ channelId: String) -> Int? {
+        memberCounts[channelId] ?? channel(id: channelId)?.memberCount
+    }
+
+    func noteMemberCount(_ channelId: String, _ count: Int) {
+        memberCounts[channelId] = count
+    }
+
+    /// Reads the member count of a channel once (Browse rows, the preview title).
+    func loadMemberCount(_ channelId: String) async {
+        guard memberCount(channelId) == nil, !countingMembers.contains(channelId) else { return }
+        countingMembers.insert(channelId)
+        defer { countingMembers.remove(channelId) }
+        // A few at a time: a long Browse list asks for each row's count.
+        while membersInFlight >= 4 {
+            try? await Task.sleep(for: .milliseconds(50))
+            if Task.isCancelled { return }
+        }
+        membersInFlight += 1
+        defer { membersInFlight -= 1 }
+        if let members = try? await api.channelMembers(channelId: channelId) {
+            memberCounts[channelId] = members.count
+        }
+    }
+
+    /// Joined here (after `POST channels/{id}/join`): the channel moves to Home and to Joined.
+    func noteJoined(_ channelId: String) {
+        guard let index = channels.firstIndex(where: { $0.id == channelId }) else { return }
+        guard !channels[index].joined else { return }
+        channels[index].joined = true
+        channels[index].joinedField = true
+        if let count = memberCounts[channelId] ?? channels[index].memberCount { memberCounts[channelId] = count + 1 }
+    }
+
+    /// Left here (after `POST channels/{id}/leave`): gone from Home and Unread; a public channel
+    /// goes back to Not joined, a private one disappears.
+    func noteLeft(_ channelId: String) {
+        guard let index = channels.firstIndex(where: { $0.id == channelId }) else { return }
+        if channels[index].isPrivate {
+            channels.remove(at: index)
+            memberCounts[channelId] = nil
+        } else {
+            channels[index].joined = false
+            channels[index].joinedField = false
+            if let count = memberCounts[channelId] ?? channels[index].memberCount { memberCounts[channelId] = max(0, count - 1) }
+        }
+        unread[channelId] = ScopeUnread(readStateVersion: unread[channelId]?.readStateVersion)
+        threadUnread[channelId] = nil
+    }
+
+    /// Activity mute, set here (optimistic) or rolled back.
+    func setActivityMuted(_ channelId: String, _ muted: Bool) {
+        guard let index = channels.firstIndex(where: { $0.id == channelId }) else { return }
+        channels[index].activityMuted = muted
+    }
+
+    /// Browse's two groups for `query`.
+    func browseGroups(query: String) -> BrowseGroups {
+        BrowseGroups.make(channels, query: query)
+    }
+}
+
+/// Browse channels (§11 25): unjoined public channels and joined ones, each by name, filtered
+/// by a case-insensitive substring of the name.
+struct BrowseGroups: Equatable, Sendable {
+    var notJoined: [Channel]
+    var joined: [Channel]
+
+    var isEmpty: Bool { notJoined.isEmpty && joined.isEmpty }
+
+    static func make(_ channels: [Channel], query: String) -> BrowseGroups {
+        let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let listed = channels
+            .filter { $0.isBrowsable && !$0.isArchived }
+            .filter { needle.isEmpty || matchRange(in: $0.name, query: needle) != nil }
+            .sorted { lhs, rhs in
+                let order = lhs.name.caseInsensitiveCompare(rhs.name)
+                return order == .orderedSame ? lhs.id < rhs.id : order == .orderedAscending
+            }
+        return BrowseGroups(
+            notJoined: listed.filter { !$0.joined && !$0.isPrivate },
+            joined: listed.filter(\.joined)
+        )
+    }
+
+    /// Where `query` matches in `name` (case-insensitive), nil for no match or an empty query.
+    static func matchRange(in name: String, query: String) -> Range<String.Index>? {
+        let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !needle.isEmpty else { return nil }
+        return name.range(of: needle, options: [.caseInsensitive])
     }
 }
 

@@ -71,10 +71,15 @@ struct ChatView: View {
     @State private var takingPhoto = false
     @State private var importingFiles = false
     @State private var sendTick = 0
+    @State private var joinFlow = ChannelJoinFlow()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var isDirectMessage: Bool { store.kind == .directMessage }
     /// A task's conversation, opened from Activity: read-only, no threads or links.
     private var isTask: Bool { store.kind == .task }
+    /// An unjoined channel opened from Browse (§11 26): read-only, with the Join bar.
+    private var isPreview: Bool { store.kind == .channel && workspace.channelList.isPreview(store.channelId) }
+    private var memberCount: Int? { workspace.channelList.memberCount(store.channelId) }
 
     private var context: ChatContext {
         ChatContext(
@@ -153,6 +158,12 @@ struct ChatView: View {
                 if case .success(let urls) = result { addFiles(AttachmentImport.load(urls)) }
             }
             .sensoryFeedback(.impact(weight: .light), trigger: sendTick)
+            .sensoryFeedback(.impact(weight: .light), trigger: joinFlow.tapTick)
+            .sensoryFeedback(.success, trigger: joinFlow.successTick)
+            .sensoryFeedback(.error, trigger: joinFlow.errorTick)
+            .task(id: isPreview) {
+                if isPreview { await workspace.channelList.loadMemberCount(store.channelId) }
+            }
             .animation(showsBanner ? .easeOut(duration: 0.25) : .easeIn(duration: 0.2), value: showsBanner)
             // The keyboard and the composer's collapse/expand change the bottom inset together;
             // the bottom anchor can overshoot past the last message. Re-pin when it was at the bottom.
@@ -248,9 +259,34 @@ struct ChatView: View {
             }
             .accessibilityElement(children: .combine)
             .accessibilityAddTraits(.isHeader)
-        } else {
+        } else if isTask || isDirectMessage {
             NavTitle(title: store.title, hashPrefix: !isDirectMessage, subtitle: isDirectMessage ? nil : (ref.subtitle ?? topic))
+        } else {
+            // A channel: the title opens Channel info (§11 27).
+            Button {
+                model.push(.channelInfo(store.channelId))
+            } label: {
+                NavTitle(title: store.title, hashPrefix: true, subtitle: channelSubtitle)
+                    .contentTransition(.numericText())
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(verbatim: "# \(store.title), " + L10n.t("ios_channel_info_title", "Channel info")))
+            .accessibilityHint(Text(L10n.t("ios_channel_info_hint", "Shows channel details")))
+            .accessibilityAddTraits(.isHeader)
+            .accessibilityIdentifier("chat-title")
         }
+    }
+
+    /// Preview: "Preview · 18 members"; just joined here: "19 members"; else the topic.
+    private var channelSubtitle: String? {
+        if isPreview {
+            guard let memberCount else { return L10n.t("ios_channel_preview_label", "Preview") }
+            return L10n.f("ios_channel_preview_subtitle", "Preview · %1$d members", memberCount)
+        }
+        if joinFlow.joinedHere, let memberCount { return MemberCountText.text(memberCount) }
+        return ref.subtitle ?? topic ?? memberCount.map(MemberCountText.text)
     }
 
     private func dmSubtitle(_ peer: Persona) -> String? {
@@ -323,11 +359,21 @@ struct ChatView: View {
                 ForEach(entries) { entry in
                     entryView(entry)
                 }
+                if joinFlow.joinedHere {
+                    JoinedSystemLine(name: store.title)
+                        .padding(.top, 16)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
                 if !store.typingAgentIds.isEmpty {
                     TypingRow(personas: store.typingAgentIds.map { workspace.directory.persona(type: "agent", id: $0, name: nil) })
                         .padding(.top, 6)
                         .transition(.opacity)
                 }
+            }
+            if isEmpty && joinFlow.joinedHere {
+                JoinedSystemLine(name: store.title)
+                    .padding(.top, 16)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
     }
@@ -344,6 +390,7 @@ struct ChatView: View {
                 row: row,
                 context: context,
                 continuation: continuation,
+                showsAddReaction: !isPreview,
                 highlighted: interactions.highlightedId == entry.id,
                 interactive: !message.isDeleted,
                 actions: actions(for: row)
@@ -418,7 +465,8 @@ struct ChatView: View {
                 pickFiles: { importingFiles = true },
                 retryUpload: { id in
                     composer.retryUpload(id, channelId: store.channelId, api: workspace.api, readOnly: model.preferences.readOnly)
-                }
+                },
+                join: isPreview ? joinFlow.bar(channelId: store.channelId, name: store.title, workspace: workspace, reduceMotion: reduceMotion) : nil
             )
             }
         }
@@ -464,7 +512,14 @@ struct ChatView: View {
 
     private func actions(for row: MessageRowModel) -> MessageRowActions {
         var actions = MessageRowActions()
-        if let message = row.message {
+        if let message = row.message, isPreview {
+            // Preview (§11 26): read-only. Chips do nothing; long press offers Copy text / link.
+            actions.openThread = { openThread(message) }
+            actions.copyLink = { copyLink(message) }
+            actions.openAttachment = { open($0) }
+            actions.copyText = { copy(row.plainText) }
+            actions.longPress = { frame in lift(row, message: message, frame: frame) }
+        } else if let message = row.message {
             actions.toggleReaction = { emoji in react(message.id, emoji) }
             actions.addReaction = { interactions.pickEmoji(for: message.id) }
             if !isTask {
@@ -492,11 +547,12 @@ struct ChatView: View {
             MessageMenuItem(id: "link", title: L10n.t("thread_action_copy_link", "Copy link"), systemImage: "link") { copyLink(message) },
         ]
         if isTask { items.removeAll { $0.id == "reply" || $0.id == "link" } }
+        if isPreview { items.removeAll { $0.id == "reply" || $0.id == "react" } }
         interactions.present(MessageActionTarget(
             row: row,
             frame: frame,
             context: context,
-            reactionsEnabled: true,
+            reactionsEnabled: !isPreview,
             items: items,
             react: { emoji in react(message.id, emoji) },
             moreReactions: { interactions.pickEmoji(for: message.id) }

@@ -325,7 +325,7 @@ struct ChannelTile: View {
             .overlay(RoundedRectangle(cornerRadius: 4, style: .continuous).strokeBorder(Color.raftInk, lineWidth: 1.5))
             .overlay {
                 Image(systemName: isPrivate ? "lock.fill" : "number")
-                    .font(.system(size: large ? 30 : (isPrivate ? 13 : 14), weight: .bold))
+                    .font(.system(size: large ? (isPrivate ? 26 : 30) : (isPrivate ? 13 : 14), weight: .bold))
                     .foregroundStyle(Color.raftInk)
             }
             .frame(width: size, height: size)

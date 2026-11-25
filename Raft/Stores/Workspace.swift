@@ -144,6 +144,8 @@ final class Workspace {
         if let store = conversations[ref.channelId] {
             touch(ref.channelId, in: &conversationOrder)
             if !ref.title.isEmpty { store.title = ref.title }
+            let preview = channelList.isPreview(ref.channelId)
+            if store.isPreview != preview { store.isPreview = preview }
             return store
         }
         let lastRead = ref.lastReadSeq ?? channelList.row(id: ref.channelId)?.maxReadSeq
@@ -156,6 +158,7 @@ final class Workspace {
             api: api,
             preferences: preferences
         )
+        store.isPreview = channelList.isPreview(ref.channelId)
         register(store)
         return store
     }
@@ -167,7 +170,7 @@ final class Workspace {
             return store
         }
         let store = ThreadStore(ref: ref, api: api, preferences: preferences) { [weak self] threadChannelId, parentMessageId in
-            self?.threadReplies(threadChannelId: threadChannelId, parentMessageId: parentMessageId, title: ref.title)
+            self?.threadReplies(threadChannelId: threadChannelId, parentMessageId: parentMessageId, title: ref.title, parentChannelId: ref.parentChannelId)
         }
         store.joiner = realtime
         threads[ref.parentMessageId] = store
@@ -176,8 +179,12 @@ final class Workspace {
         return store
     }
 
-    private func threadReplies(threadChannelId: String, parentMessageId: String, title: String) -> ConversationStore {
-        if let store = conversations[threadChannelId] { return store }
+    private func threadReplies(threadChannelId: String, parentMessageId: String, title: String, parentChannelId: String) -> ConversationStore {
+        if let store = conversations[threadChannelId] {
+            let preview = channelList.isPreview(parentChannelId)
+            if store.isPreview != preview { store.isPreview = preview }
+            return store
+        }
         let store = ConversationStore(
             channelId: threadChannelId,
             kind: .thread,
@@ -187,9 +194,37 @@ final class Workspace {
             api: api,
             preferences: preferences
         )
+        store.isPreview = channelList.isPreview(parentChannelId)
         register(store)
         return store
     }
+
+    /// After a join: the channel's open stores (and its threads') are no longer previews.
+    func endPreview(channelId: String) {
+        conversations[channelId]?.isPreview = false
+        for store in threads.values where store.parentChannelId == channelId {
+            store.replies?.isPreview = false
+        }
+    }
+
+    /// After a leave: drops the channel's conversation and thread stores (pending sends with them).
+    func forgetConversation(channelId: String) {
+        var dropped: Set<String> = [channelId]
+        for (key, store) in threads where store.parentChannelId == channelId {
+            if let replies = store.replies { dropped.insert(replies.channelId) }
+            threads[key] = nil
+        }
+        threadOrder.removeAll { threads[$0] == nil }
+        for id in dropped {
+            conversations[id]?.isVisible = false
+            conversations[id] = nil
+        }
+        conversationOrder.removeAll { dropped.contains($0) }
+    }
+
+    /// Joins and leaves this socket's room for a channel (after a REST join or leave).
+    func joinRoom(_ channelId: String) async { await realtime?.joinChannel(channelId) }
+    func leaveRoom(_ channelId: String) async { await realtime?.leaveChannel(channelId) }
 
     private func register(_ store: ConversationStore) {
         store.onRead = { [weak self] channelId, seq in

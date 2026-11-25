@@ -155,6 +155,15 @@ final class AppModel {
         }
     }
 
+    /// Back to the current tab's root (after leaving a channel).
+    func popToRoot() {
+        switch tab {
+        case .home: homePath.removeAll()
+        case .activity: activityPath.removeAll()
+        case .settings: settingsPath.removeAll()
+        }
+    }
+
     func selectServer(_ id: String) async {
         guard id != servers.selectedServerId else {
             servers.sessionStore.acknowledgeServerChoice()

@@ -580,6 +580,42 @@
         }
       }
     },
+    "channel_settings_leave" : {
+      "comment" : "gen-strings: Raft/UI/Browse/ChannelInfoView.swift:92, Raft/UI/Browse/ChannelInfoView.swift:264, Raft/UI/Browse/ChannelInfoView.swift:274",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave channel"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "离开频道"
+          }
+        }
+      }
+    },
+    "channel_settings_members" : {
+      "comment" : "gen-strings: Raft/UI/Browse/ChannelInfoView.swift:182, Raft/UI/Browse/ChannelInfoView.swift:206, Raft/UI/Browse/ChannelInfoView.swift:378",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Members"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "成员"
+          }
+        }
+      }
+    },
     "common_cancel" : {
       "comment" : "gen-strings: Raft/UI/Settings/SettingsView.swift:78",
       "extractionState" : "manual",
@@ -1318,6 +1354,150 @@
         }
       }
     },
+    "ios_browse_empty_detail" : {
+      "comment" : "gen-strings: Raft/UI/Browse/BrowseChannelsView.swift:270",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check the spelling or ask an admin to add you."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请检查拼写，或请管理员将你加入。"
+          }
+        }
+      }
+    },
+    "ios_browse_empty_title" : {
+      "comment" : "gen-strings: Raft/UI/Browse/BrowseChannelsView.swift:96, Raft/UI/Browse/BrowseChannelsView.swift:264",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No channels match “%1$@”"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有与“%1$@”匹配的频道"
+          }
+        }
+      }
+    },
+    "ios_browse_hint" : {
+      "comment" : "gen-strings: Raft/UI/Home/HomeView.swift:163",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find and join channels in %1$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查找并加入 %1$@ 中的频道"
+          }
+        }
+      }
+    },
+    "ios_browse_hint_open" : {
+      "comment" : "gen-strings: Raft/UI/Browse/BrowseChannelsView.swift:227",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open channel"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开频道"
+          }
+        }
+      }
+    },
+    "ios_browse_hint_preview" : {
+      "comment" : "gen-strings: Raft/UI/Browse/BrowseChannelsView.swift:227",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview channel"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "预览频道"
+          }
+        }
+      }
+    },
+    "ios_browse_joined" : {
+      "comment" : "gen-strings: Raft/UI/Browse/BrowseChannelsView.swift:126, Raft/UI/Browse/BrowseChannelsView.swift:208, Raft/UI/Browse/BrowseChannelsView.swift:236",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Joined"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已加入"
+          }
+        }
+      }
+    },
+    "ios_browse_load_failed" : {
+      "comment" : "gen-strings: Raft/UI/Browse/BrowseChannelsView.swift:105",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t load channels."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法加载频道。"
+          }
+        }
+      }
+    },
+    "ios_browse_title" : {
+      "comment" : "gen-strings: Raft/UI/Browse/BrowseChannelsView.swift:23, Raft/UI/Browse/BrowseChannelsView.swift:37, Raft/UI/Browse/BrowseChannelsView.swift:65",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browse channels"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "浏览频道"
+          }
+        }
+      }
+    },
     "ios_browser_hint" : {
       "comment" : "gen-strings: Raft/UI/Auth/AuthViews.swift:188",
       "extractionState" : "manual",
@@ -1368,6 +1548,150 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "这是 #%1$@ 的开始"
+          }
+        }
+      }
+    },
+    "ios_channel_info_created" : {
+      "comment" : "gen-strings: Raft/UI/Browse/ChannelInfoView.swift:148",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Created by %1$@ · %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "由 %1$@ 创建 · %2$@"
+          }
+        }
+      }
+    },
+    "ios_channel_info_hint" : {
+      "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:276",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows channel details"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示频道详情"
+          }
+        }
+      }
+    },
+    "ios_channel_info_members_failed" : {
+      "comment" : "gen-strings: Raft/UI/Browse/ChannelInfoView.swift:212, Raft/UI/Browse/ChannelInfoView.swift:371",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t load members."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法加载成员。"
+          }
+        }
+      }
+    },
+    "ios_channel_info_mute" : {
+      "comment" : "gen-strings: Raft/UI/Browse/ChannelInfoView.swift:170",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mute channel"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "静音频道"
+          }
+        }
+      }
+    },
+    "ios_channel_info_see_all" : {
+      "comment" : "gen-strings: Raft/UI/Browse/ChannelInfoView.swift:227",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See all %1$d"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看全部 %1$d 位"
+          }
+        }
+      }
+    },
+    "ios_channel_info_title" : {
+      "comment" : "gen-strings: Raft/UI/Browse/ChannelInfoView.swift:86, Raft/UI/Chat/ChatView.swift:275",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Channel info"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "频道信息"
+          }
+        }
+      }
+    },
+    "ios_channel_preview_label" : {
+      "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:285",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "预览"
+          }
+        }
+      }
+    },
+    "ios_channel_preview_subtitle" : {
+      "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:286",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview · %1$d members"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "预览 · %1$d 位成员"
           }
         }
       }
@@ -1498,6 +1822,114 @@
         }
       }
     },
+    "ios_join_announce" : {
+      "comment" : "gen-strings: Raft/UI/Browse/ChannelJoin.swift:35",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Joined %1$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已加入 %1$@"
+          }
+        }
+      }
+    },
+    "ios_join_failed" : {
+      "comment" : "gen-strings: Raft/UI/Browse/ChannelJoin.swift:40, Raft/UI/Chat/Composer.swift:280",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t join. Try again."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法加入，请重试。"
+          }
+        }
+      }
+    },
+    "ios_join_hint" : {
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:296",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join %1$@ to send messages"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加入 %1$@ 后即可发送消息"
+          }
+        }
+      }
+    },
+    "ios_join_loading" : {
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:297",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Joining"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在加入"
+          }
+        }
+      }
+    },
+    "ios_join_previewing" : {
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:285",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You’re previewing %1$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你正在预览 %1$@"
+          }
+        }
+      }
+    },
+    "ios_join_system_line" : {
+      "comment" : "gen-strings: Raft/UI/Browse/ChannelJoin.swift:58",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You joined %1$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你加入了 %1$@"
+          }
+        }
+      }
+    },
     "ios_jump_to_latest" : {
       "comment" : "gen-strings: Raft/UI/Chat/ChatView.swift:389",
       "extractionState" : "manual",
@@ -1512,6 +1944,78 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "跳到最新"
+          }
+        }
+      }
+    },
+    "ios_leave_confirm_private" : {
+      "comment" : "gen-strings: Raft/UI/Browse/ChannelInfoView.swift:96",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You’ll need an invite to rejoin this private channel."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这是私有频道，离开后需要邀请才能重新加入。"
+          }
+        }
+      }
+    },
+    "ios_leave_confirm_public" : {
+      "comment" : "gen-strings: Raft/UI/Browse/ChannelInfoView.swift:97",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can rejoin from Browse channels anytime."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你可以随时在“浏览频道”中重新加入。"
+          }
+        }
+      }
+    },
+    "ios_leave_confirm_title" : {
+      "comment" : "gen-strings: Raft/UI/Browse/ChannelInfoView.swift:88",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave %1$@?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "离开 %1$@？"
+          }
+        }
+      }
+    },
+    "ios_leave_failed" : {
+      "comment" : "gen-strings: Raft/UI/Browse/ChannelInfoView.swift:291",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t leave. Try again."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法离开，请重试。"
           }
         }
       }
@@ -1566,6 +2070,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "标为已读"
+          }
+        }
+      }
+    },
+    "ios_members_search" : {
+      "comment" : "gen-strings: Raft/UI/Browse/ChannelInfoView.swift:396",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search members"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索成员"
           }
         }
       }
@@ -2326,6 +2848,42 @@
         }
       }
     },
+    "members_counts_members_one" : {
+      "comment" : "gen-strings: Raft/UI/Browse/BrowseChannelsView.swift:161",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d member"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d 位成员"
+          }
+        }
+      }
+    },
+    "members_counts_members_other" : {
+      "comment" : "gen-strings: Raft/UI/Browse/BrowseChannelsView.swift:162",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d members"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d 位成员"
+          }
+        }
+      }
+    },
     "push_preview_sender_only_mention" : {
       "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:375",
       "extractionState" : "manual",
@@ -2358,6 +2916,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暂无收藏的消息"
+          }
+        }
+      }
+    },
+    "search_not_joined" : {
+      "comment" : "gen-strings: Raft/UI/Browse/BrowseChannelsView.swift:122",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not joined"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未加入"
           }
         }
       }
@@ -2938,6 +3514,24 @@
         }
       }
     },
+    "tasks_search_channels" : {
+      "comment" : "gen-strings: Raft/UI/Browse/BrowseChannelsView.swift:66",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search channels"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索频道"
+          }
+        }
+      }
+    },
     "tasks_status_backlog" : {
       "comment" : "gen-strings: Raft/UI/Activity/ActivityView.swift:559",
       "extractionState" : "manual",
@@ -3096,6 +3690,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "关注消息列"
+          }
+        }
+      }
+    },
+    "thread_action_join_channel" : {
+      "comment" : "gen-strings: Raft/UI/Chat/Composer.swift:293, Raft/UI/Chat/Composer.swift:295",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join channel"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加入频道"
           }
         }
       }

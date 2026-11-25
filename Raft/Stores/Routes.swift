@@ -43,6 +43,12 @@ enum AppRoute: Hashable, Sendable {
     case servers
     /// Saved messages (Home's Saved chip).
     case saved
+    /// Browse channels (Home's last Channels row): join or preview the server's channels.
+    case browseChannels
+    /// Channel info (the chat title), by channel id.
+    case channelInfo(String)
+    /// A channel's full member list (Channel info › Members), by channel id.
+    case channelMembers(String)
 }
 
 enum AppTab: String, Hashable, CaseIterable, Sendable {

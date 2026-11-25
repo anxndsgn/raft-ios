@@ -148,6 +148,16 @@ final class ComposerModel {
 
 // MARK: Composer panel (§2.8)
 
+/// The Join panel that stands in for the composer while a channel is previewed (§11 26): it
+/// morphs into the collapsed composer once joined.
+struct ComposerJoin {
+    /// "#research".
+    var channelName: String
+    var isJoining = false
+    var failed = false
+    let join: () -> Void
+}
+
 struct ComposerPanel: View {
     enum Mode: Equatable {
         case channel(String)
@@ -165,6 +175,8 @@ struct ComposerPanel: View {
     var takePhoto: () -> Void = {}
     var pickFiles: () -> Void = {}
     var retryUpload: (UUID) -> Void = { _ in }
+    /// Set while the channel is previewed: the panel is the Join bar.
+    var join: ComposerJoin?
 
     private var placeholder: String {
         switch mode {
@@ -222,26 +234,69 @@ struct ComposerPanel: View {
 
     private var panel: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if expanded, !model.attachments.isEmpty {
-                AttachmentTray(model: model, retry: retryUpload)
-                    .padding(.bottom, 8)
-                    .transition(.opacity)
-            }
-            field
-            if expanded {
-                toolRow
-                    .transition(reduceMotion ? .opacity : .asymmetric(
-                        insertion: .opacity.animation(.easeOut(duration: 0.2).delay(0.08)),
-                        removal: .opacity.animation(.easeOut(duration: 0.1))
+            if let join {
+                joinContent(join)
+                    .transition(.opacity.animation(.easeOut(duration: 0.15)))
+            } else {
+                if expanded, !model.attachments.isEmpty {
+                    AttachmentTray(model: model, retry: retryUpload)
+                        .padding(.bottom, 8)
+                        .transition(.opacity)
+                }
+                field
+                    // After a join the placeholder fades in as the bar settles into the capsule.
+                    .transition(.asymmetric(
+                        insertion: .opacity.animation(.easeOut(duration: 0.2).delay(reduceMotion ? 0 : 0.12)),
+                        removal: .opacity.animation(.easeOut(duration: 0.15))
                     ))
+                if expanded {
+                    toolRow
+                        .transition(reduceMotion ? .opacity : .asymmetric(
+                            insertion: .opacity.animation(.easeOut(duration: 0.2).delay(0.08)),
+                            removal: .opacity.animation(.easeOut(duration: 0.1))
+                        ))
+                }
             }
         }
-        .padding(expanded ? EdgeInsets(top: 10, leading: 16, bottom: 8, trailing: 10) : EdgeInsets(top: 0, leading: 18, bottom: 0, trailing: 18))
+        .padding(join != nil
+            ? EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12)
+            : (expanded ? EdgeInsets(top: 10, leading: 16, bottom: 8, trailing: 10) : EdgeInsets(top: 0, leading: 18, bottom: 0, trailing: 18)))
         .frame(minHeight: 48)
         .contentShape(.rect(cornerRadius: 24))
         // The whole capsule is the tap target (buttons inside keep their own taps).
-        .simultaneousGesture(TapGesture().onEnded { expandFromTap() })
-        .modifier(ComposerGlass(expanded: expanded, namespace: glass, reduceTransparency: reduceTransparency, dark: scheme == .dark))
+        .simultaneousGesture(TapGesture().onEnded { if join == nil { expandFromTap() } })
+        .modifier(ComposerGlass(expanded: expanded || join != nil, namespace: glass, reduceTransparency: reduceTransparency, dark: scheme == .dark))
+    }
+
+    /// 26: "You're previewing #name" (or the failure line) over Join channel.
+    private func joinContent(_ join: ComposerJoin) -> some View {
+        VStack(spacing: 10) {
+            Group {
+                if join.failed {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.circle")
+                            .font(.system(size: 13))
+                            .accessibilityHidden(true)
+                        Text(L10n.t("ios_join_failed", "Couldn’t join. Try again."))
+                            .font(.custom(RaftFont.semibold, size: 13, relativeTo: .footnote))
+                    }
+                    .foregroundStyle(Color.raftDanger)
+                } else {
+                    Text(L10n.f("ios_join_previewing", "You’re previewing %1$@", join.channelName))
+                        .raftFont(.footnote)
+                        .foregroundStyle(Color.raftTextSecondary)
+                }
+            }
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .padding(.top, 2)
+            PrimaryButton(title: L10n.t("thread_action_join_channel", "Join channel"), isLoading: join.isJoining, action: join.join)
+                .disabled(join.isJoining)
+                .accessibilityLabel(Text(L10n.t("thread_action_join_channel", "Join channel")))
+                .accessibilityHint(Text(L10n.f("ios_join_hint", "Join %1$@ to send messages", join.channelName)))
+                .accessibilityValue(join.isJoining ? Text(L10n.t("ios_join_loading", "Joining")) : Text(verbatim: ""))
+                .accessibilityIdentifier("join-channel")
+        }
     }
 
     private var field: some View {

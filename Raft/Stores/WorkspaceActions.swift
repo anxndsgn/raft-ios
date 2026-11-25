@@ -61,4 +61,52 @@ extension Workspace {
             try await api.addReaction(messageId: message.id, emoji: emoji)
         }
     }
+
+    // MARK: Browse channels (§11)
+
+    /// `POST channels/{id}/join`, then the socket room; the channel moves to Home and Joined and
+    /// its open preview becomes the conversation.
+    /// `applying` wraps the local change (the screen animates it).
+    func joinChannel(_ channelId: String, applying: (() -> Void) -> Void = { $0() }) async throws {
+        guard !preferences.readOnly else { throw StoreError.readOnly }
+        try await api.joinChannel(id: channelId)
+        applying {
+            channelList.noteJoined(channelId)
+            endPreview(channelId: channelId)
+        }
+        await joinRoom(channelId)
+        channelList.scheduleUnreadRefresh()
+    }
+
+    /// `POST channels/{id}/leave`, then out of the socket room; gone from Home and Unread, its
+    /// conversation stores (and pending sends) dropped.
+    func leaveChannel(_ channelId: String) async throws {
+        guard !preferences.readOnly else { throw StoreError.readOnly }
+        try await api.leaveChannel(id: channelId)
+        await leaveRoom(channelId)
+        channelList.noteLeft(channelId)
+        forgetConversation(channelId: channelId)
+        activity.scheduleRefresh()
+    }
+
+    /// Channel info's Mute toggle: optimistic, rolled back when the server refuses.
+    func setChannelMuted(_ channelId: String, muted: Bool) async throws {
+        guard !preferences.readOnly else { throw StoreError.readOnly }
+        let before = channelList.channel(id: channelId)?.activityMuted ?? !muted
+        channelList.setActivityMuted(channelId, muted)
+        do {
+            let answered = try await api.setChannelActivityMuted(channelId: channelId, muted: muted)
+            channelList.setActivityMuted(channelId, answered)
+        } catch {
+            channelList.setActivityMuted(channelId, before)
+            throw error
+        }
+    }
+
+    /// The channel's members, creator first (and its member count noted).
+    func channelMembers(_ channelId: String) async throws -> [ChannelMember] {
+        let members = try await api.channelMembers(channelId: channelId)
+        channelList.noteMemberCount(channelId, members.count)
+        return ChannelMember.ordered(members, creatorId: channelList.channel(id: channelId)?.createdById)
+    }
 }
