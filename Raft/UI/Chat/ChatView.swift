@@ -452,9 +452,11 @@ struct ChatView: View {
         return ref.subtitle ?? topic ?? memberCount.map(MemberCountText.text)
     }
 
+    /// An agent: its runtime only ("Claude Code"); the dot by its name already shows presence
+    /// (5577). A person: the presence word ("Online").
     private func dmSubtitle(_ peer: Persona) -> String? {
-        let parts = [peer.kind == .agent ? peer.runtime : nil, peer.presence?.label].compactMap { $0 }
-        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+        if peer.kind == .agent { return peer.runtime }
+        return peer.presence?.label
     }
 
     // MARK: Stream (§2.6)

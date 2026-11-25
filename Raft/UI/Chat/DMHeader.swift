@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: 33a / 33b DM header: big avatar + name capsule
 
 /// The top of a DM's content (33a): the peer's 44pt avatar with a glass name capsule pressed
-/// into its bottom edge, and the "Claude Code · Online" line under it. Back and ⓘ stay in the
+/// into its bottom edge, and the "Claude Code" line under it. Back and ⓘ stay in the
 /// system navigation bar (which on Duo folded / unfolded landscape turns into the trailing
 /// vertical bar); this block is shown in `.safeAreaBar(edge: .top)` under that bar, so messages
 /// scroll under it.
@@ -27,7 +27,8 @@ struct DMHeaderBar: View {
     let peer: Persona
     /// "Ruby", or "XIN (you)" for a DM with yourself.
     let name: String
-    /// "Claude Code · Online" (agents), "Online" / "Away" (people); same string as the old title.
+    /// "Claude Code" (agents: the runtime only, presence is the dot by the name), "Online" /
+    /// "Away" (people).
     let subtitle: String?
     /// The DM info page (the same as the toolbar's ⓘ). `nil` while there is no such page (§10-2:
     /// entries without a target are hidden): then the avatar and capsule are not a button.
